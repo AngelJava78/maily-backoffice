@@ -26,6 +26,10 @@
 - Q: ¿Qué datos del usuario debe mostrar la pantalla de perfil? → A: Nombre, apellido paterno, apellido materno, correo electrónico, iniciales y roles activos.
 - Q: Cuando alguien se identifica pero no puede entrar (no está en la base de usuarios, no está activo, no tiene un role con acceso o la plataforma no respondió), ¿el mensaje que ve debe incluir el correo de la cuenta con la que se identificó? → A: Sí. Los mensajes de acceso denegado y de comprobación fallida muestran el correo de la cuenta con la que se identificó, además del motivo y los botones; no muestran el nombre ni el enlace al perfil.
 
+### Session 2026-10-18
+
+- Q: Con el control de acceso nuevo del servicio de usuarios (cada operación pide token y permiso), ¿cómo averigua el backoffice quién es la persona y qué puede hacer? → A: El servicio ofrece una consulta de la propia persona que exige solo un token válido y devuelve su usuario, sus roles activos y los permisos de cada role. El backoffice no usa las operaciones de lectura de usuarios y roles para resolver su acceso, porque exigirían permisos que la persona quizá no tiene, ni da esos permisos a todos los operadores.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Iniciar sesión y entrar al backoffice (Priority: P1)
@@ -114,7 +118,7 @@ El operador abre su perfil para ver con qué identidad y con qué roles está op
 
 **Acceptance Scenarios**:
 
-1. **Given** un operador con sesión activa, **When** abre su perfil desde cualquier pantalla, **Then** ve su nombre, su apellido paterno, su apellido materno (si lo tiene), su correo electrónico, sus iniciales y sus roles activos.
+1. **Given** un operador con sesión activa, **When** abre su perfil desde cualquier pantalla, **Then** ve su nombre, su apellido paterno, su apellido materno (o "—" si no lo tiene), su correo electrónico, sus iniciales y sus roles activos.
 2. **Given** el perfil abierto, **When** el operador busca la forma de editar sus datos, **Then** no existe: el perfil es de solo lectura.
 
 ---
@@ -142,8 +146,8 @@ El operador abre su perfil para ver con qué identidad y con qué roles está op
 - **FR-001**: El sistema DEBE exigir una sesión iniciada para acceder a cualquier sección del backoffice; la única pantalla accesible sin sesión es la pantalla de acceso.
 - **FR-002**: El sistema DEBE permitir iniciar sesión mediante el proveedor de identidad corporativo de MailySoft, sin que el backoffice reciba, muestre ni almacene contraseñas.
 - **FR-003**: Tras identificarse una persona, el sistema DEBE localizar su usuario en MailySoft mediante el identificador de su cuenta en el proveedor de identidad y obtener su estatus, sus roles activos y los permisos de esos roles, antes de mostrar cualquier contenido protegido.
-- **FR-004**: El sistema DEBE conceder el acceso solo si la persona tiene un usuario en MailySoft con estatus Activo y al menos un role activo entre Administrator, Developer, Marketing y Billing; en cualquier otro caso DEBE mostrar un mensaje de acceso denegado que indique el motivo (cuenta no registrada, cuenta no activa o ningún role con acceso) y el correo de la cuenta con la que la persona se identificó, y ofrecer cerrar sesión.
-- **FR-005**: Si el sistema no puede determinar el usuario, sus roles o sus permisos (por error o indisponibilidad de la plataforma), DEBE denegar el acceso, informar del problema, mostrar el correo de la cuenta con la que la persona se identificó y ofrecer reintentar o cerrar sesión. Si la plataforma no responde en la primera determinación del acceso (al iniciar sesión, al recargar o al reintentar), DEBE mostrar ese aviso como máximo 30 segundos después de iniciada la comprobación, contando los reintentos automáticos.
+- **FR-004**: El sistema DEBE conceder el acceso solo si la persona tiene un usuario en MailySoft con estatus Activo y al menos un role activo entre Administrator, Developer, Marketing y Billing; en cualquier otro caso DEBE mostrar un mensaje de acceso denegado que indique el motivo (cuenta no registrada, cuenta no activa o ningún role con acceso) y, si el proveedor de identidad lo entrega, el correo de la cuenta con la que la persona se identificó, y ofrecer cerrar sesión.
+- **FR-005**: Si el sistema no puede determinar el usuario, sus roles o sus permisos (por error o indisponibilidad de la plataforma), DEBE denegar el acceso, informar del problema, mostrar el correo de la cuenta con la que la persona se identificó (si el proveedor de identidad lo entrega) y ofrecer reintentar o cerrar sesión. Si la plataforma no responde en la primera determinación del acceso (al iniciar sesión, al recargar o al reintentar), DEBE mostrar ese aviso como máximo 30 segundos después de iniciada la comprobación, contando los reintentos automáticos.
 - **FR-006**: Mientras se verifica el acceso, el sistema DEBE mostrar un indicador de progreso y NO DEBE mostrar contenido protegido ni parcial.
 - **FR-007**: Tras un inicio de sesión exitoso, el sistema DEBE llevar al operador a la dirección que había solicitado originalmente o, si no hubo una, a la página principal.
 - **FR-008**: Todas las pantallas con acceso concedido DEBEN mostrar el nombre del operador (su nombre y su apellido paterno) y ofrecer cerrar sesión y abrir su perfil; las de acceso denegado y de comprobación fallida no muestran el nombre ni el perfil, solo lo que indican FR-004 y FR-005.
@@ -195,10 +199,10 @@ El operador abre su perfil para ver con qué identidad y con qué roles está op
 - Los roles autorizados son Administrator, Developer, Marketing y Billing, y deben existir en la plataforma; cualquier otro role no da acceso. Cuando exista el tipo de role (de sistema o de usuario), el acceso se decidirá por ese tipo en lugar de por esta lista: los roles de sistema entran al backoffice y los de usuario solo a la aplicación Front, que aún no existe y queda fuera de alcance.
 - Solo cuentan los roles activos y, de ellos, los autorizados: un role bloqueado o eliminado no concede acceso ni permisos aunque siga asignado, y los permisos de los roles no autorizados (por ejemplo, de un role pensado para la aplicación Front) no dan capacidades en el backoffice.
 - Los permisos de cada role los administra la plataforma, hoy mediante las operaciones del servicio de usuarios y no desde el backoffice. En los datos iniciales de la plataforma ningún role tiene permisos asignados, por lo que deben asignarse antes de que los operadores puedan usar las secciones.
-- Dependencia de seguridad: la plataforma debe verificar la identidad y los permisos en cada operación. Hoy el servicio de usuarios no controla el acceso, así que mientras no lo haga el backoffice solo oculta opciones y no es una barrera de seguridad.
+- Dependencia de seguridad: la plataforma verifica la identidad y los permisos en cada operación, así que el backoffice solo oculta opciones y no es una barrera de seguridad; además, debe manejar el rechazo de la plataforma (ver FR-014).
 - La duración máxima de la sesión, su renovación y las políticas de contraseña o verificación en dos pasos las define el proveedor de identidad; además, el backoffice cierra la sesión tras 15 minutos sin actividad (ver FR-020).
 - Recuperar la sesión sin intervención al recargar o abrir otra pestaña depende del navegador y no se garantiza en todos (ver Edge Cases). Evitar el clic extra exigiría un dominio propio del proveedor de identidad, que queda como mejora opcional de despliegue y fuera de alcance de esta feature.
 - El perfil es de solo lectura; editar datos personales o cambiar la contraseña se hace fuera del backoffice.
 - La interfaz está en español y se diseña y prueba para navegadores de escritorio actuales y tablet en horizontal (desde 1024 px de ancho); la experiencia móvil queda fuera de alcance, aunque en anchos menores el contenido se reacomoda (ver FR-022).
-- Dependencia: la plataforma de usuarios debe poder devolver el usuario correspondiente al identificador de la cuenta autenticada, con sus datos (nombre, apellidos, correo), su estatus, sus roles activos y los permisos de cada role.
+- Dependencia: la plataforma de usuarios debe ofrecer una consulta de la propia persona autenticada que exija solo un token válido (no un permiso concreto) y devuelva su usuario, con sus datos (nombre, apellidos, correo) y su estatus, sus roles activos y los permisos de cada role. Debe responder igual aunque la persona no tenga permiso para leer usuarios ni roles, y distinguir «no registrada» de «sin permisos».
 - Fuera de alcance: registro autónomo de cuentas, recuperación de contraseña, administración de roles y permisos, registro de auditoría de accesos y la aplicación Front para los roles de usuario.

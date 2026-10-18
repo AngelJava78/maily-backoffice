@@ -39,7 +39,7 @@ VITE_FEATURE_POSTMAN_TOKEN=false
 ## Servidor de desarrollo
 
 - Puerto fijo `5173` con `strictPort`, para que las URL registradas en Auth0 sigan siendo válidas.
-- Proxy `/proxy/users` → `USERS_API_PROXY_TARGET`, quitando el prefijo `/proxy/users`. Evita CORS (el servicio de usuarios no lo configura) y el *preflight* de la cabecera `Authorization`.
+- Proxy `/proxy/users` → `USERS_API_PROXY_TARGET`, quitando el prefijo `/proxy/users`. Evita CORS (el servicio de usuarios solo lo habilita si se configura `CORS_ALLOWED_ORIGINS`) y el *preflight* de la cabecera `Authorization`.
 
 ## Entornos desplegados
 

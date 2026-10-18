@@ -11,7 +11,7 @@ Muestra cómo comprobar de punta a punta que la feature cumple la spec. Las secc
 | Node.js y npm | Node 24 LTS (`.nvmrc`) y npm 11. |
 | Docker Desktop | Para el servicio de usuarios. |
 | Auth0 | Aplicación SPA y API creadas según [contracts/auth0-configuration.md](contracts/auth0-configuration.md), y las cuentas de prueba de la tabla de abajo. |
-| Servicio de usuarios | Repositorio `C:\maily\code\mailySoft-usuarios`. |
+| Servicio de usuarios | Repositorio `C:\maily\code\mailySoft-usuarios`, con su `.env` completo (`AUTH0_DOMAIN`, `AUTH0_AUDIENCE`, `AUTH0_MANAGEMENT_CLIENT_ID` y `AUTH0_MANAGEMENT_CLIENT_SECRET`; sin ellas no arranca) y la consulta `me` implementada ([contracts/users-service-me-request.md](contracts/users-service-me-request.md)). |
 
 ## 1. Levantar el servicio de usuarios
 
@@ -21,49 +21,64 @@ Copy-Item .env.example .env              # solo si todavía no existe
 docker compose up -d db
 docker compose run --rm migrate
 docker compose up -d api                 # http://localhost:8000 (documentación en /docs)
+# En su .env: AUTH0_DOMAIN y AUTH0_AUDIENCE iguales a VITE_AUTH0_DOMAIN y VITE_AUTH0_AUDIENCE de este proyecto,
+# más las credenciales de la aplicación Machine to Machine. El servicio no arranca si falta alguna.
 ```
 
 ## 2. Preparar los datos de prueba
 
-El role `Billing` no existe en los datos iniciales y ningún role trae permisos. Ajusta los identificadores de Auth0 (`auth0|...`) de tus cuentas de prueba:
+Con el control de acceso del servicio, `POST /api/v1/users` crea también la cuenta en Auth0 (y exige contraseña) y cada operación pide token y permiso. Por eso los datos de prueba se cargan con SQL sobre las cuentas que ya existen en Auth0. La primera persona administradora se carga siempre así (`project-definition/bootstrap_admin.sql` del servicio); el resto se puede cargar con una plantilla como esta, que guardas en un archivo local sin versionar (por ejemplo `scripts/local/seed-test-users.sql`, ya ignorado por git) con los `user_id` (`auth0|...`) de tus cuentas de prueba y sus correos:
+
+```sql
+BEGIN;
+
+INSERT INTO roles (name) VALUES ('Billing') ON CONFLICT DO NOTHING;   -- no viene en los datos iniciales
+
+INSERT INTO users (auth0_id, email, first_name, paternal_last_name, maternal_last_name) VALUES
+  ('auth0|ID-ADMIN',     'a1@ejemplo.com', 'Ana',   'Admin',     'Perez'),
+  ('auth0|ID-MARKETING', 'a2@ejemplo.com', 'Marta', 'Marketing', NULL),
+  ('auth0|ID-BILLING',   'a3@ejemplo.com', 'Beto',  'Billing',   NULL),
+  ('auth0|ID-DEV',       'a4@ejemplo.com', 'Dani',  'Developer', NULL),
+  ('auth0|ID-MULTI',     'a5@ejemplo.com', 'Mario', 'Multirol',  NULL),
+  ('auth0|ID-OWNER',     'a6@ejemplo.com', 'Olga',  'Owner',     NULL),
+  ('auth0|ID-BLOCKED',   'a7@ejemplo.com', 'Blas',  'Bloqueado', NULL),
+  ('auth0|ID-DELETED',   'a8@ejemplo.com', 'Dora',  'Eliminada', NULL)
+ON CONFLICT DO NOTHING;
+-- A9 no se inserta: existe en Auth0 pero no en la base de usuarios.
+
+UPDATE users SET status_id = 2 WHERE email = 'a7@ejemplo.com';   -- Bloqueado
+UPDATE users SET status_id = 3 WHERE email = 'a8@ejemplo.com';   -- Eliminado
+
+INSERT INTO user_roles (user_id, role_id)
+SELECT u.id, r.id
+FROM (VALUES
+  ('a1@ejemplo.com', 'Administrator'), ('a2@ejemplo.com', 'Marketing'), ('a3@ejemplo.com', 'Billing'),
+  ('a4@ejemplo.com', 'Developer'), ('a5@ejemplo.com', 'Marketing'), ('a5@ejemplo.com', 'Owner'),
+  ('a6@ejemplo.com', 'Owner'), ('a7@ejemplo.com', 'Administrator'), ('a8@ejemplo.com', 'Administrator')
+) AS m(email, role_name)
+JOIN users u ON u.email = m.email
+JOIN roles r ON r.name = m.role_name
+ON CONFLICT DO NOTHING;
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+JOIN permissions p ON (
+     (r.name = 'Administrator'
+        AND p.name ~ '^(users|roles|permissions|subscriptions|tenants):(read|write|update|delete)$')
+  OR (r.name = 'Marketing' AND p.name = 'tenants:read')
+  OR (r.name = 'Billing' AND p.name ~ '^subscriptions:(read|write|update|delete)$')
+)
+ON CONFLICT DO NOTHING;
+-- Developer y Owner quedan sin permisos a propósito (User Story 1, escenarios 6 y 7).
+
+COMMIT;
+```
+
+Se ejecuta desde la carpeta del servicio, con la base levantada y migrada:
 
 ```powershell
-$b = 'http://127.0.0.1:8000/api/v1'
-function Api($method, $path, $body) {
-  $p = @{ Uri = "$b$path"; Method = $method; ContentType = 'application/json' }
-  if ($body) { $p.Body = ($body | ConvertTo-Json) }
-  Invoke-RestMethod @p
-}
-
-# Role Billing (si falta) e índices por nombre
-if (-not (Api Get '/roles' | Where-Object name -eq 'Billing')) { Api Post '/roles' @{ name = 'Billing' } | Out-Null }
-$roleId = @{}; Api Get '/roles' | ForEach-Object { $roleId[$_.name] = $_.id }
-$permId = @{}; Api Get '/permissions' | ForEach-Object { $permId[$_.name] = $_.id }
-
-# Permisos por role (ejemplo para desarrollo)
-function Grant($role, $names) { foreach ($n in $names) { Api Post "/roles/$($roleId[$role])/permissions" @{ permission_id = $permId[$n] } | Out-Null } }
-$acts = 'read', 'write', 'update', 'delete'
-Grant 'Administrator' ($acts | ForEach-Object { "users:$_"; "subscriptions:$_"; "tenants:$_" })
-Grant 'Marketing' @('tenants:read')
-Grant 'Billing' ($acts | ForEach-Object { "subscriptions:$_" })
-# Developer queda sin permisos a propósito (User Story 1, escenario 6)
-
-# Usuarios de prueba
-function NewUser($auth0Id, $email, $first, $last, $roles) {
-  $u = Api Post '/users' @{ auth0_id = $auth0Id; email = $email; first_name = $first; paternal_last_name = $last }
-  foreach ($r in $roles) { Api Post "/users/$($u.id)/roles" @{ role_id = $roleId[$r] } | Out-Null }
-  $u
-}
-$a1 = NewUser 'auth0|ID-ADMIN'     'ana.admin@example.com'     'Ana'    'Admin'     @('Administrator')
-$a2 = NewUser 'auth0|ID-MARKETING' 'marta.mkt@example.com'     'Marta'  'Marketing' @('Marketing')
-$a3 = NewUser 'auth0|ID-BILLING'   'beto.billing@example.com'  'Beto'   'Billing'   @('Billing')
-$a4 = NewUser 'auth0|ID-DEV'       'dani.dev@example.com'      'Dani'   'Developer' @('Developer')
-$a5 = NewUser 'auth0|ID-MULTI'     'mario.multi@example.com'   'Mario'  'Multirol'  @('Marketing', 'Owner')
-$a6 = NewUser 'auth0|ID-OWNER'     'olga.owner@example.com'    'Olga'   'Owner'     @('Owner')
-$a7 = NewUser 'auth0|ID-BLOCKED'   'blas.blocked@example.com'  'Blas'   'Bloqueado' @('Administrator')
-$a8 = NewUser 'auth0|ID-DELETED'   'dora.deleted@example.com'  'Dora'   'Eliminada'  @('Administrator')
-Api Post "/users/$($a7.id)/block" | Out-Null
-Api Delete "/users/$($a8.id)" | Out-Null
+Get-Content <ruta del archivo .sql> -Raw | docker compose exec -T db psql -U postgres -d usuarios -v ON_ERROR_STOP=1 -f -
 ```
 
 | Cuenta | Usuario en MailySoft | Roles | Permisos que cuentan | Cubre |
@@ -99,7 +114,7 @@ npm run dev                              # http://localhost:5173 (puerto fijo)
 | V6 | US1-7 | Entrar con A5; abrir `/profile`. | Entra; el perfil lista sus dos roles activos. |
 | V7 | US2-1 a US2-4, SC-002 | Entrar con A9, A7, A8 y A6. | "Acceso denegado" con el motivo (no registrada, cuenta no activa, sin role con acceso), el correo de la cuenta con la que se identificó y opción de cerrar sesión; abrir `/` o `/profile` directamente repite el aviso. |
 | V8 | US2-5, FR-005 | `docker compose stop api` y entrar con A1. | "No se pudo comprobar el acceso" con el correo de la cuenta, Reintentar y Cerrar sesión; tras `docker compose start api`, Reintentar concede el acceso. |
-| V9 | US2-7, SC-009 | Con A1 dentro, bloquear su cuenta (`Api Post "/users/$($a1.id)/block"`) y cambiar de pestaña y volver (o esperar 5 minutos). | Deja de ver contenido protegido y aparece el acceso denegado (cuenta no activa); al desbloquear y volver a la pestaña recupera el acceso. |
+| V9 | US2-7, SC-009 | Con A1 dentro, bloquear su usuario en la base (`docker compose exec db psql -U postgres -d usuarios -c "UPDATE users SET status_id = 2 WHERE email = '<correo de A1>'"`, que no toca la cuenta de Auth0) y cambiar de pestaña y volver (o esperar 5 minutos). | Deja de ver contenido protegido y aparece el acceso denegado (cuenta no activa); al volver a poner `status_id = 1` y regresar a la pestaña recupera el acceso. |
 | V10 | US3-1 a US3-3, FR-010, FR-011, SC-003 | Cerrar sesión; pulsar Atrás; volver a "Iniciar sesión". | Pantalla de acceso; Atrás no muestra datos; Auth0 vuelve a pedir credenciales. |
 | V11 | US3-4 | Abrir dos pestañas con sesión y cerrar sesión en una. | La otra pasa de inmediato a la pantalla de acceso. |
 | V12 | US4-3 a US4-5, FR-020, SC-008 | Con sesión en `/profile`, no tocar nada 14 minutos; repetir una vez eligiendo "Continuar" y otra dejando pasar el minuto. | Aviso a los 14 minutos; "Continuar" reinicia el conteo; sin respuesta, a los 15 se cierra la sesión y se muestra `/access/idle` con el motivo; al identificarse de nuevo vuelve a `/profile`. |
@@ -133,5 +148,8 @@ npm run test:e2e                         # solo con entorno de pruebas de Auth0 
 | "Callback URL mismatch" | Falta `http://localhost:5173/callback` en Auth0 | Añadirla a *Allowed Callback URLs*. |
 | Tras cerrar sesión Auth0 muestra un error de URL | Falta `/access` o `/access/idle` en *Allowed Logout URLs* | Añadir ambas. |
 | Recargar siempre lleva a la pantalla de acceso | El navegador bloquea cookies de terceros | Esperado: "Iniciar sesión" vuelve sin pedir credenciales; mitigar con dominio personalizado de Auth0. |
-| La cuenta A1 entra pero no ve nada | Roles sin permisos asignados | Repetir el paso 2 (`Grant`). |
+| La cuenta A1 entra pero no ve nada | Roles sin permisos asignados | Repetir el paso 2 (permisos de los roles). |
 | `Billing` no autoriza | El role no existe en la plataforma | Crearlo (paso 2). |
+| Todas las llamadas al servicio dan 401 `invalid_token` | `AUTH0_DOMAIN` o `AUTH0_AUDIENCE` del servicio no coinciden con `VITE_AUTH0_DOMAIN` o `VITE_AUTH0_AUDIENCE`, o se envió un ID token | Igualar las variables y reiniciar el servicio. |
+| El servicio de usuarios no arranca | Falta alguna variable `AUTH0_*` obligatoria en su `.env` | Completarla; el registro nombra las que faltan. |
+| `/api/v1/authorization/me` responde 404 o 405 | La consulta `me` aún no está implementada en el servicio | Implementarla ([solicitud](contracts/users-service-me-request.md)); mientras tanto, solo las pruebas con MSW. |

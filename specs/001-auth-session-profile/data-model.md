@@ -32,25 +32,19 @@ Derivado: `displayName` (encabezado) = `firstName` + `paternalLastName`; `initia
 | `DELETED` | 3 | Denegado: cuenta no activa. |
 | cualquier otro id | n/a | Denegado: cuenta no activa. |
 
-### `Role` (feature `roles`)
+### `AccessRole` (feature `auth`)
+
+Un role activo de la persona con sus permisos activos, tal como los devuelve la consulta `me` ([contracts/users-service.md](contracts/users-service.md), M1). El servicio ya entrega solo roles y permisos activos. Los roles completos (descripción, estatus, fechas) y los permisos como entidad llegan con la feature que los administre.
 
 | Campo | Tipo | Origen (DTO) | Reglas |
 |---|---|---|---|
 | `id` | entero ≥ 1 | `id` | |
-| `name` | texto | `name` | La comparación con la lista de autorizados ignora mayúsculas y espacios. |
-| `description` | texto o nulo | `description` | |
-| `status` | `{ id, name }` | `status` | El servicio solo devuelve roles activos en los listados usados aquí. |
-| `createdAt` | fecha y hora | `created_at` | |
+| `name` | texto no vacío | `name` | La comparación con la lista de autorizados ignora mayúsculas y espacios. |
+| `permissions` | lista de texto `recurso:acción` | `permissions` | Cada nombre cumple `^[a-z][a-z0-9_]*:[a-z][a-z0-9_]*$` (lo impone el servicio); puede estar vacía. `acción` ∈ `read`, `write`, `update`, `delete` para las secciones de este producto. |
 
-### `Permission` (feature `roles`)
+### `MyAccess` (feature `auth`)
 
-| Campo | Tipo | Origen (DTO) | Reglas |
-|---|---|---|---|
-| `id` | entero ≥ 1 | `id` | |
-| `name` | texto `recurso:acción` | `name` | Patrón `^[a-z][a-z0-9_]*:[a-z][a-z0-9_]*$` (lo impone el servicio). |
-| `status` | `{ id, name }` | `status` | |
-
-Derivado: `PermissionKey` = `{ resource, action }` al separar el nombre por `:`; `action` ∈ `read`, `write`, `update`, `delete` para las secciones de este producto.
+La respuesta de la consulta `me` ya convertida al dominio: `user: PlatformUser | null` y `roles: AccessRole[]`. `user` nulo significa persona no registrada; con un usuario no activo el servicio devuelve `roles` vacío. Es la entrada de la función pura `evaluateAccess`.
 
 ### `OperatorAccess` (feature `auth`)
 
@@ -59,8 +53,8 @@ Resultado de la resolución de acceso (D7). Se guarda solo en la caché de TanSt
 | Campo | Tipo | Notas |
 |---|---|---|
 | `user` | `PlatformUser` | |
-| `roles` | `Role[]` | Roles activos del usuario. |
-| `authorizedRoles` | `Role[]` | Subconjunto con nombre en `AUTHORIZED_ROLE_NAMES`. |
+| `roles` | `AccessRole[]` | Roles activos del usuario con sus permisos activos. |
+| `authorizedRoles` | `AccessRole[]` | Subconjunto con nombre en `AUTHORIZED_ROLE_NAMES`. |
 | `permissions` | conjunto de texto de solo lectura | Unión de los permisos activos de `authorizedRoles`; puede estar vacío. |
 
 ### `OperatorClaims` (feature `auth`)
@@ -69,7 +63,7 @@ Reclamaciones del token de Auth0 que lee la aplicación, validadas con Zod en la
 
 | Campo | Tipo | Reglas |
 |---|---|---|
-| `sub` | texto no vacío | Identificador de la cuenta; es el `auth0Id` con el que se localiza al `PlatformUser`. |
+| `sub` | texto no vacío | Identificador de la cuenta; coincide con el `auth0Id` del `PlatformUser`. El servicio lo toma del propio token: la aplicación solo lo usa como clave de la caché. |
 | `email` | texto opcional | Correo de la cuenta con la que se identificó la persona. No sirve para localizar al usuario ni sustituye al correo del `PlatformUser`; si el token no lo trae, esas pantallas omiten la línea. |
 
 ### `AccessDecision` (feature `auth`, función pura `evaluateAccess`)
@@ -112,7 +106,7 @@ El registro solo contiene las secciones implementadas (FR-009); en la 001 está 
 | `IDLE_TIMEOUT_MS` | 900 000 (15 min) | FR-020 |
 | `IDLE_PROMPT_BEFORE_MS` | 60 000 (1 min) | FR-020 |
 | `ACCESS_RECHECK_INTERVAL_MS` | 300 000 (5 min) | FR-019 |
-| `ACCESS_CHECK_ATTEMPT_TIMEOUT_MS` | 8 000 (8 s) | FR-005, SC-011: presupuesto de cada intento de la cadena usuario → roles → permisos; con 3 intentos y esperas de 1 y 2 s el fallo aparece a los 27 s, por debajo del máximo de 30 s |
+| `ACCESS_CHECK_ATTEMPT_TIMEOUT_MS` | 8 000 (8 s) | FR-005, SC-011: presupuesto de cada intento de la llamada de acceso; con 3 intentos y esperas de 1 y 2 s el fallo aparece a los 27 s, por debajo del máximo de 30 s |
 | `AUTHORIZED_ROLE_NAMES` (en `features/auth/policy`) | `Administrator`, `Developer`, `Marketing`, `Billing` | FR-004 |
 
 ### Sesión: motivos y avisos
@@ -147,7 +141,7 @@ El registro solo contiene las secciones implementadas (FR-009); en la 001 está 
 | Entidad o regla | Requisitos |
 |---|---|
 | `PlatformUser`, `UserStatus` | FR-003, FR-004, FR-012 |
-| `Role`, `AUTHORIZED_ROLE_NAMES` | FR-004, FR-017 |
-| `Permission`, `PermissionKey`, correspondencia acción → permiso | FR-009, FR-017, FR-018 |
+| `AccessRole`, `MyAccess`, `AUTHORIZED_ROLE_NAMES` | FR-003, FR-004, FR-017 |
+| Permisos `recurso:acción`, correspondencia acción → permiso | FR-009, FR-017, FR-018 |
 | `OperatorClaims`, `OperatorAccess`, `AccessDecision` | FR-003, FR-004, FR-005, FR-021 |
 | Constantes y máquina de sesión | FR-005, FR-010, FR-013, FR-019, FR-020 |
