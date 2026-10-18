@@ -146,6 +146,7 @@ npm run test:e2e                         # solo con entorno de pruebas de Auth0 
 | Error de CORS en la consola | La app llama directo al servicio | Usar `VITE_USERS_API_URL=/proxy/users` y el proxy de Vite. |
 | "Service not found" al iniciar sesión | El `audience` no coincide con ninguna API de Auth0 | Revisar `VITE_AUTH0_AUDIENCE` y crear la API. |
 | "Callback URL mismatch" | Falta `http://localhost:5173/callback` en Auth0 | Añadirla a *Allowed Callback URLs*. |
+| Tras "Iniciar sesión" se vuelve a `/access` con "No pudimos completar el inicio de sesión"; la URL de `/callback` trae `error=invalid_request` y "is not authorized to access resource server" | La aplicación SPA no está autorizada para usar la API de Auth0 | En la API, pestaña *Application Access*, autorizar la aplicación para el acceso de usuarios. |
 | Tras cerrar sesión Auth0 muestra un error de URL | Falta `/access` o `/access/idle` en *Allowed Logout URLs* | Añadir ambas. |
 | Recargar siempre lleva a la pantalla de acceso | El navegador bloquea cookies de terceros | Esperado: "Iniciar sesión" vuelve sin pedir credenciales; mitigar con dominio personalizado de Auth0. |
 | La cuenta A1 entra pero no ve nada | Roles sin permisos asignados | Repetir el paso 2 (permisos de los roles). |

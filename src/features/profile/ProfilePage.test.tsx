@@ -1,0 +1,93 @@
+import { screen, within } from '@testing-library/react';
+import { axe } from 'vitest-axe';
+import { describe, expect, it } from 'vitest';
+
+import { platformUserSchema } from '@/features/users';
+import { messages } from '@/shared/messages/es';
+import { operatorAccess, userDto, type UserDto } from '@/test/factories';
+import { renderWithProviders } from '@/test/renderWithProviders';
+
+import { ProfilePage } from './ProfilePage';
+
+function renderProfile(
+  user: Partial<UserDto> = {},
+  roles: { id: number; name: string; permissions: string[] }[] = [
+    { id: 4, name: 'Marketing', permissions: ['tenants:read'] },
+    { id: 5, name: 'Owner', permissions: [] },
+  ],
+) {
+  return renderWithProviders(<ProfilePage />, {
+    access: operatorAccess({ user: platformUserSchema.parse(userDto(user)), roles }),
+  });
+}
+
+/** The value shown next to a label: the definition that follows its term. */
+function valueOf(label: string): HTMLElement {
+  const term = screen.getByText(label, { selector: 'dt' });
+  const value = term.nextElementSibling;
+  if (!(value instanceof HTMLElement)) {
+    throw new Error(`No value follows the label ${label}`);
+  }
+  return value;
+}
+
+describe('ProfilePage', () => {
+  it('shows the data of the platform user, each with its label (US5-1)', () => {
+    renderProfile({
+      first_name: 'María José',
+      paternal_last_name: 'García',
+      maternal_last_name: 'López',
+      email: 'maria@clinica.com',
+    });
+
+    expect(screen.getByRole('heading', { level: 1, name: messages.profile.title })).toHaveFocus();
+    expect(valueOf(messages.profile.name)).toHaveTextContent('María José');
+    expect(valueOf(messages.profile.paternalLastName)).toHaveTextContent('García');
+    expect(valueOf(messages.profile.maternalLastName)).toHaveTextContent('López');
+    expect(valueOf(messages.profile.email)).toHaveTextContent('maria@clinica.com');
+  });
+
+  it('shows a dash when the user has no maternal last name', () => {
+    renderProfile({ maternal_last_name: null });
+
+    expect(valueOf(messages.profile.maternalLastName)).toHaveTextContent(
+      messages.profile.emptyValue,
+    );
+  });
+
+  it('shows the initials in a decorative avatar, not as an image', () => {
+    renderProfile({ first_name: 'María José', paternal_last_name: 'García' });
+
+    const initials = screen.getByText('MJ');
+    expect(initials.closest('[aria-hidden="true"]')).not.toBeNull();
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
+  });
+
+  it('lists every active role of the user', () => {
+    renderProfile();
+
+    const roles = within(valueOf(messages.profile.roles)).getAllByRole('listitem');
+    expect(roles.map((role) => role.textContent)).toEqual(['Marketing', 'Owner']);
+  });
+
+  it('says so when the user has no active roles', () => {
+    renderProfile({}, []);
+
+    expect(valueOf(messages.profile.roles)).toHaveTextContent(messages.profile.noRoles);
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
+  });
+
+  it('offers nothing to edit (US5-2)', () => {
+    const { container } = renderProfile();
+
+    expect(container.querySelector('input, textarea, select')).toBeNull();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = renderProfile();
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});

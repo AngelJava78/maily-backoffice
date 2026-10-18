@@ -90,11 +90,11 @@ Algoritmo (la respuesta se valida con Zod):
 
 ## D9. Inactividad (FR-020)
 
-- **Decisión**: `react-idle-timer` 5.7.3. Configuración: `timeout` = 900 000 ms, `promptBeforeIdle` = 60 000 ms (el aviso sale a los 14 minutos, el cierre a los 15), `events` = `mousedown`, `keydown`, `touchstart` (la spec define actividad como clic, tecla o navegación), `crossTab: true` con `syncTimers` (la actividad en cualquier pestaña cuenta), `stopOnIdle: true` y `disabled` mientras no haya sesión. La navegación entre pantallas llama a `activate()` desde un efecto que escucha la ubicación del router.
-- **Evidencia** (código del paquete 5.7.3): sin dependencias; usa `window.BroadcastChannel` cuando existe y solo recurre a un sustituto basado en `localStorage` si el navegador no lo tiene; los navegadores soportados por la constitución sí lo tienen, así que no se escribe en `localStorage`. Los eventos por defecto incluyen `mousemove`, `wheel` y `focus`; por eso se sustituyen.
+- **Decisión**: `react-idle-timer` 5.7.3. Configuración: `timeout` = 900 000 ms, `promptBeforeIdle` = 60 000 ms (el aviso sale a los 14 minutos, el cierre a los 15), `events` = `mousedown`, `keydown`, `touchstart` (la spec define actividad como clic, tecla o navegación), `stopOnIdle: true` y `disabled` mientras no haya sesión. La navegación entre pantallas llama a `activate()` desde un efecto que escucha la ubicación del router. **Actividad entre pestañas** (revisado al implementar): cada pestaña avisa de su actividad (`onAction`, con `throttle` de 1 s) por el canal de sesión con un mensaje `{ type: 'activity' }`, y las demás pestañas llaman a `activate()`; así la actividad en cualquier pestaña cuenta sin usar `crossTab`.
+- **Evidencia** (código del paquete 5.7.3): sin dependencias. Los eventos por defecto incluyen `mousemove`, `wheel` y `focus`; por eso se sustituyen. Su modo `crossTab` registra cada pestaña que ve y solo da la sesión por inactiva cuando **todas** las registradas lo están; una pestaña que el navegador descarta o congela nunca avisa de que se fue, por lo que dejaría la sesión abierta indefinidamente (incumple FR-020).
 - **Las comprobaciones automáticas no cuentan como actividad**: la librería solo observa eventos del DOM de la persona.
 - **Cierre**: `onIdle` ejecuta el mismo procedimiento que "Cerrar sesión" con motivo `idle` (D10). Es idempotente, así que lo ejecuten una o varias pestañas da igual.
-- **Alternativa descartada**: temporizador propio con `BroadcastChannel` (reimplementa sincronización entre pestañas y aviso previo, con más código que probar).
+- **Alternativas descartadas**: temporizador propio (reimplementa el conteo y el aviso previo, con más código que probar); `crossTab: true` de la librería (ver Evidencia).
 
 ## D10. Cierre de sesión, varias pestañas y botón Atrás (FR-010, FR-011, FR-020)
 

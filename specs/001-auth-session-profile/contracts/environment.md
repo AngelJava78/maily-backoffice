@@ -45,5 +45,9 @@ VITE_FEATURE_POSTMAN_TOKEN=false
 
 - Servir la SPA y consumir las APIs por HTTPS.
 - Las APIs deben ser alcanzables desde el mismo origen (proxy inverso) o permitir CORS para el origen de la SPA, incluida la cabecera `Authorization`.
-- Servir `index.html` con `Cache-Control: no-store` y una Content Security Policy restrictiva que permita el dominio de Auth0 (`connect-src` y `frame-src`) y los estilos de Emotion mediante *nonce*.
+- Servir `index.html` con `Cache-Control: no-store` y una Content Security Policy restrictiva:
+  - `connect-src` y `frame-src` DEBEN permitir el dominio de Auth0 (renovación del token por petición o, de respaldo, por iframe) y `connect-src` el origen de cada API que no se sirva por el mismo origen.
+  - `worker-src blob:` es NECESARIO: el SDK de Auth0 guarda el *refresh token* en un Web Worker creado desde un *blob* (`cacheLocation: memory`, `useRefreshTokens`).
+  - Los estilos de MUI (Emotion) se crean en tiempo de ejecución. Para evitar `'unsafe-inline'`, el servidor genera un *nonce* por respuesta, lo envía en `style-src 'self' 'nonce-…'` y lo escribe en `<meta property="csp-nonce" content="">` de `index.html`; la aplicación lo copia a cada `<style>` que crea Emotion (`src/app/providers/styleCache.ts`). Si el hosting no puede generar un *nonce* por respuesta, la alternativa es `style-src 'self' 'unsafe-inline'`.
+  - El ejemplo completo está en la sección "Despliegue" del `README.md`.
 - Registrar en Auth0 las URL de callback, cierre de sesión y orígenes web de cada entorno.

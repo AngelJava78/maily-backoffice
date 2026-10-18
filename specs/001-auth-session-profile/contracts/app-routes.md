@@ -6,7 +6,7 @@
 
 | Ruta | Acceso | Pantalla | Notas |
 |---|---|---|---|
-| `/access` | Pública | Acceso | Botón "Iniciar sesión". Si ya hay sesión concedida, redirige a `/` (User Story 1, escenario 4). Muestra el aviso recibido en el estado del router (`expired`, `cancelled`, `idpError`). |
+| `/access` | Pública | Acceso | Botón "Iniciar sesión". Si ya hay sesión concedida, redirige a `/` (User Story 1, escenario 4). Muestra el aviso: `expired` o `idle` del estado de sesión de la pestaña (cuando la sesión terminó sola) o, si no hay, `cancelled` o `idpError` del estado del router. |
 | `/access/idle` | Pública | Acceso con aviso de inactividad | Misma pantalla; es el destino del cierre por inactividad (FR-020). Lee y borra la ruta de retorno guardada (D11). |
 | `/callback` | Pública | Cierre del inicio de sesión | Indicador de progreso mientras el SDK procesa el código; ante un error del proveedor redirige a `/access` con el aviso. No muestra contenido protegido. |
 | `/` | Protegida | Página principal | Nombre del operador, aviso de "sin permisos asignados" si procede, secciones disponibles. |
@@ -22,7 +22,7 @@ Orden de decisión, sin mostrar nunca contenido protegido hasta el último paso 
 | Estado | Resultado |
 |---|---|
 | El SDK de Auth0 inicializa (`isLoading`) | Indicador de progreso. |
-| Sin sesión | `Navigate` a `/access` con `returnTo` (ubicación actual) en el estado del router y, si la sesión venció (FR-013), con `notice: 'expired'`; solo la guarda redirige. |
+| Sin sesión | `Navigate` a `/access` con `returnTo` (ubicación actual) en el estado del router; solo la guarda redirige. Si la sesión terminó sola (venció, FR-013, o se cerró por inactividad en otra pestaña, FR-020), el motivo no viaja en el estado del router sino en el estado de sesión de la pestaña (`SessionProvider`), y `/access` lo lee de ahí. |
 | Sesión y acceso resolviéndose | Indicador de progreso (FR-006). |
 | Sesión y primera comprobación fallida | Pantalla "No se pudo comprobar el acceso" con el correo de la cuenta, Reintentar y Cerrar sesión (FR-005), como máximo 30 s después de iniciada la comprobación (SC-011). |
 | Sesión y acceso denegado | Pantalla de acceso denegado con motivo, correo de la cuenta y Cerrar sesión, en lugar de cualquier ruta protegida (FR-004; User Story 2, escenario 4). |
