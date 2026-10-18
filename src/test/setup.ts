@@ -27,8 +27,15 @@ beforeAll(() => {
   server.listen({ onUnhandledFrame: 'error' });
 });
 
-afterEach(() => {
+afterEach(async () => {
   cleanup();
+  // A request that was aborted (a timeout, a query left behind by an unmounted screen) finishes
+  // being cleaned up in the next turn of the event loop. If the handlers are reset before that, the
+  // second request of the next test can go past MSW to the real network and fail (MSW 3 with Node
+  // 24): one turn is enough for it to settle.
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, 0);
+  });
   server.resetHandlers();
   sessionStorage.clear();
 });

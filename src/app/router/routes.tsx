@@ -1,12 +1,17 @@
 import { lazy } from 'react';
-import type { RouteObject } from 'react-router';
+import { Outlet, type RouteObject } from 'react-router';
 
-import { AccessPage, CallbackPage } from '@/features/auth';
+import { AccessPage, CallbackPage, RequirePermission } from '@/features/auth';
 
 import { AppLayout } from '../layouts/AppLayout';
 import { PublicLayout } from '../layouts/PublicLayout';
+import { NotFoundPage } from '../pages/LazyNotFoundPage';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
+import { UserCreateRoute } from './users/UserCreateRoute';
+import { UserDetailRoute } from './users/UserDetailRoute';
+import { UserEditRoute } from './users/UserEditRoute';
+import { UsersListRoute } from './users/UsersListRoute';
 
 // Each page is a separate chunk, loaded when its route is first visited (constitution VIII).
 const HomePage = lazy(() =>
@@ -14,9 +19,6 @@ const HomePage = lazy(() =>
 );
 const ProfilePage = lazy(() =>
   import('@/features/profile').then((module) => ({ default: module.ProfilePage })),
-);
-const NotFoundPage = lazy(() =>
-  import('../pages/NotFoundPage').then((module) => ({ default: module.NotFoundPage })),
 );
 
 /**
@@ -68,6 +70,43 @@ export const appRoutes: RouteObject[] = [
                 Component: ProfilePage,
                 handle: { titleKey: 'profile' },
                 ErrorBoundary: RouteErrorBoundary,
+              },
+              // The users section: seeing it needs `users:read`, and each screen asks for more when
+              // it does more (feature 002, contracts/app-routes.md).
+              {
+                path: '/users',
+                element: (
+                  <RequirePermission resource="users">
+                    <Outlet />
+                  </RequirePermission>
+                ),
+                ErrorBoundary: RouteErrorBoundary,
+                children: [
+                  {
+                    index: true,
+                    Component: UsersListRoute,
+                    handle: { titleKey: 'users' },
+                    ErrorBoundary: RouteErrorBoundary,
+                  },
+                  {
+                    path: 'new',
+                    Component: UserCreateRoute,
+                    handle: { titleKey: 'userCreate' },
+                    ErrorBoundary: RouteErrorBoundary,
+                  },
+                  {
+                    path: ':userId',
+                    Component: UserDetailRoute,
+                    handle: { titleKey: 'userDetail' },
+                    ErrorBoundary: RouteErrorBoundary,
+                  },
+                  {
+                    path: ':userId/edit',
+                    Component: UserEditRoute,
+                    handle: { titleKey: 'userEdit' },
+                    ErrorBoundary: RouteErrorBoundary,
+                  },
+                ],
               },
               // Inside the protected layout: without a session the guard sends to the access screen
               // first (FR-001), and only someone with access sees that the address does not exist.

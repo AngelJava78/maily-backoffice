@@ -17,4 +17,15 @@ describe('theme', () => {
       expect(getContrastRatio(main, contrastText)).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
     },
   );
+
+  it('translates the Data Grid through the theme, the way its locale is applied (research D6)', () => {
+    const gridTexts = theme.components?.MuiDataGrid?.defaultProps?.localeText;
+
+    expect(gridTexts?.noRowsLabel).toBe('Sin filas');
+    expect(gridTexts?.paginationRowsPerPage).toBe('Filas por página:');
+  });
+
+  it('keeps the Spanish texts of Material next to the ones of the Data Grid', () => {
+    expect(theme.components?.MuiAlert?.defaultProps?.closeText).toBe('Cerrar');
+  });
 });

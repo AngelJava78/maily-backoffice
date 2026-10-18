@@ -5,7 +5,18 @@ import { z } from 'zod';
 import { messages } from '@/shared/messages/es';
 import { useDocumentTitle } from '@/shared/ui/useDocumentTitle';
 
-const routeHandleSchema = z.object({ titleKey: z.enum(['access', 'home', 'profile', 'notFound']) });
+const routeHandleSchema = z.object({
+  titleKey: z.enum([
+    'access',
+    'home',
+    'profile',
+    'notFound',
+    'users',
+    'userCreate',
+    'userDetail',
+    'userEdit',
+  ]),
+});
 
 type TitleKey = z.infer<typeof routeHandleSchema>['titleKey'];
 

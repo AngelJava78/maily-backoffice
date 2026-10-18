@@ -1,9 +1,12 @@
-import { esES } from '@mui/material/locale';
+import { esES as materialEsES } from '@mui/material/locale';
 import { createTheme } from '@mui/material/styles';
+import { esES as dataGridEsES } from '@mui/x-data-grid/locales';
 
 /**
- * Single source of palette, typography and spacing (constitution VI). The Spanish locale of MUI
- * translates the texts the library renders on its own, such as the close button of an alert.
+ * Single source of palette, typography and spacing (constitution VI). The Spanish locales of MUI
+ * and of its Data Grid translate the texts the libraries render on their own, such as the close
+ * button of an alert or the footer of a table. The Data Grid takes its locale from the theme: the
+ * `localeText` property does not accept the exported object (research D1 of 002).
  * Every colour keeps a WCAG 2.1 AA contrast with its text (`theme.test.ts` checks it).
  */
 export const theme = createTheme(
@@ -22,5 +25,6 @@ export const theme = createTheme(
     shape: { borderRadius: 8 },
     spacing: 8,
   },
-  esES,
+  materialEsES,
+  dataGridEsES,
 );

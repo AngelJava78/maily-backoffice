@@ -3,12 +3,13 @@ import { describe, expect, it } from 'vitest';
 import {
   can,
   hasAnySectionPermission,
+  PERMISSION_RESOURCES,
   SECTION_RESOURCES,
   type PermissionAction,
-  type PermissionResource,
+  type SectionResource,
 } from './permissions';
 
-const RESOURCES: readonly PermissionResource[] = ['users', 'subscriptions', 'tenants'];
+const RESOURCES: readonly SectionResource[] = ['users', 'subscriptions', 'tenants'];
 const ACTIONS: readonly PermissionAction[] = ['read', 'write', 'update', 'delete'];
 
 function accessWith(...permissions: string[]) {
@@ -93,5 +94,36 @@ describe('hasAnySectionPermission', () => {
 
   it('is false when the only read permissions belong to resources without a section', () => {
     expect(hasAnySectionPermission(accessWith('roles:read', 'clinics:read'))).toBe(false);
+  });
+
+  it('is false with only roles:read: the roles are read to assign them, they have no section', () => {
+    expect(hasAnySectionPermission(accessWith('roles:read'))).toBe(false);
+  });
+});
+
+describe('the roles resource (feature 002)', () => {
+  it('is a permission resource without a section of its own', () => {
+    expect([...PERMISSION_RESOURCES]).toEqual([...RESOURCES, 'roles']);
+    expect([...SECTION_RESOURCES]).toEqual(RESOURCES);
+  });
+
+  it('is read with roles:read alone, without needing users:read', () => {
+    expect(can(accessWith('roles:read'), { resource: 'roles', action: 'read' })).toBe(true);
+    expect(can(accessWith('users:read'), { resource: 'roles', action: 'read' })).toBe(false);
+    expect(can(accessWith(), { resource: 'roles', action: 'read' })).toBe(false);
+  });
+
+  it('follows the rule of every resource: another action needs the read permission first', () => {
+    expect(can(accessWith('roles:update'), { resource: 'roles', action: 'update' })).toBe(false);
+    expect(
+      can(accessWith('roles:read', 'roles:update'), { resource: 'roles', action: 'update' }),
+    ).toBe(true);
+  });
+
+  it('does not let roles:read replace users:read for the actions on users', () => {
+    const access = accessWith('roles:read', 'users:update');
+
+    expect(can(access, { resource: 'users', action: 'update' })).toBe(false);
+    expect(can(access, { resource: 'users', action: 'read' })).toBe(false);
   });
 });

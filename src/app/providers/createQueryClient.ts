@@ -21,8 +21,16 @@ export function createQueryClient({ onForbidden }: CreateQueryClientOptions = {}
     queryCache: new QueryCache({ onError: reportForbidden }),
     mutationCache: new MutationCache({ onError: reportForbidden }),
     defaultOptions: {
-      queries: { retry: shouldRetryQuery, retryDelay, staleTime: QUERY_STALE_TIME_MS },
-      mutations: { retry: MUTATION_RETRY },
+      // `navigator.onLine` is unreliable and, by default, a call made while it says "offline" is
+      // paused instead of failing: the screen would wait for ever. Always trying makes a missing
+      // connection an error the person sees (constitution IV and VI).
+      queries: {
+        retry: shouldRetryQuery,
+        retryDelay,
+        staleTime: QUERY_STALE_TIME_MS,
+        networkMode: 'always',
+      },
+      mutations: { retry: MUTATION_RETRY, networkMode: 'always' },
     },
   });
 }
