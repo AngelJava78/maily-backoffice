@@ -118,15 +118,18 @@ describe('PATCH /api/v1/users/{id}', () => {
     ['email', { email: 'otro@clinica.com' }],
     ['auth0_id', { auth0_id: 'auth0|otro' }],
     ['a field that does not exist', { apodo: 'Ani' }],
-  ])('refuses %s: the email cannot be changed from here', async (_label, body) => {
-    const mock = start();
+  ])(
+    'refuses %s: the interface never sends it, so the simulator does not take it',
+    async (_label, body) => {
+      const mock = start();
 
-    const answer = await patch({ first_name: 'Anita', ...body });
+      const answer = await patch({ first_name: 'Anita', ...body });
 
-    expect(answer.status).toBe(422);
-    expect(answer.body).toMatchObject({ code: 'validation_error' });
-    expect(mock.state.getUser(121).firstName).toBe('Ana');
-  });
+      expect(answer.status).toBe(422);
+      expect(answer.body).toMatchObject({ code: 'validation_error' });
+      expect(mock.state.getUser(121).firstName).toBe('Ana');
+    },
+  );
 
   it.each([
     ['an empty first name', { first_name: '' }, 'first_name'],
@@ -138,7 +141,7 @@ describe('PATCH /api/v1/users/{id}', () => {
       { maternal_last_name: 'M'.repeat(101) },
       'maternal_last_name',
     ],
-  ])('answers 422 for %s, naming %s', async (_label, body, field) => {
+  ])('answers 422 for %s, naming the field that is wrong', async (_label, body, field) => {
     start();
 
     const answer = await patch(body);

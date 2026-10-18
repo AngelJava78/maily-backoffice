@@ -8,7 +8,7 @@ import { toUserDto, type DirectoryModel } from './model';
 import { readUserId } from './validation';
 
 /**
- * U8 and U9: `DELETE /api/v1/users/{id}` (users:delete) and `POST /api/v1/users/{id}/reactivate`
+ * U6 and U9: `DELETE /api/v1/users/{id}` (users:delete) and `POST /api/v1/users/{id}/reactivate`
  * (users:update). The deletion is logical: the user keeps its data and its roles, and its email
  * stays reserved. As with blocking, the status is checked first, then the access account is
  * touched, and only if that works does the user change.

@@ -115,7 +115,7 @@ describe('POST /api/v1/users', () => {
       { ...VALID, maternal_last_name: 'M'.repeat(101) },
       'maternal_last_name',
     ],
-  ])('answers 422 for %s, naming the field %s', async (_label, body, field) => {
+  ])('answers 422 for %s, naming the field that is wrong', async (_label, body, field) => {
     const mock = start();
 
     const answer = await create(body);

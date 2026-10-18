@@ -93,7 +93,7 @@ Cuerpo uniforme `{ code, message, errors? }` (ver la 001). La interfaz decide po
 | `identity_provider_unavailable` | 503 | Aviso reintentable: no se pudo actualizar la cuenta de acceso; el usuario **no** cambió. |
 | `identity_provider_error` | 502 | Aviso: el sistema de cuentas de acceso rechazó la operación; no se cambió nada. No se reintenta sola. |
 | `auth0_account_not_found` | 409 | Al desbloquear o reactivar: aviso de que la persona no tiene cuenta de acceso; el usuario sigue como estaba. |
-| `user_not_found` | 404 | Detalle y edición: pantalla «usuario no encontrado» con enlace al listado. En una acción: aviso «el usuario ya no existe» y regreso al listado. |
+| `user_not_found` | 404 | Detalle y edición: pantalla «usuario no encontrado» con enlace al listado. En una acción: aviso «el usuario ya no existe» y se vuelve a consultar al usuario, de modo que la pantalla pasa a «usuario no encontrado» con el enlace al listado. |
 | `user_deleted`, `user_blocked`, `user_not_active`, `user_already_active` | 409 | «El estatus cambió»: aviso con lo ocurrido y se vuelve a consultar al usuario, de modo que la pantalla muestra el estatus vigente y solo las acciones que admite (spec US4-7, US5-4). |
 | `user_role_already_associated`, `user_role_not_associated` | 409 | «El cambio ya estaba hecho»: se vuelven a consultar los roles (spec US3-7). |
 | `role_not_found` | 404 | El role ya no está disponible: se vuelve a consultar el catálogo y se avisa. |

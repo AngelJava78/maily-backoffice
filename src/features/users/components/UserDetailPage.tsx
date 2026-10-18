@@ -13,13 +13,18 @@ import { ErrorState } from '@/shared/ui/ErrorState';
 import { useNotify } from '@/shared/ui/Notifications';
 import { useFocusOnMount } from '@/shared/ui/useFocusOnMount';
 
+import type { ApiError } from '@/shared/api/ApiError';
+
 import { describeUserError } from '../api/userErrors';
 import { useAssignRoles } from '../hooks/useAssignRoles';
+import { useNotifyUserError } from '../hooks/useNotifyUserError';
 import { useUser } from '../hooks/useUser';
 import { getAvailableActions, type UserCapabilities } from '../policy/availableActions';
 import { getFullName } from '../schemas/user';
 import { parseUserDetailState } from '../schemas/userDetailState';
+import { isActiveStatus } from '../schemas/userStatus';
 import { PendingRolesAlert } from './PendingRolesAlert';
+import { RefreshFailedAlert } from './RefreshFailedAlert';
 import { UserDetailFields } from './UserDetailFields';
 import { UserRolesPanel } from './UserRolesPanel';
 import { UserStatusActions } from './UserStatusActions';
@@ -35,13 +40,15 @@ interface UserDetailPageProps {
 /**
  * The detail of a user of any status: its data, its status and, if it is active, its roles. The
  * title is on screen from the first render, while the data loads, so the focus can go to it. When
- * the user has just been created and some roles could not be assigned, it offers to retry them.
+ * the user has just been created and some roles could not be assigned, it offers to retry them,
+ * and says why it failed if it fails again.
  */
 export function UserDetailPage({ userId, operatorUserId, capabilities }: UserDetailPageProps) {
   const headingRef = useFocusOnMount<HTMLHeadingElement>();
   const location = useLocation();
   const navigate = useNavigate();
   const notify = useNotify();
+  const notifyError = useNotifyUserError();
   const { listSearch, rolesNotAssigned = [] } = parseUserDetailState(location.state);
   const listAddress = `/users${listSearch ?? ''}`;
   const query = useUser(userId);
@@ -58,13 +65,28 @@ export function UserDetailPage({ userId, operatorUserId, capabilities }: UserDet
     });
   }
 
+  /**
+   * Why the roles that are still pending could not be assigned. The failures come inside the result
+   * of the mutation, which does not fail, so nothing else would tell them (not even a lack of
+   * permission, which the application tells when a call fails).
+   */
+  function tellWhy(error: ApiError) {
+    const outcome = notifyError(error, 'assignRole');
+    if (outcome.kind === 'forbidden') {
+      notify({ severity: 'warning', message: outcome.message });
+    }
+  }
+
   function retryPending() {
     assign.mutate(
       { roles: rolesNotAssigned },
       {
         onSuccess: ({ failed }) => {
-          if (failed.length === 0) {
+          const [first] = failed;
+          if (first === undefined) {
             notify({ severity: 'success', message: messages.users.pendingRoles.done });
+          } else {
+            tellWhy(first.error);
           }
           keepPending(failed.map(({ role }) => ({ id: role.id, name: role.name })));
         },
@@ -106,7 +128,8 @@ export function UserDetailPage({ userId, operatorUserId, capabilities }: UserDet
         />
       );
     }
-    if (query.isError) {
+    // A failed refresh does not take away what is already on screen: the data is shown, with a notice.
+    if (query.isError && query.data === undefined) {
       return (
         <>
           {toolbar()}
@@ -151,8 +174,16 @@ export function UserDetailPage({ userId, operatorUserId, capabilities }: UserDet
             <UserStatusActions user={user} available={available} />
           </Stack>,
         )}
+        {query.isError && (
+          <RefreshFailedAlert
+            message={messages.users.detail.refreshError}
+            onRetry={() => {
+              void query.refetch();
+            }}
+          />
+        )}
         {isSelf && <Alert severity="info">{messages.users.detail.selfNote}</Alert>}
-        {rolesNotAssigned.length > 0 && (
+        {rolesNotAssigned.length > 0 && isActiveStatus(user.status.id) && (
           <PendingRolesAlert
             roles={rolesNotAssigned}
             pending={assign.isPending}

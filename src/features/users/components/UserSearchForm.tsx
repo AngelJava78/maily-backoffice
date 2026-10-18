@@ -21,16 +21,19 @@ interface UserSearchFormProps {
 /**
  * The search by complete email, the only way to reach a blocked or a deleted user. The email is
  * validated before anything is asked (FR-018); a mistake is shown next to the field and the focus
- * goes to it. The parent gives it a `key` so that the field follows the address.
+ * goes to it. The form stays in the page while the address changes, so the focus is not lost; its
+ * field follows the address through `values`, and clearing the search puts the focus back on it,
+ * because the button that cleared it goes away.
  */
 export function UserSearchForm({ initialEmail, onSearch, onClear }: UserSearchFormProps) {
   const {
     register,
     handleSubmit,
+    setFocus,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(searchFormSchema),
-    defaultValues: { email: initialEmail ?? '' },
+    values: { email: initialEmail ?? '' },
   });
   const { ref, ...emailField } = register('email');
 
@@ -62,7 +65,13 @@ export function UserSearchForm({ initialEmail, onSearch, onClear }: UserSearchFo
           {messages.users.search.submit}
         </Button>
         {initialEmail !== undefined && (
-          <Button type="button" onClick={onClear}>
+          <Button
+            type="button"
+            onClick={() => {
+              onClear();
+              setFocus('email');
+            }}
+          >
             {messages.users.search.clear}
           </Button>
         )}

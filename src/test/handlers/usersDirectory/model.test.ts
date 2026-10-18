@@ -462,6 +462,17 @@ describe('the roles of a user', () => {
   });
 
   describe('disassociateRole', () => {
+    it('does not take away a role that is not active, as if it did not exist', () => {
+      const model = withRoles();
+      model.setRoleStatus(4, 2);
+
+      const failure = failureOf(() => {
+        model.disassociateRole(1, 4);
+      });
+
+      expect(failure).toMatchObject({ status: 404, code: 'role_not_found' });
+    });
+
     it('takes the role away from the user and from nobody else', () => {
       const model = withRoles();
       model.associateRole(2, 4);

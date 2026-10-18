@@ -45,7 +45,7 @@ describe('DELETE /api/v1/users/{id}/roles/{roleId}', () => {
     [DELETED, 'user_deleted'],
     [9, 'user_not_active'],
   ])(
-    'answers 409 %s for a user in the status %i, even for a role that does not exist',
+    'answers 409 for a user in the status %i with the code %s, even for a role that does not exist',
     async (statusId, code) => {
       start(statusId);
 
@@ -55,6 +55,17 @@ describe('DELETE /api/v1/users/{id}/roles/{roleId}', () => {
       expect(answer.body).toMatchObject({ code });
     },
   );
+
+  it('answers 404 role_not_found for a role that is not active any more, as the service does', async () => {
+    const mock = start();
+    mock.setRoleStatus(4, 2);
+
+    const answer = await remove('/api/v1/users/121/roles/4');
+
+    expect(answer.status).toBe(404);
+    expect(answer.body).toMatchObject({ code: 'role_not_found' });
+    expect(mock.state.rolesOf(121).map((role) => role.name)).toEqual(['Marketing', 'Doctor']);
+  });
 
   it('answers 404 role_not_found for a role that does not exist', async () => {
     start();

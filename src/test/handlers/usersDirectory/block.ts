@@ -8,7 +8,7 @@ import { toUserDto, type DirectoryModel } from './model';
 import { readUserId } from './validation';
 
 /**
- * U6 and U7: `POST /api/v1/users/{id}/block` and `/unblock` (users:update). The status is checked
+ * U7 and U8: `POST /api/v1/users/{id}/block` and `/unblock` (users:update). The status is checked
  * first, then the access account is touched, and only if that works does the user change: a user
  * whose account cannot be updated keeps its status.
  */

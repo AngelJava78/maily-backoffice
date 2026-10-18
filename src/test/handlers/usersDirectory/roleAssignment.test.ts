@@ -78,7 +78,7 @@ describe('POST /api/v1/users/{id}/roles', () => {
     [DELETED, 'user_deleted'],
     [9, 'user_not_active'],
   ])(
-    'answers 409 %s for a user in the status %i, even if the role does not exist',
+    'answers 409 for a user in the status %i with the code %s, even if the role does not exist',
     async (statusId, code) => {
       start(statusId);
 

@@ -62,7 +62,15 @@ function EmailReadOnly({ email }: { readonly email: string }) {
  * initial values are the real ones; it is not reset afterwards, so what the person types is never
  * overwritten by a new load of the user.
  */
-function EditUserForm({ user, backTo }: { readonly user: PlatformUser; readonly backTo: BackTo }) {
+function EditUserForm({
+  user,
+  backTo,
+  onSaved,
+}: {
+  readonly user: PlatformUser;
+  readonly backTo: BackTo;
+  readonly onSaved?: (user: PlatformUser) => void;
+}) {
   const navigate = useNavigate();
   const notify = useNotify();
   const notifyError = useNotifyUserError();
@@ -85,10 +93,18 @@ function EditUserForm({ user, backTo }: { readonly user: PlatformUser; readonly 
   const save = handleSubmit(async (values) => {
     setGeneralError(undefined);
     try {
-      await update.mutateAsync({ values });
+      await update.mutateAsync(
+        { values },
+        {
+          // Only while the form is still on screen: the person who left meanwhile is not taken back.
+          onSuccess: (saved) => {
+            onSaved?.(saved);
+            // Replacing the entry, so that going back does not return to a form with old values.
+            void navigate(backTo.pathname, { replace: true, state: backTo.state });
+          },
+        },
+      );
       notify({ severity: 'success', message: messages.users.edit.saved });
-      // Replacing the entry, so that going back does not return to a form with old values.
-      void navigate(backTo.pathname, { replace: true, state: backTo.state });
     } catch (error) {
       const outcome = describeUserError(error, 'update');
       if (outcome.kind === 'field') {
@@ -143,7 +159,14 @@ function EditUserForm({ user, backTo }: { readonly user: PlatformUser; readonly 
  * be modified, so the page says so, with a way back, and shows no form. If the user changes status
  * while the form is open, saving tells it and the page shows that.
  */
-export function UserEditPage({ userId }: { readonly userId: number }) {
+export function UserEditPage({
+  userId,
+  onSaved,
+}: {
+  readonly userId: number;
+  /** Called with the user once it was saved, while the form is still on screen. */
+  readonly onSaved?: (user: PlatformUser) => void;
+}) {
   const headingRef = useFocusOnMount<HTMLHeadingElement>();
   const { listSearch } = parseUserDetailState(useLocation().state);
   const query = useUser(userId);
@@ -166,7 +189,8 @@ export function UserEditPage({ userId }: { readonly userId: number }) {
         />
       );
     }
-    if (query.isError) {
+    // A failed refresh does not take the form away: what the person typed would be lost with it.
+    if (query.isError && query.data === undefined) {
       return (
         <ErrorState
           title={messages.users.detail.loadError.title}
@@ -201,7 +225,7 @@ export function UserEditPage({ userId }: { readonly userId: number }) {
         </Alert>
       );
     }
-    return <EditUserForm key={query.data.id} user={query.data} backTo={backTo} />;
+    return <EditUserForm key={query.data.id} user={query.data} backTo={backTo} onSaved={onSaved} />;
   }
 
   return (

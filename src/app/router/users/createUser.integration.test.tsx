@@ -180,6 +180,10 @@ describe('the users section: creating (feature 002, user story 2)', { timeout: 3
       await waitFor(() => {
         expect(router.state.location.pathname).toBe('/users');
       });
+      // The list is a lazy page: look for the link once it is there, or the check proves nothing.
+      expect(
+        await screen.findByRole('heading', { level: 1, name: messages.users.title }),
+      ).toBeInTheDocument();
       expect(
         screen.queryByRole('link', { name: messages.users.list.createAction }),
       ).not.toBeInTheDocument();

@@ -54,7 +54,9 @@ function open(url: string) {
 
 /** What the detail of Ana offers to this operator, once her roles are on screen. */
 async function offeredInDetail() {
-  await screen.findByText('Marketing', { selector: 'li span' }).catch(() => undefined);
+  // Everyone who gets here can read the users, so the roles of Ana are always shown: if they are
+  // not, the panel is broken and the test must say so, not report that nothing is offered.
+  await screen.findByText('Marketing', { selector: 'li span' });
   await screen.findByText('ana@clinica.com');
   const has = (role: 'button' | 'link', name: string | RegExp) =>
     screen.queryByRole(role, { name }) !== null;

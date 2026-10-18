@@ -29,6 +29,8 @@ interface AddRoleDialogProps {
   readonly pending?: boolean;
   readonly onConfirm: (role: Role) => void;
   readonly onCancel: () => void;
+  /** Called once the dialog has finished closing, which is when a notice can be announced. */
+  readonly onExited?: () => void;
 }
 
 interface BodyProps {
@@ -143,6 +145,7 @@ export function AddRoleDialog({
   pending = false,
   onConfirm,
   onCancel,
+  onExited,
 }: AddRoleDialogProps) {
   const titleId = useId();
   const catalog = useRolesCatalog({ enabled: open });
@@ -154,6 +157,7 @@ export function AddRoleDialog({
       fullWidth
       maxWidth="xs"
       aria-labelledby={titleId}
+      slotProps={{ transition: { onExited } }}
       onClose={() => {
         if (!pending) {
           onCancel();

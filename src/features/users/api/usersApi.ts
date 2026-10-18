@@ -99,7 +99,7 @@ export function getUser(
 }
 
 /**
- * U6: blocks an active user, who can no longer sign in. The service also disables its access
+ * U7: blocks an active user, who can no longer sign in. The service also disables its access
  * account and, if that fails, leaves the user as it was. There is no body.
  */
 export function blockUser(
@@ -116,7 +116,7 @@ export function blockUser(
 }
 
 /**
- * U7: unblocks a blocked user, who can sign in again. The service enables its access account first;
+ * U8: unblocks a blocked user, who can sign in again. The service enables its access account first;
  * if the person has none, or the provider fails, the user stays blocked. There is no body.
  */
 export function unblockUser(
@@ -133,7 +133,7 @@ export function unblockUser(
 }
 
 /**
- * U8: deletes an active user. It is a logical deletion: the data and the roles stay and the email
+ * U6: deletes an active user. It is a logical deletion: the data and the roles stay and the email
  * stays reserved, and the user can be reactivated. The service disables its access account. The
  * answer is a 204 without a body, and a blocked user has to be unblocked first.
  */

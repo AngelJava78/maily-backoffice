@@ -3,6 +3,12 @@ import { createTheme } from '@mui/material/styles';
 import { esES as dataGridEsES } from '@mui/x-data-grid/locales';
 
 /**
+ * The border of a field, which is what tells the person where to write (WCAG 1.4.11 asks 3:1 over the
+ * page). The default of MUI is 1.7:1; this grey is 4.6:1 over white.
+ */
+export const FIELD_BORDER_COLOR = '#757575';
+
+/**
  * Single source of palette, typography and spacing (constitution VI). The Spanish locales of MUI
  * and of its Data Grid translate the texts the libraries render on their own, such as the close
  * button of an alert or the footer of a table. The Data Grid takes its locale from the theme: the
@@ -24,6 +30,11 @@ export const theme = createTheme(
     },
     shape: { borderRadius: 8 },
     spacing: 8,
+    components: {
+      MuiOutlinedInput: {
+        styleOverrides: { notchedOutline: { borderColor: FIELD_BORDER_COLOR } },
+      },
+    },
   },
   materialEsES,
   dataGridEsES,

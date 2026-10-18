@@ -166,6 +166,11 @@ describe('the users section: confirmations (SC-003, FR-009, FR-010)', { timeout:
       await waitFor(() => {
         expect(changes(mock)).toHaveLength(1);
       });
+      // Once: wait for the dialog to go away, which is when a second request would have arrived.
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      });
+      expect(changes(mock)).toHaveLength(1);
       expect(changes(mock)[0]).toMatchObject(sends);
     },
   );

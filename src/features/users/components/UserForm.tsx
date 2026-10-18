@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
-import type { ReactNode, SubmitEventHandler } from 'react';
+import { useEffect, useRef, type ReactNode, type SubmitEventHandler } from 'react';
 import { Link as RouterLink } from 'react-router';
 
 import { messages } from '@/shared/messages/es';
@@ -37,17 +37,34 @@ export function UserForm({
   cancelState,
   children,
 }: UserFormProps) {
+  const errorRef = useRef<HTMLDivElement>(null);
+
+  // The error is at the top of the form and the person is at the bottom, on "Guardar": at a narrow
+  // width, or with the page zoomed in, it would be out of sight. Taking the focus to it also makes
+  // a screen reader read it; each time there is one it is told again, because the form clears it
+  // when it is saved again.
+  useEffect(() => {
+    if (error !== undefined) {
+      errorRef.current?.focus();
+    }
+  }, [error]);
+
   return (
     <Paper variant="outlined" sx={{ p: 3 }}>
       <Box component="form" noValidate onSubmit={onSubmit}>
         <Stack spacing={3}>
-          {error !== undefined && <Alert severity="error">{error}</Alert>}
+          {error !== undefined && (
+            <Alert ref={errorRef} tabIndex={-1} severity="error">
+              {error}
+            </Alert>
+          )}
           {children}
           <Stack direction="row" spacing={1}>
             <Button type="submit" variant="contained" loading={pending} disabled={saveDisabled}>
               {messages.users.form.save}
             </Button>
-            <Button component={RouterLink} to={cancelTo} state={cancelState}>
+            {/* Leaving does not stop a save that already left, and its result would take the person back. */}
+            <Button component={RouterLink} to={cancelTo} state={cancelState} disabled={pending}>
               {messages.common.cancel}
             </Button>
           </Stack>

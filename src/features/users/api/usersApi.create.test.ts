@@ -69,16 +69,27 @@ describe('createUser', () => {
     expect(received).not.toHaveProperty('maternal_last_name');
   });
 
-  it('never logs the body: it carries the password', async () => {
-    const spies = (['debug', 'info', 'warn', 'error'] as const).map((level) =>
-      vi.spyOn(logger, level).mockImplementation(() => undefined),
-    );
+  it('never logs the body, which carries the password, whether the service accepts it or refuses it', async () => {
+    const spies = [
+      ...(['debug', 'info', 'warn', 'error'] as const).map((level) =>
+        vi.spyOn(logger, level).mockImplementation(() => undefined),
+      ),
+      ...(['log', 'info', 'warn', 'error', 'debug'] as const).map((level) =>
+        vi.spyOn(console, level).mockImplementation(() => undefined),
+      ),
+    ];
     server.use(
       http.post(USERS_URL, () => HttpResponse.json(userDto({ id: 302 }), { status: 201 })),
     );
     const { client } = createUsersClient();
 
     await createUser(client, BODY);
+    server.use(
+      http.post(USERS_URL, () =>
+        HttpResponse.json(errorBody('password_rejected'), { status: 422 }),
+      ),
+    );
+    await createUser(client, BODY).catch(() => undefined);
 
     for (const spy of spies) {
       expect(spy).not.toHaveBeenCalled();

@@ -57,6 +57,25 @@ describe('UsersListPage: the list', () => {
     expect(screen.getByText('1–10 de 26')).toBeInTheDocument();
   });
 
+  it('tells which users are shown whenever the page changes, in a status region that is already there', async () => {
+    start();
+    const { user } = renderList();
+    await screen.findByRole('link', { name: 'Admin Sistema' });
+    const region = screen.getByRole('status');
+    await waitFor(() => {
+      expect(region).toHaveTextContent(messages.users.list.pageStatus(1, 10, 26));
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Ir a la página siguiente' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent(
+        messages.users.list.pageStatus(11, 20, 26),
+      );
+    });
+    expect(screen.getByRole('status')).toBe(region);
+  });
+
   it('does not list the blocked or the deleted users, nor count them (US1-10)', async () => {
     start();
     renderList();
@@ -246,15 +265,21 @@ describe('UsersListPage: the search by email', () => {
     expect(await screen.findByText(messages.users.status.blocked)).toBeInTheDocument();
   });
 
-  it('announces the result in a live region (FR-018)', async () => {
+  it('announces that a user was found, in a status region that was already in the page (FR-018)', async () => {
     start();
     renderList('/users?email=beto%40clinica.com');
 
-    const status = await screen.findByText(messages.users.status.blocked);
+    await screen.findByText(messages.users.status.blocked);
 
-    const live = document.querySelector('[aria-live="polite"]');
-    expect(live).not.toBeNull();
-    expect(live).toContainElement(status);
+    expect(screen.getByRole('status')).toHaveTextContent(messages.users.search.found);
+  });
+
+  it('announces nothing in the status region when nobody has that email: the alert says it', async () => {
+    start();
+    renderList('/users?email=nadie%40clinica.com');
+
+    expect(await screen.findByText(messages.users.search.notFound)).toBeInTheDocument();
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 
   it('has no accessibility violations with a result', async () => {

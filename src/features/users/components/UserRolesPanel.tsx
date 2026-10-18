@@ -5,16 +5,18 @@ import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { useEffect, useId, useRef } from 'react';
+import { useId, useRef } from 'react';
 
 import { messages } from '@/shared/messages/es';
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog';
 import { ErrorState } from '@/shared/ui/ErrorState';
+import { afterDialogClosed, focusIfLost } from '@/shared/ui/focusIfLost';
 
 import { useRoleActions } from '../hooks/useRoleActions';
 import { useUserRoles } from '../hooks/useUserRoles';
 import { isActiveStatus } from '../schemas/userStatus';
 import { AddRoleDialog } from './AddRoleDialog';
+import { RefreshFailedAlert } from './RefreshFailedAlert';
 
 interface UserRolesPanelProps {
   readonly userId: number;
@@ -30,7 +32,8 @@ interface UserRolesPanelProps {
 /**
  * The roles of a user, and the actions on them. The service only gives them for an active user, so
  * for any other status the panel says why they are not shown and asks nothing (FR-019). Adding
- * needs the roles the user already has, so it is offered once they are there.
+ * needs the roles the user already has, so it is offered once they are there. If asking for them
+ * again fails, the ones that were shown stay, with a notice, instead of being replaced by an error.
  */
 export function UserRolesPanel({
   userId,
@@ -41,71 +44,81 @@ export function UserRolesPanel({
 }: UserRolesPanelProps) {
   const headingId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const focusHeadingWhenClosed = useRef(false);
   const active = isActiveStatus(statusId);
   const roles = useUserRoles(userId, { enabled: active });
-  const actions = useRoleActions({
-    userId,
-    onRemoved: () => {
-      focusHeadingWhenClosed.current = true;
-    },
-  });
-  const removalOpen = actions.removal?.open === true;
+  const actions = useRoleActions(userId);
 
-  // The button that opened the confirmation went away with the role, so the focus cannot go back
-  // to it: it goes to the heading of the section once the dialog has let go of it.
-  useEffect(() => {
-    if (!removalOpen && focusHeadingWhenClosed.current) {
-      focusHeadingWhenClosed.current = false;
-      headingRef.current?.focus();
-    }
-  }, [removalOpen]);
+  // When a dialog has closed: the result is told, and if the button that opened the dialog went
+  // away with its role (whatever the result was) and the focus was lost, it goes to the heading of
+  // the section. The dialog gives the focus back to the button whenever the button is still there.
+  const afterClosing = () => {
+    actions.announce();
+    afterDialogClosed(() => {
+      focusIfLost(headingRef.current);
+    });
+  };
 
   function content() {
     if (!active) {
       return <Alert severity="info">{messages.users.roles.unavailable}</Alert>;
     }
-    if (roles.isError) {
-      return (
-        <ErrorState
-          title={messages.users.roles.loadError.title}
-          message={messages.users.roles.loadError.message}
-          onRetry={() => {
-            void roles.refetch();
-          }}
-        />
-      );
-    }
     if (roles.data === undefined) {
+      if (roles.isError) {
+        return (
+          <ErrorState
+            title={messages.users.roles.loadError.title}
+            message={messages.users.roles.loadError.message}
+            onRetry={() => {
+              void roles.refetch();
+            }}
+          />
+        );
+      }
       return <CircularProgress size={28} aria-label={messages.common.loading} />;
     }
+    const outOfDate = roles.isError && (
+      <RefreshFailedAlert
+        message={messages.users.roles.refreshError}
+        onRetry={() => {
+          void roles.refetch();
+        }}
+      />
+    );
     if (roles.data.length === 0) {
-      return <Typography>{messages.users.roles.none}</Typography>;
+      return (
+        <>
+          {outOfDate}
+          <Typography>{messages.users.roles.none}</Typography>
+        </>
+      );
     }
     return (
-      <Box component="ul" sx={{ m: 0, p: 0, listStyle: 'none' }}>
-        {roles.data.map((role) => (
-          <Stack
-            component="li"
-            key={role.id}
-            direction="row"
-            sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 1, py: 0.5 }}
-          >
-            <span>{role.name}</span>
-            {canRemoveRoles && (
-              <Button
-                size="small"
-                aria-label={messages.users.roles.remove(role.name)}
-                onClick={() => {
-                  actions.startRemoving(role);
-                }}
-              >
-                {messages.users.roles.removeLabel}
-              </Button>
-            )}
-          </Stack>
-        ))}
-      </Box>
+      <>
+        {outOfDate}
+        <Box component="ul" sx={{ m: 0, p: 0, listStyle: 'none' }}>
+          {roles.data.map((role) => (
+            <Stack
+              component="li"
+              key={role.id}
+              direction="row"
+              sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 1, py: 0.5 }}
+            >
+              <span>{role.name}</span>
+              {canRemoveRoles && (
+                <Button
+                  size="small"
+                  aria-label={messages.users.roles.remove(role.name)}
+                  onClick={() => {
+                    actions.startRemoving(role);
+                  }}
+                >
+                  {messages.users.roles.removeLabel}
+                </Button>
+              )}
+            </Stack>
+          ))}
+        </Box>
+      </>
     );
   }
 
@@ -133,6 +146,7 @@ export function UserRolesPanel({
         pending={actions.addPending}
         onConfirm={actions.confirmAdd}
         onCancel={actions.cancelAdding}
+        onExited={afterClosing}
       />
       {actions.removal !== null && (
         <ConfirmDialog
@@ -143,6 +157,7 @@ export function UserRolesPanel({
           pending={actions.removePending}
           onConfirm={actions.confirmRemove}
           onCancel={actions.cancelRemoving}
+          onExited={afterClosing}
         />
       )}
     </Stack>

@@ -16,12 +16,12 @@ Backoffice de MailySoft: una aplicación de una sola página (React) con la que 
 
 ## Requisitos
 
-| Requisito            | Detalle                                                                                                                                                                                                                                                           |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Node.js y npm        | Node 24 LTS (ver `.nvmrc`) y npm 11.                                                                                                                                                                                                                              |
-| Auth0                | Una aplicación _Single Page Application_ y una API, configuradas como indica [auth0-configuration.md](specs/001-auth-session-profile/contracts/auth0-configuration.md). La aplicación debe estar **autorizada para acceder a la API** (_User Access_ de la API).  |
-| Servicio de usuarios | Repositorio `mailySoft-usuarios`, con la operación `GET /api/v1/authorization/me` (pendiente de implementar: [solicitud](specs/001-auth-session-profile/contracts/users-service-me-request.md)).                                                                  |
-| Gestión de Auth0     | Para la feature 002, el servicio de usuarios necesita su aplicación _Machine to Machine_ autorizada para la Management API con `read:users`, `create:users` y `update:users`: crear, bloquear, desbloquear, eliminar y reactivar llaman a Auth0 a través de ella. |
+| Requisito            | Detalle                                                                                                                                                                                                                                                                                                                                                                                         |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Node.js y npm        | Node 24 LTS (ver `.nvmrc`) y npm 11.                                                                                                                                                                                                                                                                                                                                                            |
+| Auth0                | Una aplicación _Single Page Application_ y una API, configuradas como indica [auth0-configuration.md](specs/001-auth-session-profile/contracts/auth0-configuration.md). La aplicación debe estar **autorizada para acceder a la API** (_User Access_ de la API).                                                                                                                                |
+| Servicio de usuarios | Repositorio `mailySoft-usuarios`, con la operación `GET /api/v1/authorization/me` (ya disponible en el servicio, su spec 009; la [solicitud](specs/001-auth-session-profile/contracts/users-service-me-request.md) que la originó queda como referencia).                                                                                                                                       |
+| Gestión de Auth0     | Para la feature 002, el servicio de usuarios necesita su aplicación _Machine to Machine_ autorizada para la Management API con **solo** `read:users`, `create:users`, `update:users` y `delete:users` (este último únicamente para deshacer un alta fallida: sin él quedaría una cuenta huérfana en Auth0): crear, bloquear, desbloquear, eliminar y reactivar llaman a Auth0 a través de ella. |
 
 ## Puesta en marcha
 
@@ -93,7 +93,7 @@ Las dependencias fluyen `app → features → shared`, y una feature solo import
 
 ### Línea base de tamaño
 
-JS de la ruta de entrada tras la feature 002: **273,3 KB gzip** (límite de la constitución: 300 KB; fue 264,8 KB tras la 001), medido el 2026-10-18 con `npm run build && npm run size`. Las secciones nuevas deben cargarse por ruta con `React.lazy` para no consumir ese margen: la tabla de `/users` (Data Grid) es un fragmento aparte, y `npm run size` también falla si algún marcador del Data Grid aparece en la ruta de entrada o si esa comprobación quedó obsoleta.
+JS de la ruta de entrada tras la feature 002: **273,6 KB gzip** (límite de la constitución: 300 KB; fue 264,8 KB tras la 001), medido el 2026-10-18 con `npm run build && npm run size`. Las secciones nuevas deben cargarse por ruta con `React.lazy` para no consumir ese margen: la tabla de `/users` (Data Grid) es un fragmento aparte, y `npm run size` también falla si algún marcador del Data Grid aparece en la ruta de entrada o si esa comprobación quedó obsoleta.
 
 ## Despliegue
 

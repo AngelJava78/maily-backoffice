@@ -66,6 +66,20 @@ function serve(options: { createStatus?: number; failRole?: number } = {}) {
   return calls;
 }
 
+describe('createUserWithRoles: nobody is created without a role (FR-005)', () => {
+  it('refuses to create anybody when there is no role, before anything is sent', async () => {
+    const calls = serve();
+    const { client } = createUsersClient();
+
+    const failure: unknown = await createUserWithRoles(client, VALUES, []).catch(
+      (error: unknown) => error,
+    );
+
+    expect(failure).toBeInstanceOf(RangeError);
+    expect(calls).toEqual([]);
+  });
+});
+
 describe('createUserWithRoles', () => {
   it('creates the user first and then assigns each role, in the order of their ids (FR-023)', async () => {
     const calls = serve();

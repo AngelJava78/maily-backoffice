@@ -10,9 +10,11 @@ import { messages } from '@/shared/messages/es';
 
 /**
  * The initial password of the user. It is hidden by default and can be shown to check what was
- * typed; the browser is told it is a new password, so it neither fills it in with the one of the
- * operator nor offers to save it. There is no confirmation field: seeing it replaces it with less
- * friction (research D9). The policy of the passwords belongs to Auth0, so the form only asks for one.
+ * typed; the browser is told it is a new password (`autoComplete="new-password"`), so it does not
+ * fill it in with the one of the operator. Whether a browser offers to save it anyway is not under
+ * our control: it is checked by hand when a user is created (quickstart V9). There is no
+ * confirmation field: seeing it replaces it with less friction (research D9). The policy of the
+ * passwords belongs to Auth0, so the form only asks for one.
  */
 export function PasswordField({
   registration,

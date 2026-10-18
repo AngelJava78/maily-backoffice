@@ -10,6 +10,7 @@ export { useLogout } from './hooks/useLogout';
 export type { LogoutReason } from './hooks/useLogout';
 export { useOperatorAccess } from './hooks/useOperatorAccess';
 export type { OperatorAccessState } from './hooks/useOperatorAccess';
+export { useRefreshOperatorAccess } from './hooks/useRefreshOperatorAccess';
 export { useOperatorIdentity } from './hooks/useOperatorIdentity';
 export type { OperatorIdentity } from './hooks/useOperatorIdentity';
 export { useReloadOnBfcacheRestore } from './hooks/useReloadOnBfcacheRestore';

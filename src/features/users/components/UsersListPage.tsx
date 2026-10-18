@@ -9,6 +9,7 @@ import { Link as RouterLink } from 'react-router';
 
 import { messages } from '@/shared/messages/es';
 import { ErrorState } from '@/shared/ui/ErrorState';
+import { LiveStatus } from '@/shared/ui/LiveStatus';
 import { useFocusOnMount } from '@/shared/ui/useFocusOnMount';
 
 import { useUserSearch } from '../hooks/useUserSearch';
@@ -60,30 +61,45 @@ function UsersList({
     );
   }
 
+  const firstShown = (page - 1) * pageSize + 1;
+
   return (
-    <UsersGrid
-      users={query.data?.items ?? []}
-      total={query.data?.total ?? 0}
-      // The grid is shown on a page that exists, so it never has to correct the address itself.
-      page={pastTheLastPage ? lastPage : page}
-      pageSize={pageSize}
-      loading={query.isFetching}
-      listSearch={listSearch}
-      emptyAction={emptyAction}
-      onPaginationChange={(nextPage, nextPageSize) => {
-        if (nextPageSize === pageSize) {
-          setPage(nextPage, { replace: pastTheLastPage });
-        } else {
-          setPageSize(nextPageSize);
-        }
-      }}
-    />
+    <>
+      <UsersGrid
+        users={query.data?.items ?? []}
+        total={query.data?.total ?? 0}
+        // The grid is shown on a page that exists, so it never has to correct the address itself.
+        page={pastTheLastPage ? lastPage : page}
+        pageSize={pageSize}
+        loading={query.isFetching}
+        listSearch={listSearch}
+        emptyAction={emptyAction}
+        onPaginationChange={(nextPage, nextPageSize) => {
+          if (nextPageSize === pageSize) {
+            setPage(nextPage, { replace: pastTheLastPage });
+          } else {
+            setPageSize(nextPageSize);
+          }
+        }}
+      />
+      {/* Changing the page changes only the rows: a screen reader is told which ones are shown. */}
+      <LiveStatus>
+        {data === undefined || data.items.length === 0 || pastTheLastPage
+          ? ''
+          : messages.users.list.pageStatus(
+              firstShown,
+              firstShown + data.items.length - 1,
+              data.total,
+            )}
+      </LiveStatus>
+    </>
   );
 }
 
 /**
- * The result of a search by email, in a live region so that a screen reader announces it. An email
- * that is not valid, such as one typed by hand in the address, is told instead of being asked.
+ * The result of a search by email. A screen reader is told that a user was found through a status
+ * region that is already in the page; "not found" and an email that is not valid, such as one typed
+ * by hand in the address, are alerts, which are announced when they appear.
  */
 function SearchResults({
   email,
@@ -99,7 +115,8 @@ function SearchResults({
     if (!valid) {
       return <Alert severity="info">{messages.users.validation.emailInvalid}</Alert>;
     }
-    if (query.isError) {
+    // A failed refresh keeps the result that was already shown.
+    if (query.isError && query.data === undefined) {
       return (
         <ErrorState
           title={messages.users.search.loadError.title}
@@ -119,7 +136,12 @@ function SearchResults({
     return <UserSearchResult user={query.data} listSearch={listSearch} />;
   }
 
-  return <Box aria-live="polite">{content()}</Box>;
+  return (
+    <Box>
+      {content()}
+      <LiveStatus>{valid && query.data ? messages.users.search.found : ''}</LiveStatus>
+    </Box>
+  );
 }
 
 /**
@@ -156,12 +178,7 @@ export function UsersListPage({ capabilities }: { readonly capabilities: UserCap
         </Typography>
         {createAction}
       </Stack>
-      <UserSearchForm
-        key={searchedEmail ?? ''}
-        initialEmail={searchedEmail}
-        onSearch={searchEmail}
-        onClear={clearSearch}
-      />
+      <UserSearchForm initialEmail={searchedEmail} onSearch={searchEmail} onClear={clearSearch} />
       {location.mode === 'search' ? (
         <SearchResults email={location.email} listSearch={search} />
       ) : (

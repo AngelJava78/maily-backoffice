@@ -1,34 +1,44 @@
 import { useState } from 'react';
 
 import { messages } from '@/shared/messages/es';
-import { useNotify } from '@/shared/ui/Notifications';
+import { useDeferredNotice } from '@/shared/ui/useDeferredNotice';
 
 import type { AssignableRole } from '../api/assignRoles';
 import { useAddUserRole } from './useAddUserRole';
 import { useNotifyUserError } from './useNotifyUserError';
 import { useRemoveUserRole } from './useRemoveUserRole';
 
-interface RoleActionsOptions {
-  readonly userId: number;
-  /** Called when a role was taken away, with the roles on screen already refreshed. */
-  readonly onRemoved: () => void;
-}
-
 /** The role that is about to be taken away. `open` ends before `role` does, to leave the dialog fading out. */
-interface Removal {
+export interface Removal {
   readonly role: AssignableRole;
   readonly open: boolean;
+}
+
+export interface RoleActions {
+  readonly adding: boolean;
+  readonly addPending: boolean;
+  readonly startAdding: () => void;
+  readonly cancelAdding: () => void;
+  readonly confirmAdd: (role: AssignableRole) => void;
+  readonly removal: Removal | null;
+  readonly removePending: boolean;
+  readonly startRemoving: (role: AssignableRole) => void;
+  readonly cancelRemoving: () => void;
+  readonly confirmRemove: () => void;
+  /** Tells how the last action went. The dialogs call it when they have finished closing. */
+  readonly announce: () => void;
 }
 
 /**
  * What the panel of roles does with them: the dialog to add a role and the confirmation to take one
  * away, each with its mutation and what the person is told. It lives in the panel, not in each row,
  * because a row goes away with the role it shows and its callbacks would go with it. Every dialog
- * closes when its action ends, however it ended, with the result told in a notification.
+ * closes when its action ends, however it ended, and the result is told once it has closed: the
+ * rest of the page is hidden from a screen reader while a dialog is on screen.
  */
-export function useRoleActions({ userId, onRemoved }: RoleActionsOptions) {
-  const notify = useNotify();
-  const notifyError = useNotifyUserError();
+export function useRoleActions(userId: number): RoleActions {
+  const { defer, flush } = useDeferredNotice();
+  const notifyError = useNotifyUserError(defer);
   const add = useAddUserRole(userId);
   const remove = useRemoveUserRole(userId);
   const [adding, setAdding] = useState(false);
@@ -39,11 +49,15 @@ export function useRoleActions({ userId, onRemoved }: RoleActionsOptions) {
   };
 
   function confirmAdd(role: AssignableRole) {
+    // A dialog that is fading out can still be clicked: what it asked was already sent.
+    if (!adding) {
+      return;
+    }
     add.mutate(
       { role },
       {
         onSuccess: () => {
-          notify({ severity: 'success', message: messages.users.addRole.added });
+          defer({ severity: 'success', message: messages.users.addRole.added });
         },
         onError: (error) => {
           notifyError(error, 'assignRole');
@@ -56,15 +70,14 @@ export function useRoleActions({ userId, onRemoved }: RoleActionsOptions) {
   }
 
   function confirmRemove() {
-    if (removal === null) {
+    if (!removal?.open) {
       return;
     }
     remove.mutate(
       { role: removal.role },
       {
         onSuccess: () => {
-          notify({ severity: 'success', message: messages.users.removeRole.removed });
-          onRemoved();
+          defer({ severity: 'success', message: messages.users.removeRole.removed });
         },
         onError: (error) => {
           notifyError(error, 'unassignRole');
@@ -86,10 +99,11 @@ export function useRoleActions({ userId, onRemoved }: RoleActionsOptions) {
     confirmAdd,
     removal,
     removePending: remove.isPending,
-    startRemoving: (role: AssignableRole) => {
+    startRemoving: (role) => {
       setRemoval({ role, open: true });
     },
     cancelRemoving: closeRemoval,
     confirmRemove,
+    announce: flush,
   };
 }

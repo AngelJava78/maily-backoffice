@@ -365,3 +365,33 @@ describe('UserStatusActions: accessibility', () => {
     expect(await axe(blocked.container)).toHaveNoViolations();
   });
 });
+
+describe('UserStatusActions: how the result is told, and the dialog that is closing', () => {
+  it('tells how it went only once the dialog has closed, because the page is hidden from a screen reader until then', async () => {
+    start();
+    const { user } = renderActions();
+    await ready();
+    const dialog = await open(user, text.actions.block);
+
+    await user.click(within(dialog).getByRole('button', { name: text.dialogs.block.confirm }));
+
+    expect(await screen.findByText(text.statusNotices.blocked)).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('does not send what a dialog that is closing asks, however late it is clicked', async () => {
+    const mock = start();
+    const { user } = renderActions();
+    await ready();
+    const dialog = await open(user, text.actions.block);
+    const confirm = within(dialog).getByRole('button', { name: text.dialogs.block.confirm });
+    await user.click(within(dialog).getByRole('button', { name: messages.common.cancel }));
+
+    // The dialog is still on screen while it fades out, and its button can still be pressed.
+    fireEvent.click(confirm);
+
+    expect(mock.requestsTo('POST', /\/block$/)).toHaveLength(0);
+    await noDialog();
+    expect(statusText()).toBe(text.status.active);
+  });
+});

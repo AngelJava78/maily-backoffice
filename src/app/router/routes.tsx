@@ -13,7 +13,7 @@ import { UserDetailRoute } from './users/UserDetailRoute';
 import { UserEditRoute } from './users/UserEditRoute';
 import { UsersListRoute } from './users/UsersListRoute';
 
-// Each page is a separate chunk, loaded when its route is first visited (constitution VIII).
+// Each page is a separate chunk, loaded when its route is first visited (constitution: Rendimiento y observabilidad).
 const HomePage = lazy(() =>
   import('@/features/home').then((module) => ({ default: module.HomePage })),
 );
@@ -97,13 +97,13 @@ export const appRoutes: RouteObject[] = [
                   {
                     path: ':userId',
                     Component: UserDetailRoute,
-                    handle: { titleKey: 'userDetail' },
+                    handle: { titleKey: 'userDetail', userIdParam: 'userId' },
                     ErrorBoundary: RouteErrorBoundary,
                   },
                   {
                     path: ':userId/edit',
                     Component: UserEditRoute,
-                    handle: { titleKey: 'userEdit' },
+                    handle: { titleKey: 'userEdit', userIdParam: 'userId' },
                     ErrorBoundary: RouteErrorBoundary,
                   },
                 ],

@@ -51,6 +51,7 @@ export function UserCreatePage() {
     handleSubmit,
     control,
     setError,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CreateUserFormValues>({
     resolver: zodResolver(createUserFormSchema),
@@ -71,27 +72,50 @@ export function UserCreatePage() {
     setGeneralError(undefined);
     setRepeatedEmail(undefined);
     const roles = (catalog.data ?? []).filter((role) => values.roleIds.includes(role.id));
+    // The catalog is asked for again from time to time, and a role that was chosen can be gone from
+    // it by then: its chip is gone, but its id is still in the form, and the user would be created
+    // without it (or without any role). The chosen roles are what is left, and the person is told.
+    if (roles.length !== values.roleIds.length) {
+      setValue(
+        'roleIds',
+        roles.map((role) => role.id),
+      );
+      setError(
+        'roleIds',
+        { type: 'validate', message: messages.users.validation.rolesNoLongerAvailable },
+        { shouldFocus: true },
+      );
+      return;
+    }
     try {
-      const outcome = await create.mutateAsync({ values, roles });
+      const outcome = await create.mutateAsync(
+        { values, roles },
+        {
+          // Only while the form is still on screen: the person who left meanwhile is not taken to
+          // the new user.
+          onSuccess: (created) => {
+            void navigate(`/users/${created.user.id}`, {
+              state: {
+                ...(listSearch === undefined ? {} : { listSearch }),
+                ...(created.kind === 'partial'
+                  ? {
+                      rolesNotAssigned: created.failed.map(({ role }) => ({
+                        id: role.id,
+                        name: role.name,
+                      })),
+                    }
+                  : {}),
+              },
+            });
+          },
+        },
+      );
       notify({
         severity: outcome.kind === 'created' ? 'success' : 'warning',
         message:
           outcome.kind === 'created'
             ? messages.users.notices.created
             : messages.users.notices.createdPartial,
-      });
-      void navigate(`/users/${outcome.user.id}`, {
-        state: {
-          ...(listSearch === undefined ? {} : { listSearch }),
-          ...(outcome.kind === 'partial'
-            ? {
-                rolesNotAssigned: outcome.failed.map(({ role }) => ({
-                  id: role.id,
-                  name: role.name,
-                })),
-              }
-            : {}),
-        },
       });
     } catch (error) {
       const outcome = describeUserError(error, 'create');
@@ -171,7 +195,8 @@ export function UserCreatePage() {
             <RolesField
               roles={catalog.data ?? []}
               loading={catalog.isPending}
-              loadFailed={catalog.isError}
+              // A failed refresh keeps the roles that were already offered.
+              loadFailed={catalog.isError && catalog.data === undefined}
               onRetry={() => {
                 void catalog.refetch();
               }}

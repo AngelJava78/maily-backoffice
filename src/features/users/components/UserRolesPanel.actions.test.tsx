@@ -411,3 +411,112 @@ describe('UserRolesPanel: accessibility of the actions', () => {
     expect(await axe(baseElement)).toHaveNoViolations();
   });
 });
+
+describe('UserRolesPanel: how the result is told, and where the focus goes', () => {
+  it('tells how it went only once the dialog has closed, because the page is hidden from a screen reader until then', async () => {
+    start();
+    const { user } = renderPanel();
+    const dialog = await askToRemove(user, 'Marketing');
+
+    await confirmRemoval(user, dialog);
+
+    expect(await screen.findByText(text.removeRole.removed)).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('puts the focus on the heading of the roles when the button that opened the dialog went away, whatever the result', async () => {
+    start();
+    const { user } = renderPanel();
+    const dialog = await askToRemove(user, 'Marketing');
+    // Another operator took it away first: the answer is "already done", and the button is gone.
+    await callService('/api/v1/users/121/roles/4', { method: 'DELETE' });
+
+    await confirmRemoval(user, dialog);
+
+    expect(await screen.findByText(text.errors.alreadyDone)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: text.roles.title })).toHaveFocus();
+    });
+  });
+
+  it('gives the focus back to the button that opened the dialog when the button is still there', async () => {
+    const mock = start();
+    const { user } = renderPanel();
+    const dialog = await askToRemove(user, 'Marketing');
+    mock.failNext({ method: 'DELETE', status: 503, code: 'service_unavailable' });
+
+    await confirmRemoval(user, dialog);
+
+    expect(await screen.findByText(text.errors.retryable)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(removeButton('Marketing')).toHaveFocus();
+    });
+  });
+
+  it('tells that the role is not available any more when taking it away, and no longer shows it', async () => {
+    const mock = start();
+    const { user } = renderPanel();
+    const dialog = await askToRemove(user, 'Marketing');
+    // The role was blocked meanwhile: the service treats it as if it did not exist.
+    mock.setRoleStatus(4, 2);
+
+    await confirmRemoval(user, dialog);
+
+    expect(await screen.findByText(text.errors.roleUnavailable)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(roleNames()).toEqual(['Doctor']);
+    });
+  });
+
+  it('does not send what a dialog that is closing asks, however late it is clicked', async () => {
+    const mock = start();
+    const { user } = renderPanel();
+    const removal = await askToRemove(user, 'Marketing');
+    const confirmRemove = within(removal).getByRole('button', { name: text.removeRole.confirm });
+    await user.click(within(removal).getByRole('button', { name: messages.common.cancel }));
+
+    // The dialog is still on screen while it fades out, and its button can still be pressed.
+    fireEvent.click(confirmRemove);
+
+    // A request would reach the service while the dialog goes away: look once it is gone.
+    await noDialog();
+    expect(mock.requestsTo('DELETE', /\/roles\//)).toHaveLength(0);
+    expect(roleNames()).toEqual(['Doctor', 'Marketing']);
+
+    const adding = await chooseToAdd(user, 'Billing');
+    const confirmAdd = within(adding).getByRole('button', { name: text.addRole.confirm });
+    await user.click(within(adding).getByRole('button', { name: messages.common.cancel }));
+    fireEvent.click(confirmAdd);
+
+    await noDialog();
+    expect(mock.requestsTo('POST', /\/roles$/)).toHaveLength(0);
+    expect(roleNames()).toEqual(['Doctor', 'Marketing']);
+  });
+});
+
+describe('UserRolesPanel: when asking for the roles again fails', () => {
+  it('keeps the roles that were shown, says that they may be out of date and offers to try again', async () => {
+    const mock = start();
+    const { user, queryClient } = renderPanel();
+    await screen.findByRole('list');
+
+    mock.failNext({
+      method: 'GET',
+      path: '/api/v1/users/121/roles',
+      status: 400,
+      code: 'bad_request',
+    });
+    await queryClient.invalidateQueries({ queryKey: userKeys.roles(121) });
+
+    expect(await screen.findByText(text.roles.refreshError)).toBeInTheDocument();
+    expect(roleNames()).toEqual(['Doctor', 'Marketing']);
+    expect(screen.queryByText(text.roles.loadError.title)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: messages.common.retry }));
+
+    await waitFor(() => {
+      expect(screen.queryByText(text.roles.refreshError)).not.toBeInTheDocument();
+    });
+    expect(roleNames()).toEqual(['Doctor', 'Marketing']);
+  });
+});

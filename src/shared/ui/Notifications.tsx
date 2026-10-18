@@ -7,6 +7,9 @@ interface Notification {
   readonly message: string;
 }
 
+/** What `notify` takes; named apart from the `Notification` of the browser. */
+export type { Notification as AppNotification };
+
 type Notify = (notification: Notification) => void;
 
 interface ShownNotification extends Notification {

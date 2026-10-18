@@ -12,6 +12,7 @@ import {
 } from '@/test/handlers/usersDirectory';
 import { renderWithProviders } from '@/test/renderWithProviders';
 
+import { roleKeys } from '../hooks/userKeys';
 import { UserCreatePage } from './UserCreatePage';
 
 function DetailProbe() {
@@ -352,5 +353,107 @@ describe('UserCreatePage: the form', () => {
     await screen.findByText(messages.users.validation.emailRequired);
 
     expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe('UserCreatePage: the roles that were chosen, while it saves, and when asking fails', () => {
+  it('does not create the user when a role that was chosen is gone from the catalog, and keeps the roles that are left', async () => {
+    const mock = start();
+    const { user, queryClient } = renderCreate();
+    await catalogReady();
+    await fillIn(user);
+    await chooseRoles(user, 'Marketing', 'Doctor');
+    // The role was blocked and the catalog was asked for again (it is, every few minutes).
+    mock.setRoleStatus(6, 2);
+    await queryClient.invalidateQueries({ queryKey: roleKeys.catalog() });
+    await waitFor(() => {
+      expect(queryClient.getQueryData<unknown[]>(roleKeys.catalog())).toHaveLength(6);
+    });
+
+    await user.click(save());
+
+    expect(
+      await screen.findByText(messages.users.validation.rolesNoLongerAvailable),
+    ).toBeInTheDocument();
+    expect(mock.requestsTo('POST', '/api/v1/users')).toHaveLength(0);
+    expect(mock.state.users()).toHaveLength(1);
+
+    // What is left is Marketing, and saving again creates the user with it only.
+    await user.click(save());
+    expect(await screen.findByText(messages.users.notices.created)).toBeInTheDocument();
+    expect(mock.state.rolesOf(2).map((role) => role.name)).toEqual(['Marketing']);
+  });
+
+  it('keeps the field of the roles, with the roles that were chosen, when asking for the catalog again fails', async () => {
+    const mock = start();
+    const { user, queryClient } = renderCreate();
+    await catalogReady();
+    await chooseRoles(user, 'Marketing');
+
+    mock.failNext({ method: 'GET', path: '/api/v1/roles', status: 400, code: 'bad_request' });
+    await queryClient.invalidateQueries({ queryKey: roleKeys.catalog() });
+    await waitFor(() => {
+      expect(queryClient.getQueryState(roleKeys.catalog())?.status).toBe('error');
+    });
+
+    expect(rolesBox()).toBeEnabled();
+    expect(screen.getByText('Marketing', { selector: '.MuiChip-label' })).toBeInTheDocument();
+    expect(screen.queryByText(messages.users.form.rolesLoadError.title)).not.toBeInTheDocument();
+  });
+
+  it('does not let the person leave with "Cancelar" while it saves: the save would take them to the new user', async () => {
+    const mock = start();
+    const { user } = renderCreate();
+    await catalogReady();
+    await fillIn(user);
+    await chooseRoles(user, 'Marketing');
+    const release = mock.defer();
+
+    await user.click(save());
+
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: messages.common.cancel })).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+    });
+    release();
+    await screen.findByText(messages.users.notices.created);
+  });
+
+  it('tells that it was created, but does not take the person to the new user if they left meanwhile', async () => {
+    const mock = start();
+    const { user, router } = renderCreate();
+    await catalogReady();
+    await fillIn(user);
+    await chooseRoles(user, 'Marketing');
+    const release = mock.defer();
+    await user.click(save());
+
+    await router.navigate('/users');
+    expect(await screen.findByText('Listado')).toBeInTheDocument();
+    release();
+
+    expect(await screen.findByText(messages.users.notices.created)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mock.state.findUser(2)).toBeDefined();
+    });
+    expect(router.state.location.pathname).toBe('/users');
+  });
+
+  it('takes the focus to the error that is not of a field, which is far from "Guardar" in a narrow screen', async () => {
+    const mock = start();
+    mock.identity.unavailable();
+    const { user } = renderCreate();
+    await catalogReady();
+    await fillIn(user);
+    await chooseRoles(user, 'Marketing');
+
+    await user.click(save());
+
+    const alert = (
+      await screen.findByText(messages.users.errors.identityUnavailableCreate)
+    ).closest('[role="alert"]');
+    expect(alert).toHaveFocus();
   });
 });

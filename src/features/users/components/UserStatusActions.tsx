@@ -3,11 +3,12 @@ import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import LockOpenIcon from '@mui/icons-material/LockOpen';
 import RestoreIcon from '@mui/icons-material/Restore';
 import Button from '@mui/material/Button';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 
 import { messages } from '@/shared/messages/es';
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog';
-import { useNotify } from '@/shared/ui/Notifications';
+import { afterDialogClosed, focusIfLost } from '@/shared/ui/focusIfLost';
+import { useDeferredNotice } from '@/shared/ui/useDeferredNotice';
 
 import { useChangeUserStatus, type StatusAction } from '../hooks/useChangeUserStatus';
 import { useNotifyUserError } from '../hooks/useNotifyUserError';
@@ -54,24 +55,27 @@ interface Confirmation {
  * in. The main button is the same element before and after a change, so the focus stays where it
  * was and the person finds the opposite action under their finger; when the button that opened the
  * dialog goes away (delete), the focus goes to that one. The dialog closes when the action ends,
- * however it ended, with the result told in a notification.
+ * however it ended, and the result is told once it has closed: the rest of the page is hidden from
+ * a screen reader while a dialog is on screen.
  */
 export function UserStatusActions({ user, available }: UserStatusActionsProps) {
-  const notify = useNotify();
-  const notifyError = useNotifyUserError();
+  const { defer, flush } = useDeferredNotice();
+  const notifyError = useNotifyUserError(defer);
   const change = useChangeUserStatus(user.id);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const mainRef = useRef<HTMLButtonElement>(null);
-  const focusMainWhenClosed = useRef(false);
   const main = MAIN_ACTIONS.find((action) => available.has(action));
-  const dialogOpen = confirmation?.open === true;
 
-  useEffect(() => {
-    if (!dialogOpen && focusMainWhenClosed.current) {
-      focusMainWhenClosed.current = false;
-      mainRef.current?.focus();
-    }
-  }, [dialogOpen]);
+  // When the dialog has closed: the result is told, and if the button that opened it went away with
+  // the change (deleting takes away "Eliminar") and the focus was lost, it goes to the main button,
+  // which is the one that is left. The dialog gives the focus back to the button that opened it
+  // whenever that one is still there.
+  const afterClosing = () => {
+    flush();
+    afterDialogClosed(() => {
+      focusIfLost(mainRef.current);
+    });
+  };
 
   const ask = (action: StatusAction) => {
     setConfirmation({ action, open: true });
@@ -82,7 +86,8 @@ export function UserStatusActions({ user, available }: UserStatusActionsProps) {
   };
 
   function confirm() {
-    if (confirmation === null) {
+    // A dialog that is fading out can still be clicked: what it asked was already sent.
+    if (!confirmation?.open) {
       return;
     }
     const { action } = confirmation;
@@ -90,8 +95,7 @@ export function UserStatusActions({ user, available }: UserStatusActionsProps) {
       { action },
       {
         onSuccess: () => {
-          notify({ severity: 'success', message: SUCCESS_NOTICE[action] });
-          focusMainWhenClosed.current = true;
+          defer({ severity: 'success', message: SUCCESS_NOTICE[action] });
         },
         onError: (error) => {
           notifyError(error, action);
@@ -138,6 +142,7 @@ export function UserStatusActions({ user, available }: UserStatusActionsProps) {
           pending={change.isPending}
           onConfirm={confirm}
           onCancel={close}
+          onExited={afterClosing}
         />
       )}
     </>

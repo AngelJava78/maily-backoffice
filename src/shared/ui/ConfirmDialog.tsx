@@ -20,6 +20,8 @@ interface ConfirmDialogProps {
   readonly tone?: 'default' | 'danger';
   readonly onConfirm: () => void;
   readonly onCancel: () => void;
+  /** Called once the dialog has finished closing, which is when a notice can be announced. */
+  readonly onExited?: () => void;
 }
 
 /**
@@ -37,6 +39,7 @@ export function ConfirmDialog({
   tone = 'default',
   onConfirm,
   onCancel,
+  onExited,
 }: ConfirmDialogProps) {
   const titleId = useId();
   const descriptionId = useId();
@@ -53,6 +56,7 @@ export function ConfirmDialog({
       }}
       aria-labelledby={titleId}
       aria-describedby={descriptionId}
+      slotProps={{ transition: { onExited } }}
     >
       <DialogTitle id={titleId}>{title}</DialogTitle>
       <DialogContent>

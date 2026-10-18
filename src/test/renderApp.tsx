@@ -40,7 +40,7 @@ export interface RenderAppOptions {
  * Renders the whole application as production composes it (the real routes, guard and providers)
  * around an Auth0 client whose network-facing methods are replaced. Nothing else is simulated, so
  * the order in which Auth0, React and the router update (where most session bugs live) is the real
- * one. The users service is simulated at network level with `createUsersServiceMock`.
+ * one. The users service is simulated at network level: with `createUsersDirectoryMock` (the data and the rules of the service) or, in the tests of the access of feature 001, with `createUsersServiceMock` (only `me`).
  */
 export function renderApp(options: RenderAppOptions = {}) {
   window.history.replaceState(

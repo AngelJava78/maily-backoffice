@@ -1,4 +1,4 @@
-import { configure, screen, waitFor } from '@testing-library/react';
+import { configure, screen, waitFor, within } from '@testing-library/react';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { messages } from '@/shared/messages/es';
@@ -161,5 +161,31 @@ describe('the users section: editing (feature 002, user story 3)', { timeout: 30
     expect(await screen.findByText(text.edit.saved)).toBeInTheDocument();
     expect(await screen.findByText('Uno', { selector: 'dd' })).toBeInTheDocument();
     expect(mock.state.findUser(2)?.firstName).toBe('Uno');
+  });
+
+  it('shows the new name of the operator in the header as soon as they change their own, not minutes later', async () => {
+    const mock = start();
+    const { user } = open('/users/1/edit');
+    const header = await screen.findByRole('banner');
+    expect(await within(header).findByText('Admin Sistema')).toBeInTheDocument();
+    await typeFirstName(user, 'Nuevo');
+
+    await user.click(save());
+
+    expect(await screen.findByText(text.edit.saved)).toBeInTheDocument();
+    expect(mock.state.findUser(1)?.firstName).toBe('Nuevo');
+    expect(await within(header).findByText('Nuevo Sistema')).toBeInTheDocument();
+  });
+
+  it('does not ask for the access again when what is changed is the name of somebody else', async () => {
+    const mock = start();
+    const { user } = open('/users/2/edit');
+    await typeFirstName(user, 'Anita');
+    const asksBefore = mock.requestsTo('GET', '/api/v1/authorization/me').length;
+
+    await user.click(save());
+
+    expect(await screen.findByText(text.edit.saved)).toBeInTheDocument();
+    expect(mock.requestsTo('GET', '/api/v1/authorization/me')).toHaveLength(asksBefore);
   });
 });

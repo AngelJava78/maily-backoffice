@@ -77,6 +77,8 @@ export const messages = {
       columns: { name: 'Nombre', email: 'Correo electrónico', createdAt: 'Fecha de alta' },
       empty: 'No hay usuarios activos',
       createAction: 'Crear usuario',
+      pageStatus: (from: number, to: number, total: number) =>
+        `Mostrando ${from} a ${to} de ${total} usuarios.`,
       loadError: {
         title: 'No se pudieron cargar los usuarios',
         message: 'Ocurrió un problema al consultar los usuarios. Puedes reintentar.',
@@ -112,6 +114,8 @@ export const messages = {
         title: 'No se pudo cargar el usuario',
         message: 'Ocurrió un problema al consultar al usuario. Puedes reintentar.',
       },
+      refreshError:
+        'No se pudo actualizar la información del usuario. Se muestra la última que se tenía.',
       notFound: {
         title: 'Usuario no encontrado',
         message: 'El usuario no existe o ya no está disponible.',
@@ -129,24 +133,25 @@ export const messages = {
     dialogs: {
       block: {
         title: 'Bloquear usuario',
-        body: (name: string) => `${name} no podrá iniciar sesión mientras esté bloqueado.`,
+        body: (name: string) =>
+          `El usuario ${name} no podrá iniciar sesión mientras esté bloqueado.`,
         confirm: 'Bloquear',
       },
       unblock: {
         title: 'Desbloquear usuario',
-        body: (name: string) => `${name} podrá iniciar sesión de nuevo.`,
+        body: (name: string) => `El usuario ${name} podrá iniciar sesión de nuevo.`,
         confirm: 'Desbloquear',
       },
       delete: {
         title: 'Eliminar usuario',
         body: (name: string) =>
-          `${name} dejará de aparecer en el listado y no podrá iniciar sesión. Podrás reactivarlo más adelante.`,
+          `El usuario ${name} dejará de aparecer en el listado y no podrá iniciar sesión. Podrás reactivarlo más adelante.`,
         confirm: 'Eliminar',
       },
       reactivate: {
         title: 'Reactivar usuario',
         body: (name: string) =>
-          `${name} volverá a estar activo con sus roles anteriores y podrá iniciar sesión.`,
+          `El usuario ${name} volverá a estar activo con sus roles anteriores y podrá iniciar sesión.`,
         confirm: 'Reactivar',
       },
     },
@@ -175,6 +180,7 @@ export const messages = {
         title: 'No se pudieron cargar los roles',
         message: 'Ocurrió un problema al consultar los roles. Puedes reintentar.',
       },
+      refreshError: 'No se pudieron actualizar los roles. Se muestran los últimos que se tenían.',
       add: 'Agregar role',
       /** What a screen reader hears; the button itself reads `removeLabel`. */
       remove: (roleName: string) => `Quitar el role ${roleName}`,
@@ -238,6 +244,8 @@ export const messages = {
       maternalLastNameTooLong: 'El apellido materno no puede superar los 100 caracteres.',
       passwordRequired: 'La contraseña es obligatoria.',
       rolesRequired: 'Elige al menos un role.',
+      rolesNoLongerAvailable:
+        'Alguno de los roles elegidos ya no está disponible. Revisa los que quedan y vuelve a guardar.',
     },
     // What the person reads when the service rejects an operation (`describeUserError`).
     errors: {

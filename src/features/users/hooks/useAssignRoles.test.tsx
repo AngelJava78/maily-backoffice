@@ -12,7 +12,7 @@ import {
 import { createWrapper } from '@/test/renderWithProviders';
 
 import { roleSchema } from '../schemas/role';
-import { userKeys } from './userKeys';
+import { roleKeys, userKeys } from './userKeys';
 import { useAssignRoles } from './useAssignRoles';
 
 const MARKETING = roleSchema.parse(roleRecordDto({ id: 4, name: 'Marketing' }));
@@ -73,5 +73,41 @@ describe('useAssignRoles', () => {
     });
     expect(result.current.data?.assigned.map((role) => role.name)).toEqual(['Marketing']);
     expect(result.current.data?.failed.map((failure) => failure.role.name)).toEqual(['Doctor']);
+  });
+
+  it('marks the catalog as stale when the first refusal says that a role is gone', async () => {
+    const { mock, queryClient, result } = setup();
+    mock.setRoleStatus(6, 2);
+    queryClient.setQueryData(roleKeys.catalog(), []);
+    queryClient.setQueryData(userKeys.roles(121), []);
+
+    act(() => {
+      result.current.mutate({ roles: [DOCTOR] });
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+    expect(queryClient.getQueryState(roleKeys.catalog())?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(userKeys.roles(121))?.isInvalidated).toBe(true);
+  });
+
+  it('refreshes the user instead of its roles when the first refusal says that its status changed', async () => {
+    const { mock, queryClient, result } = setup();
+    mock.setUserStatus(121, 2);
+    queryClient.setQueryData(userKeys.detail(121), 'the user as it was believed to be');
+    queryClient.setQueryData(userKeys.roles(121), []);
+
+    act(() => {
+      result.current.mutate({ roles: [MARKETING] });
+    });
+
+    await waitFor(() => {
+      expect(result.current.isSuccess).toBe(true);
+    });
+    expect(result.current.data?.failed[0]?.error).toMatchObject({ status: 409 });
+    expect(queryClient.getQueryState(userKeys.detail(121))?.isInvalidated).toBe(true);
+    // The roles of a user that cannot have them are not asked for.
+    expect(queryClient.getQueryState(userKeys.roles(121))?.isInvalidated).toBe(false);
   });
 });

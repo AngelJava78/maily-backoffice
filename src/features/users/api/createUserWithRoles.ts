@@ -31,6 +31,11 @@ export async function createUserWithRoles(
   roles: readonly Role[],
   signal?: AbortSignal,
 ): Promise<CreateUserOutcome> {
+  // FR-005: nobody is created without a role. Checked before anything is sent, because afterwards
+  // there is no way back (the access account would already exist).
+  if (roles.length === 0) {
+    throw new RangeError('A user is created with at least one role');
+  }
   const user = await createUser(client, toCreateUserBody(values), { signal });
   const { assigned, failed } = await assignRoles(client, user.id, roles, signal);
   return failed.length === 0

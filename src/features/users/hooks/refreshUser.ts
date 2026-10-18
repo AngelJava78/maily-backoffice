@@ -3,6 +3,25 @@ import type { QueryClient } from '@tanstack/react-query';
 import { describeUserError, type UserOperation } from '../api/userErrors';
 import { roleKeys, userKeys } from './userKeys';
 
+/** How long a change waits for the screen to show what is true before it lets its dialog go. */
+export const REFRESH_WAIT_MS = 10_000;
+
+/**
+ * Waits for `work`, but no longer than `ms`. A change that waits for the screen to be refreshed
+ * keeps its dialog busy, and a request that hangs (a 30 s limit and two retries) would keep the
+ * dialog from being closed for a minute and a half.
+ */
+export function atMost(ms: number, work: Promise<unknown>): Promise<void> {
+  return new Promise<void>((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    const done = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    void work.then(done, done);
+  });
+}
+
 /**
  * Whether the service refused a change because the user is not as the screen believes: its status
  * changed (blocked, deleted, active again) or it does not exist any more. What is cached about the
@@ -17,14 +36,18 @@ export function isUserOutOfDate(error: unknown, operation: UserOperation): boole
  * Marks the user, and the lists and the searches it can be in, as stale, so the screens ask again
  * and show what is true. The roles are not touched: they would be refused for a user that cannot
  * have them, and the panel does not ask for them while the user is not active. The promise ends
- * when what is on screen was asked for again; a mutation that returns it stays pending until then.
+ * when what is on screen was asked for again, or after `REFRESH_WAIT_MS`; a mutation that returns
+ * it stays pending until then.
  */
 export async function refreshUser(queryClient: QueryClient, userId: number): Promise<void> {
-  await Promise.all([
-    queryClient.invalidateQueries({ queryKey: userKeys.detail(userId), exact: true }),
-    queryClient.invalidateQueries({ queryKey: userKeys.lists() }),
-    queryClient.invalidateQueries({ queryKey: userKeys.searches() }),
-  ]);
+  await atMost(
+    REFRESH_WAIT_MS,
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: userKeys.detail(userId), exact: true }),
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() }),
+      queryClient.invalidateQueries({ queryKey: userKeys.searches() }),
+    ]),
+  );
 }
 
 /**
@@ -43,11 +66,14 @@ export async function refreshAfterRoleChange(
     await refreshUser(queryClient, userId);
     return;
   }
-  await Promise.all([
-    // A role that is gone from the catalog must not be offered again.
-    describeUserError(error, operation).kind === 'roleUnavailable'
-      ? queryClient.invalidateQueries({ queryKey: roleKeys.catalog() })
-      : undefined,
-    queryClient.invalidateQueries({ queryKey: userKeys.roles(userId) }),
-  ]);
+  await atMost(
+    REFRESH_WAIT_MS,
+    Promise.all([
+      // A role that is gone from the catalog must not be offered again.
+      describeUserError(error, operation).kind === 'roleUnavailable'
+        ? queryClient.invalidateQueries({ queryKey: roleKeys.catalog() })
+        : undefined,
+      queryClient.invalidateQueries({ queryKey: userKeys.roles(userId) }),
+    ]),
+  );
 }

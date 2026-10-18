@@ -83,6 +83,41 @@ describe('UserSearchForm', () => {
     expect(onClear).toHaveBeenCalledOnce();
   });
 
+  it('puts the focus back on the field when the search is cleared, because the button that cleared it goes away', async () => {
+    const { user } = renderForm('ana@clinica.com');
+
+    await user.click(screen.getByRole('button', { name: messages.users.search.clear }));
+
+    expect(field()).toHaveFocus();
+  });
+
+  it('follows the address without being built again: the field changes and keeps its place in the page', () => {
+    const { rerender } = renderForm('ana@clinica.com');
+    const element = field();
+
+    rerender(
+      <UserSearchForm initialEmail="beto@clinica.com" onSearch={vi.fn()} onClear={vi.fn()} />,
+    );
+    expect(field()).toBe(element);
+    expect(field()).toHaveValue('beto@clinica.com');
+
+    rerender(<UserSearchForm onSearch={vi.fn()} onClear={vi.fn()} />);
+    expect(field()).toBe(element);
+    expect(field()).toHaveValue('');
+  });
+
+  it('keeps what is being typed while the address stays the same', async () => {
+    const { user, rerender } = renderForm('ana@clinica.com');
+
+    await user.clear(field());
+    await user.type(field(), 'otra@clinica.com');
+    rerender(
+      <UserSearchForm initialEmail="ana@clinica.com" onSearch={vi.fn()} onClear={vi.fn()} />,
+    );
+
+    expect(field()).toHaveValue('otra@clinica.com');
+  });
+
   it('offers no way to clear when nothing is being searched', () => {
     renderForm();
 

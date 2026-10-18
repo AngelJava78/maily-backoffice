@@ -414,7 +414,8 @@ export function createDirectoryModel(initial: DirectoryInitial) {
 
     disassociateRole(userId: number, roleId: number): void {
       getActiveUser(userId);
-      if (findRole(roleId) === undefined) {
+      // As when a role is given: the role has to be active, or it is as if it did not exist.
+      if (findRole(roleId)?.statusId !== ACTIVE) {
         throw roleNotFound();
       }
       const index = links.findIndex((link) => link.userId === userId && link.roleId === roleId);

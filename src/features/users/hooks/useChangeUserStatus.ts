@@ -5,7 +5,7 @@ import { useHttpClients } from '@/shared/api/httpClientsContext';
 
 import { blockUser, deleteUser, reactivateUser, unblockUser } from '../api/usersApi';
 import type { PlatformUser } from '../schemas/user';
-import { isUserOutOfDate, refreshUser } from './refreshUser';
+import { atMost, isUserOutOfDate, REFRESH_WAIT_MS, refreshUser } from './refreshUser';
 import { userKeys } from './userKeys';
 
 /** The changes of status of a user. */
@@ -55,7 +55,10 @@ export function useChangeUserStatus(
     onSuccess: async (user, { action }) => {
       if (user === undefined) {
         // Waited for, so the dialog that asked for the change closes with the new status on screen.
-        await queryClient.invalidateQueries({ queryKey: userKeys.detail(userId), exact: true });
+        await atMost(
+          REFRESH_WAIT_MS,
+          queryClient.invalidateQueries({ queryKey: userKeys.detail(userId), exact: true }),
+        );
       } else {
         queryClient.setQueryData(userKeys.detail(userId), user);
       }

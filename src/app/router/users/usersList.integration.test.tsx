@@ -76,6 +76,30 @@ describe('the users section: consulting (feature 002, user story 1)', { timeout:
     expect(router.state.location.search).toBe('?page=3');
   });
 
+  it('keeps the focus on the control that was used when paging, searching and clearing the search (WCAG 2.4.3)', async () => {
+    start();
+    const { user } = open('/users');
+    await screen.findByText('1–10 de 31');
+
+    // Paging with the keyboard: the focus stays on "next page", not on the heading of the page.
+    screen.getByRole('button', { name: 'Ir a la página siguiente' }).focus();
+    await user.keyboard('{Enter}');
+    await screen.findByText('11–20 de 31');
+    expect(screen.getByRole('button', { name: 'Ir a la página siguiente' })).toHaveFocus();
+
+    // Searching: the focus stays in the form, so the person can refine what they typed.
+    const field = screen.getByLabelText(messages.users.search.label);
+    await user.type(field, 'beto@clinica.com{Enter}');
+    expect(await screen.findByText(messages.users.status.blocked)).toBeInTheDocument();
+    expect(screen.getByLabelText(messages.users.search.label)).toBe(field);
+    expect(field).toHaveFocus();
+
+    // Clearing: the button that was used goes away, so the focus goes to the field.
+    await user.click(screen.getByRole('button', { name: messages.users.search.clear }));
+    expect(await screen.findByText('1–10 de 31')).toBeInTheDocument();
+    expect(screen.getByLabelText(messages.users.search.label)).toHaveFocus();
+  });
+
   it('shows 25 users per page when asked, from the first page (US1-2, V2)', async () => {
     start();
     const { user, router } = open('/users?page=2');

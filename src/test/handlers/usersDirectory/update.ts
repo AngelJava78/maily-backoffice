@@ -21,8 +21,10 @@ function changedName(value: unknown): string | null {
 }
 
 /**
- * Reads the body of the change as the service does (`UserUpdate`): at least one of the three
- * names and nothing else, so the email and `auth0_id` are refused, not ignored.
+ * Reads the body of the change: at least one of the three names and nothing else. The real service
+ * also accepts a new email (and `auth0_id` is refused as unknown), but the interface never sends
+ * it (the change would not reach the access account), so the simulator refuses it: a regression
+ * that sent it would show up in the tests instead of being accepted.
  */
 function readChanges(body: unknown): UserChanges {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {

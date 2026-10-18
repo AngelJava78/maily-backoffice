@@ -63,7 +63,7 @@ Evaluado contra la constitución v1.0.0. "Antes" es el estado al iniciar la inve
 | IV. Errores uniformes (401, 403, 404, 409/422, red/5xx) sin mensajes crudos | `describeUserError` y textos propios; solo los mensajes de campo de un `422` se muestran, junto a su campo (D12) | ✅ | ✅ |
 | IV. Fechas ISO 8601 con formato solo en presentación | `formatDateTime` con `Intl` (D17) | ✅ | ✅ |
 | V. Autorización en un único módulo de políticas; no comparar roles ni permisos sueltos | `can()` y `getUserCapabilities` en `features/auth/policy`; `getAvailableActions` solo cruza estatus y capacidades; el `403` sigue manejándose (D3) | ✅ | ✅ |
-| V. Sin datos personales ni contraseñas en logs; token solo a hosts configurados | `logger` solo con código, estado y operación; la contraseña nunca sale del formulario ni de la solicitud (D12, D13) | ✅ | ✅ |
+| V. Sin datos personales ni contraseñas en logs; token solo a hosts configurados | La feature no registra operaciones; si lo hiciera, `logger` solo con código, estado y operación; la contraseña nunca sale del formulario ni de la solicitud (D12, D13) | ✅ | ✅ |
 | VI. MUI y MUI X Data Grid (community) con theme central; localización en español | Data Grid 9.15.0 con la localización aplicada por el tema (D6) | ⚠️ | ✅ |
 | VI. Estados de carga, vacío, error y éxito; mutaciones que notifican | Tabla de estados de [contracts/app-routes.md](contracts/app-routes.md) y avisos de éxito o error por acción | ✅ | ✅ |
 | VI. Mismo patrón de listar, mostrar, crear, modificar y eliminar; confirmación que nombra el recurso | Listado paginado, detalle, formulario compartido y diálogo de confirmación (`ConfirmDialog`), incluidos los cambios de role | ✅ | ✅ |
@@ -177,19 +177,19 @@ Decisiones tomadas al implementar que afinan lo planeado sin cambiar los requisi
 
 ### Resultado
 
-- 133 archivos y 1620 pruebas (antes de la feature: 58 y 671); cobertura de líneas de las capas incluidas en `vite.config.ts`: 99,06 % (umbral: 80 %). `typecheck`, `lint` sin advertencias, `format:check`, `build` y `size` en verde. `npm audit --omit=dev`: 0 vulnerabilidades.
+- 138 archivos y 1682 pruebas (antes de la feature: 58 y 671); cobertura de líneas de las capas incluidas en `vite.config.ts`: 99,23 % (umbral: 80 %). `typecheck`, `lint` sin advertencias, `format:check`, `build` y `size` en verde. `npm audit --omit=dev`: 0 vulnerabilidades.
 - Comprobaciones de seguridad (T160): sin `console.*` (solo comentarios en dos pruebas), `localStorage`, `dangerouslySetInnerHTML`, `any` ni aserciones `as` en `src/`; `sessionStorage` solo en `returnPathStorage.ts` fuera de las pruebas; `password` solo en el estado del formulario, el cuerpo de la solicitud y su mapeo de errores (nunca en `logger`, la URL, el estado de navegación ni las claves de consulta); `features/users` no importa `@/features/auth`.
 
 ### Tamaños medidos (T159)
 
 | Medida | gzip |
 |---|---|
-| JS de la ruta de entrada (`npm run size`) | **273,3 KB** de 300 (264,8 KB tras la 001: +8,5 KB) |
-| `UsersListPage` (Data Grid y tabla; solo se carga al entrar en `/users`) | 142,5 KB |
+| JS de la ruta de entrada (`npm run size`) | **273,6 KB** de 300 (264,8 KB tras la 001: +8,8 KB) |
+| `UsersListPage` (Data Grid y tabla; solo se carga al entrar en `/users`) | 142,8 KB |
 | `Autocomplete` (selector de roles) | 19,9 KB |
 | `userKeys` (claves y hooks comunes de las pantallas de usuarios) | 19,4 KB |
 | `userForm` (React Hook Form, su resolver y los esquemas del formulario) | 14,1 KB |
-| `UserDetailPage` · `UserCreatePage` · `UserEditPage` | 4,5 KB · 2,7 KB · 1,6 KB |
+| `UserDetailPage` · `UserCreatePage` · `UserEditPage` | 4,8 KB · 2,8 KB · 1,6 KB |
 
 La guarda se comprobó por mutación: importar `UsersListPage` de forma estática en `routes.tsx` hace fallar `npm run size` (462,0 KB; `data-rowindex` y `data-colindex` en la ruta de entrada) y al revertirlo vuelve a pasar. Las ramas de la guarda (limpio, fuga, marcadores obsoletos, solo la clave del tema y presupuesto excedido) se verificaron con carpetas `dist` sintéticas.
 
@@ -223,3 +223,33 @@ Configuración de pruebas: `maxWorkers: 4` (con un proceso por procesador, un po
 **Cachés y diálogos.** Los hooks de cambio devuelven la promesa de `invalidateQueries` desde `onSettled`, `onSuccess` u `onError`: la mutación sigue pendiente hasta que la pantalla muestra lo real y el diálogo se cierra con los datos ya al día. Las funciones de `mutate(…, { onSuccess })` no se ejecutan si el componente se desmonta, así que el estado de los diálogos de roles vive en el panel (`useRoleActions`) y no en cada fila, que desaparece con su role. Un enlace que se encuentra mientras carga debe seguir siendo el mismo nodo cuando llegan los datos (la barra de acciones del detalle es el primer hijo en todos los estados), o un clic puede perderse. Si el botón que abrió un diálogo desaparece (quitar un role, eliminar), el foco pasa al encabezado de los roles o al botón principal que queda.
 
 **Simulador y pruebas.** Un simulador con estado y reglas del contrato detectó más errores que los dobles por solicitud: el orden de las comprobaciones, el correo reservado de un usuario eliminado y la restauración de roles al reactivar salen del propio modelo. Con MSW 3 y Node 24, una solicitud abortada deja un instante en el que la segunda solicitud de la prueba siguiente puede escaparse a la red real; `setup.ts` cede un turno del bucle de eventos antes de reiniciar los manejadores. `userEvent` no puede pulsar un botón de MUI con `loading` (`pointer-events: none`): se usa `fireEvent`. Mientras un diálogo se desvanece, el resto de la página sigue oculto para los roles de accesibilidad: las pruebas esperan a que desaparezca antes de buscar enlaces.
+
+### Revisión antes de subir
+
+Con el commit local hecho y antes de subirlo, tres lectores independientes (API, caché y permisos; interfaz y accesibilidad; pruebas, simulador y herramientas) revisaron el diff y se comprobó cada hallazgo contra el código, contra el servicio real y, para lo que jsdom no ve (diseño, consultas de medios, colores calculados), en un navegador real (Chromium con Playwright a 1024, 599 y 320 px). No hubo fallos críticos; el contrato con el servicio coincidía. Se corrigió todo lo confirmado, cada punto con su prueba:
+
+| Hallazgo | Qué se hizo |
+|---|---|
+| Cada navegación de la misma ruta (paginar, cambiar el tamaño, buscar, limpiar) llevaba el foco al `h1` (WCAG 2.4.3) | `useRouteAccessibility` mueve el foco solo si cambia la ruta, no su query string. El formulario de búsqueda ya no se reconstruye con cada búsqueda (su campo sigue a la dirección con `values`) y al limpiar la búsqueda el foco vuelve al campo. Una región `role="status"` que ya está en la página (`LiveStatus`) dice «Mostrando X a Y de Z usuarios.» y «Se encontró un usuario.» (WCAG 4.1.3) |
+| «Filas por página» desaparecía por debajo de 600 px (medido: `display: none`), sin poder pedir 25 o 50 usuarios en un teléfono | Se mantiene visible y el pie de la tabla pasa a dos líneas; la página no desborda a 320 px |
+| El borde de los campos tenía 1,74:1 sobre blanco (WCAG 1.4.11) | `FIELD_BORDER_COLOR` `#757575` (4,61:1) en el tema, con prueba |
+| Un refresco fallido sustituía lo ya cargado por un bloque de error, y el formulario de edición perdía lo escrito | El error bloqueante solo sale si no hay datos; con datos se muestran, con un aviso no bloqueante y «Reintentar» en el detalle y los roles, y sin aviso en la edición, el alta y la búsqueda |
+| «Reintentar asignación» fallaba en silencio | Explica el motivo con `describeUserError` (también la falta de permiso, que no pasa por el aviso global porque el fallo viene dentro de un resultado) y refresca lo que quedó viejo (el usuario, el catálogo o los roles). El aviso de roles pendientes se oculta si el usuario ya no está activo |
+| Cancelar, o salir, mientras se guardaba llevaba luego a la persona al detalle | «Cancelar» se deshabilita mientras se guarda y la navegación va en la llamada (`onSuccess` de `mutateAsync`), que no se ejecuta si el formulario ya no está |
+| Un alta podía quedar sin roles si el catálogo cambiaba con el formulario abierto | Se detecta, se podan los roles que quedan y se avisa; `createUserWithRoles` rechaza cero roles antes de enviar nada (FR-005) |
+| Los avisos de resultado se escribían mientras un diálogo ocultaba la página a los lectores de pantalla | Se guardan (`useDeferredNotice`) y se muestran cuando el diálogo ha terminado de cerrarse (`onExited`) |
+| Un diálogo que se cerraba aún aceptaba un clic, y si el botón que lo abrió desaparecía (quitar un role, eliminar) el foco se perdía salvo en un resultado correcto | La confirmación no hace nada si el diálogo ya se está cerrando; el foco va al encabezado de los roles o al botón principal con cualquier resultado (`focusIfLost`) |
+| Un error general quedaba lejos de «Guardar» en pantallas estrechas | Recibe el foco |
+| Esperar a que la pantalla se refresque podía dejar un diálogo ocupado hasta unos 90 s si una consulta se colgaba | Esa espera se acota a 10 s (`atMost`) |
+| Al editar el propio nombre, el encabezado y el perfil seguían con el viejo hasta 5 minutos | El adaptador de ruta vuelve a pedir el acceso (`useRefreshOperatorAccess`) si lo editado es el propio operador |
+| Los textos de los diálogos concordaban mal («Ana Pérez … esté bloqueado») | «El usuario {nombre} …» |
+| Las direcciones con un id que no es un número se titulaban «Detalle del usuario» (WCAG 2.4.2) | El título es «Página no encontrada» |
+| Simulador | Quitar un role que no está activo da `404 role_not_found`, como el servicio real. El servicio real acepta un `email` en el PATCH; el simulador lo rechaza a propósito porque la interfaz nunca lo envía |
+| E2E | `getByText` exacto (coincidía también con el texto de ayuda de la búsqueda y con los avisos) y `expect.timeout` de 15 s |
+| Pruebas | Negativos que no esperaban a la página perezosa, un `.catch` que tragaba el fallo que debía contar, «una sola vez» sin esperar al segundo envío, títulos con marcadores equivocados, y la prueba de «no registra el cuerpo» ahora también cubre el fallo y `console` |
+| Arquitectura | La regla `no-restricted-imports` impide que `features/users` importe `features/auth` (antes solo lo comprobó una búsqueda) |
+| Documentación | La aplicación M2M necesita también `delete:users` (para deshacer un alta fallida: sin él queda una cuenta huérfana en Auth0); la consulta `me` ya existe en el servicio; el riesgo del borrador `010-user-id-uuid` del servicio; los números U6 a U9 de los comentarios; la referencia a una «constitución VIII» que no existe |
+
+Se revisó y se dejó como está: el indicador de foco de los botones de MUI es visible pero tenue (cumple WCAG 2.1, 2.4.7; mejorable con un contorno propio); `autoComplete="new-password"` puede no impedir que el navegador ofrezca guardar la contraseña de la persona nueva (se comprueba a mano en el quickstart V9); la feature no registra operaciones fallidas con `logger`.
+
+Con esta pasada: 138 archivos y 1682 pruebas, entrada de 273,6 KB gzip.

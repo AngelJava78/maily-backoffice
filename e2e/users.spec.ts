@@ -92,12 +92,12 @@ test.describe('the users section: readings (A1)', () => {
 
     await email.fill('seed01@ejemplo.com');
     await search.click();
-    await expect(page.getByText(text.status.blocked)).toBeVisible();
+    await expect(page.getByText(text.status.blocked, { exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: text.search.viewDetail })).toBeVisible();
 
     await email.fill('seed02@ejemplo.com');
     await search.click();
-    await expect(page.getByText(text.status.deleted)).toBeVisible();
+    await expect(page.getByText(text.status.deleted, { exact: true })).toBeVisible();
 
     await email.fill('nadie@ejemplo.com');
     await search.click();
@@ -118,7 +118,7 @@ test.describe('the users section: readings (A1)', () => {
     // Reloading a search repeats its result (the email is in the address).
     await email.fill('seed01@ejemplo.com');
     await search.click();
-    await expect(page.getByText(text.status.blocked)).toBeVisible();
+    await expect(page.getByText(text.status.blocked, { exact: true })).toBeVisible();
     await expect(page).toHaveURL(/email=seed01%40ejemplo\.com/);
   });
 });
@@ -188,11 +188,11 @@ test.describe
 
     await page.getByRole('button', { name: text.actions.block }).click();
     await confirm(page, text.dialogs.block.title, text.dialogs.block.confirm);
-    await expect(page.getByText(text.status.blocked)).toBeVisible();
+    await expect(page.getByText(text.status.blocked, { exact: true })).toBeVisible();
 
     await page.getByRole('button', { name: text.actions.unblock }).click();
     await confirm(page, text.dialogs.unblock.title, text.dialogs.unblock.confirm);
-    await expect(page.getByText(text.status.active)).toBeVisible();
+    await expect(page.getByText(text.status.active, { exact: true })).toBeVisible();
   });
 
   test('V22: deletes the user, finds it as deleted and reactivates it', async ({ page }) => {
@@ -200,11 +200,11 @@ test.describe
 
     await page.getByRole('button', { name: text.actions.delete }).click();
     await confirm(page, text.dialogs.delete.title, text.dialogs.delete.confirm);
-    await expect(page.getByText(text.status.deleted)).toBeVisible();
+    await expect(page.getByText(text.status.deleted, { exact: true })).toBeVisible();
 
     await page.getByRole('button', { name: text.actions.reactivate }).click();
     await confirm(page, text.dialogs.reactivate.title, text.dialogs.reactivate.confirm);
-    await expect(page.getByText(text.status.active)).toBeVisible();
+    await expect(page.getByText(text.status.active, { exact: true })).toBeVisible();
     await expect(
       page.getByRole('region', { name: text.roles.title }).getByText('Marketing'),
     ).toBeVisible();

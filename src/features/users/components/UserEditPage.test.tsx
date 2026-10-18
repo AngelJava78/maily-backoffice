@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { useLocation, useParams } from 'react-router';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import { messages } from '@/shared/messages/es';
@@ -12,6 +12,8 @@ import {
 } from '@/test/handlers/usersDirectory';
 import { renderWithProviders } from '@/test/renderWithProviders';
 
+import { userKeys } from '../hooks/userKeys';
+import type { PlatformUser } from '../schemas/user';
 import { UserEditPage } from './UserEditPage';
 
 const text = messages.users;
@@ -42,10 +44,21 @@ function start(statusId = 1) {
   });
 }
 
-function renderEdit({ userId = 121, withSearch = true } = {}) {
+function renderEdit({
+  userId = 121,
+  withSearch = true,
+  onSaved,
+}: {
+  readonly userId?: number;
+  readonly withSearch?: boolean;
+  readonly onSaved?: (user: PlatformUser) => void;
+} = {}) {
   return renderWithProviders(
     [
-      { path: '/users/:userId/edit', element: <UserEditPage userId={userId} /> },
+      {
+        path: '/users/:userId/edit',
+        element: <UserEditPage userId={userId} onSaved={onSaved} />,
+      },
       { path: '/users/:userId', element: <DetailProbe /> },
       { path: '/users', element: <p>Listado</p> },
     ],
@@ -310,6 +323,85 @@ describe('UserEditPage: a user that cannot be loaded', () => {
 
     expect(await field(labels.firstName)).toHaveValue('Ana');
     expect(screen.queryByText(text.detail.loadError.title)).not.toBeInTheDocument();
+  });
+});
+
+describe('UserEditPage: while it saves, and when asking for the user fails', () => {
+  it('keeps the form, and what was typed, when asking for the user again fails', async () => {
+    const mock = start();
+    const { user, queryClient } = renderEdit();
+    await replaceText(user, labels.firstName, 'Anita');
+
+    mock.failNext({ method: 'GET', path: '/api/v1/users/121', status: 400, code: 'bad_request' });
+    await queryClient.invalidateQueries({ queryKey: userKeys.detail(121), exact: true });
+    await waitFor(() => {
+      expect(queryClient.getQueryState(userKeys.detail(121))?.status).toBe('error');
+    });
+
+    expect(await field(labels.firstName)).toHaveValue('Anita');
+    expect(screen.queryByText(text.detail.loadError.title)).not.toBeInTheDocument();
+  });
+
+  it('does not let the person leave with "Cancelar" while it saves: the save would take them back', async () => {
+    const mock = start();
+    const { user } = renderEdit();
+    await replaceText(user, labels.firstName, 'Anita');
+    const release = mock.defer();
+
+    await user.click(save());
+
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: messages.common.cancel })).toHaveAttribute(
+        'aria-disabled',
+        'true',
+      );
+    });
+    release();
+    await screen.findByText(text.edit.saved);
+  });
+
+  it('tells that it was saved, but does not take the person to the detail if they left meanwhile', async () => {
+    const mock = start();
+    const { user, router } = renderEdit();
+    await replaceText(user, labels.firstName, 'Anita');
+    const release = mock.defer();
+    await user.click(save());
+
+    // The person goes to the list while the service is still working.
+    await router.navigate('/users');
+    expect(await screen.findByText('Listado')).toBeInTheDocument();
+    release();
+
+    expect(await screen.findByText(text.edit.saved)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mock.state.findUser(121)?.firstName).toBe('Anita');
+    });
+    expect(router.state.location.pathname).toBe('/users');
+  });
+
+  it('gives the user that was saved to who asked, while the form is on screen', async () => {
+    start();
+    const onSaved = vi.fn<(user: PlatformUser) => void>();
+    const { user } = renderEdit({ onSaved });
+    await replaceText(user, labels.firstName, 'Anita');
+
+    await user.click(save());
+
+    await screen.findByText(text.edit.saved);
+    expect(onSaved).toHaveBeenCalledOnce();
+    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ id: 121, firstName: 'Anita' }));
+  });
+
+  it('takes the focus to the error that is not of a field, which is far from "Guardar" in a narrow screen', async () => {
+    const mock = start();
+    const { user } = renderEdit();
+    await replaceText(user, labels.firstName, 'Anita');
+    mock.failNext({ method: 'PATCH', status: 503, code: 'service_unavailable' });
+
+    await user.click(save());
+
+    const alert = (await screen.findByText(text.errors.retryable)).closest('[role="alert"]');
+    expect(alert).toHaveFocus();
   });
 });
 
