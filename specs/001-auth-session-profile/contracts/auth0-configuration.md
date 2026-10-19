@@ -25,7 +25,7 @@ Lo que debe existir en Auth0 y cómo lo usa la aplicación. La app de referencia
 | Allow Offline Access | **Activado** (necesario para refresh tokens) |
 | Vigencia del access token | Recomendación: corta (por ejemplo, 1 hora) |
 
-Sin una API con ese `audience` el inicio de sesión falla con "Service not found". Los servicios de MailySoft aún no validan el token; se pide igualmente para cumplir la constitución, para la herramienta de token de la 005 y para cuando los servicios lo exijan.
+Sin una API con ese `audience` el inicio de sesión falla con "Service not found". Si la API existe pero la aplicación no está autorizada para usarla, Auth0 devuelve a `/callback` el error `invalid_request` con el texto `Client "<client id>" is not authorized to access resource server "<audience>"` (la aplicación lo muestra como el aviso de error del proveedor): en la API, pestaña *Application Access* (o *Machine to Machine Applications*), la aplicación SPA debe figurar como autorizada para el acceso de usuarios (*User Access*). El servicio de usuarios sí valida el token (su spec 008): comprueba la firma RS256, el emisor `https://<dominio>/` y que `aud` incluya su `AUTH0_AUDIENCE`, y rechaza los ID tokens, por lo que la aplicación siempre le envía el token de acceso. Los demás servicios aún no lo validan.
 
 ## Parámetros del SDK (`Auth0Provider`)
 

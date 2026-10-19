@@ -70,6 +70,14 @@ web_modules/
 .env.*
 !.env.example
 
+# Scripts locales con datos de tu tenant de pruebas (no se versionan)
+/scripts/local/
+
+# Salidas de Playwright
+playwright-report/
+test-results/
+blob-report/
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache

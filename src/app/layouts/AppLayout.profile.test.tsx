@@ -1,0 +1,58 @@
+import { screen, within } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+
+import { messages } from '@/shared/messages/es';
+import { operatorAccess } from '@/test/factories';
+import { renderWithProviders } from '@/test/renderWithProviders';
+
+import { AppLayout } from './AppLayout';
+
+describe('the header of AppLayout', () => {
+  it('has the profile and the log out button together, whatever the screen (SC-005, FR-008)', () => {
+    renderWithProviders(
+      [
+        {
+          path: '/',
+          element: <AppLayout sections={[]} />,
+          children: [
+            { index: true, element: <h1>Home page</h1> },
+            { path: 'deep/inside', element: <h1>A screen deep inside</h1> },
+          ],
+        },
+      ],
+      { access: operatorAccess(), route: '/deep/inside' },
+    );
+
+    const header = screen.getByRole('banner');
+    expect(within(header).getByRole('link', { name: messages.nav.profile })).toHaveAttribute(
+      'href',
+      '/profile',
+    );
+    expect(
+      within(header).getByRole('button', { name: messages.common.logout }),
+    ).toBeInTheDocument();
+  });
+
+  it('takes the person to their profile with a single click', async () => {
+    const { user, router } = renderWithProviders(
+      [
+        {
+          path: '/',
+          element: <AppLayout sections={[]} />,
+          children: [
+            { index: true, element: <h1>Home page</h1> },
+            { path: 'profile', element: <h1>Profile page</h1> },
+          ],
+        },
+      ],
+      { access: operatorAccess() },
+    );
+
+    await user.click(
+      within(screen.getByRole('banner')).getByRole('link', { name: messages.nav.profile }),
+    );
+
+    expect(router.state.location.pathname).toBe('/profile');
+    expect(await screen.findByRole('heading', { name: 'Profile page' })).toBeInTheDocument();
+  });
+});

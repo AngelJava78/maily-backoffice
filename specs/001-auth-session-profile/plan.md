@@ -8,13 +8,13 @@
 
 ## Summary
 
-Primera feature del Backoffice y base de las demás: crea el proyecto (SPA con React y TypeScript sobre Vite) e implementa el acceso con Auth0 (Authorization Code con PKCE, tokens solo en memoria), la autorización del operador a partir del servicio de usuarios (usuario por identificador de Auth0, roles activos y permisos de los roles autorizados Administrator, Developer, Marketing y Billing), la navegación y las acciones según permisos, el perfil de solo lectura, el cierre de sesión (también en otras pestañas), la recomprobación del acceso cada 5 minutos y al volver a la pestaña, y el cierre por 15 minutos de inactividad con aviso previo.
+Primera feature del Backoffice y base de las demás: crea el proyecto (SPA con React y TypeScript sobre Vite) e implementa el acceso con Auth0 (Authorization Code con PKCE, tokens solo en memoria), la autorización del operador a partir del servicio de usuarios (consulta del servicio sobre la propia persona: usuario, roles activos y sus permisos, de los que cuentan los de los roles autorizados Administrator, Developer, Marketing y Billing), la navegación y las acciones según permisos, el perfil de solo lectura, el cierre de sesión (también en otras pestañas), la recomprobación del acceso cada 5 minutos y al volver a la pestaña, y el cierre por 15 minutos de inactividad con aviso previo.
 
 Enfoque técnico, con el detalle y las alternativas en [research.md](research.md):
 
 1. **Fundación del proyecto**: scaffold con Vite, TypeScript estricto, ESLint y Prettier, CI, validación del entorno con Zod, tema MUI, módulo de mensajes en español, `logger`, cliente HTTP único y proxy de desarrollo.
 2. **Autenticación y rutas**: `Auth0Provider` (PKCE, memoria, refresh tokens con respaldo por iframe), router de datos de React Router 8, rutas públicas (`/access`, `/access/idle`, `/callback`) y una guarda que no muestra nada protegido hasta conceder el acceso.
-3. **Resolución de acceso**: tres etapas contra el servicio de usuarios (usuario, roles activos, permisos de cada role autorizado) en una query de TanStack Query, evaluada por una función pura y consultada solo mediante `can()`.
+3. **Resolución de acceso**: una sola consulta al servicio de usuarios sobre la propia persona (`GET /api/v1/authorization/me`: usuario, roles activos y sus permisos) en una query de TanStack Query, evaluada por una función pura y consultada solo mediante `can()`. La consulta está pendiente de implementar en el servicio (solicitud en [contracts/users-service-me-request.md](contracts/users-service-me-request.md)); mientras tanto se prueba con MSW.
 4. **Pantallas**: layout con navegación por permisos, página principal, perfil, acceso denegado, comprobación fallida y página no encontrada.
 5. **Ciclo de vida de la sesión**: recomprobación periódica, cierre por inactividad (`react-idle-timer`), cierre voluntario con aviso entre pestañas y retorno a la pantalla de origen.
 6. **Calidad**: pruebas de lógica pura, componentes e integración con MSW y un doble de Auth0, accesibilidad con axe, presupuesto de bundle y E2E preparado para cuando exista un entorno de pruebas de Auth0.
@@ -33,9 +33,9 @@ Enfoque técnico, con el detalle y las alternativas en [research.md](research.md
 
 **Project Type**: Aplicación web de solo frontend, proyecto único en la raíz del repositorio (los servicios viven en otros repositorios).
 
-**Performance Goals**: página principal en menos de 5 s desde que termina la identificación en el 95 % de los casos (SC-001), con las llamadas de permisos en paralelo; si el servicio de usuarios no responde, el aviso de fallo aparece en 27 s como máximo (3 intentos de 8 s con esperas de 1 y 2 s; tope de 30 s, SC-011); JS de la ruta de entrada de 300 KB gzip o menos; recomprobación sin bloquear la interfaz.
+**Performance Goals**: página principal en menos de 5 s desde que termina la identificación en el 95 % de los casos (SC-001), con una sola llamada de acceso; si el servicio de usuarios no responde, el aviso de fallo aparece en 27 s como máximo (3 intentos de 8 s con esperas de 1 y 2 s; tope de 30 s, SC-011); JS de la ruta de entrada de 300 KB gzip o menos; recomprobación sin bloquear la interfaz.
 
-**Constraints**: tokens solo en memoria y sin secretos en el cliente; el servicio de usuarios no valida tokens ni configura CORS (proxy de Vite en desarrollo); 15 minutos de inactividad con aviso a los 14; recomprobación cada 5 minutos y al regresar a la pestaña; determinación del acceso con tope de 30 s hasta mostrar el fallo; interfaz en español, accesible (WCAG 2.1 AA) y fluida de 1024 a 320 px; de Auth0 solo se leen el `sub` y, para las pantallas de acceso denegado y de comprobación fallida, el correo (el resto de los datos viene del servicio de usuarios); sin `console.*` ni datos personales en logs.
+**Constraints**: tokens solo en memoria y sin secretos en el cliente; el servicio de usuarios exige un token de acceso válido y un permiso en cada operación (salvo la consulta `me`, que solo pide token y está pendiente de implementar) y su CORS es opcional (proxy de Vite en desarrollo); 15 minutos de inactividad con aviso a los 14; recomprobación cada 5 minutos y al regresar a la pestaña; determinación del acceso con tope de 30 s hasta mostrar el fallo; interfaz en español, accesible (WCAG 2.1 AA) y fluida de 1024 a 320 px; de Auth0 solo se leen el `sub` y, para las pantallas de acceso denegado y de comprobación fallida, el correo (el resto de los datos viene del servicio de usuarios); sin `console.*` ni datos personales en logs.
 
 **Scale/Scope**: herramienta interna de decenas de operadores; 7 pantallas (acceso, acceso con aviso de inactividad, callback, principal, perfil, acceso denegado o comprobación fallida, no encontrada) y un diálogo de aviso de inactividad.
 
@@ -49,7 +49,7 @@ Evaluado contra la constitución v1.0.0. "Antes" es el estado al iniciar la inve
 |---|---|---|---|
 | I. Solo componentes de función y un único Error Boundary de clase | `shared/ui/ErrorBoundary` (clase, reutilizable) para proveedores y raíz; las rutas usan la propiedad `ErrorBoundary` de React Router con funciones (D5), en la ruta raíz y en cada ruta de página (T139) | ✅ | ✅ |
 | I. Render puro; efectos solo con sistemas externos | Efectos limitados a: temporizador de inactividad y ubicación, canal entre pestañas, `pageshow`, foco y título por ruta | ✅ | ✅ |
-| I. Estructura por features con límites en ESLint | `app`, `features/{auth,users,roles,profile,home}`, `shared`; `eslint-plugin-boundaries` (D18) | ✅ | ✅ |
+| I. Estructura por features con límites en ESLint | `app`, `features/{auth,users,profile,home}`, `shared`; `eslint-plugin-boundaries` (D18) | ✅ | ✅ |
 | I. Sin abstracciones ni memoización especulativas | Sin stores globales; Context solo para tema, notificaciones, Query, Auth0 y clientes HTTP | ✅ | ✅ |
 | II. TypeScript estricto y Zod en las fronteras | Esquemas Zod para entorno, respuestas del servicio, reclamaciones del token (`sub` y correo), rutas de retorno y parámetros de URL; DTO a dominio en `api` ([data-model.md](data-model.md)) | ✅ | ✅ |
 | III. Estado de servidor en TanStack Query; vaciar caché al cerrar sesión | Query `accessKeys.operator(sub)`; `queryClient.clear()` en el cierre; caché sin persistir (D8, D10) | ✅ | ✅ |
@@ -85,7 +85,8 @@ specs/001-auth-session-profile/
 │   ├── app-routes.md
 │   ├── auth0-configuration.md
 │   ├── environment.md
-│   └── users-service.md
+│   ├── users-service.md
+│   └── users-service-me-request.md
 ├── checklists/
 │   └── requirements.md
 └── tasks.md             # Phase 2 output (/speckit-tasks command - NOT created by /speckit-plan)
@@ -105,7 +106,7 @@ src/
 ├── main.tsx
 ├── app/
 │   ├── App.tsx              # y ConfigErrorScreen.tsx (error de configuración al arrancar)
-│   ├── providers/           # Auth0Provider, QueryClientProvider, ThemeProvider, notificaciones, clientes HTTP
+│   ├── providers/           # Auth0Provider, QueryClientProvider, ThemeProvider, caché de estilos (nonce CSP), notificaciones, clientes HTTP
 │   ├── router/              # routes.tsx, router.ts, ProtectedRoute, RouteErrorBoundary
 │   ├── layouts/             # AppLayout: encabezado, navegación, Outlet
 │   ├── navigation/          # sections.ts: registro de secciones implementadas
@@ -114,15 +115,15 @@ src/
 │   └── pages/               # NotFoundPage
 ├── features/
 │   ├── auth/
-│   │   ├── components/      # AccessPage, CallbackPage, AccessDeniedPage, AccessCheckFailedPage, IdleWarningDialog, SessionLifecycle, LogoutButton
+│   │   ├── api/             # authorizationApi: consulta `me` del servicio de usuarios
+│   │   ├── components/      # AccessPage, CallbackPage, AccessDeniedPage, AccessCheckFailedPage, IdleWarningDialog, SessionLifecycle, SessionWatchers, LogoutButton
 │   │   ├── config/          # session.ts: constantes de sesión (15 min, 1 min y 5 min)
-│   │   ├── hooks/           # useOperatorAccess, useOperatorIdentity, useLogout, useSessionLifecycle, useSessionExpiry, useSessionEndedListener
+│   │   ├── hooks/           # useOperatorAccess, useGrantedAccess, useOperatorIdentity, useLogout, useSessionLifecycle, useSessionExpiry, useSessionEndedListener, sessionContext (SessionProvider)
 │   │   ├── policy/          # authorizedRoles, evaluateAccess, can, RequirePermission
-│   │   ├── schemas/         # operatorClaims (Zod: `sub` y correo del token)
-│   │   ├── session/         # returnPathStorage, tokenErrors, expiredState
+│   │   ├── schemas/         # operatorClaims (`sub` y correo del token), myAccess (respuesta de `me`)
+│   │   ├── session/         # returnPathStorage, tokenErrors, accessLocationState
 │   │   └── index.ts
-│   ├── users/               # api/ (usuario por Auth0 id, roles de un usuario), schemas/, index.ts
-│   ├── roles/               # api/ (permisos de un role), schemas/ (Role, Permission), index.ts
+│   ├── users/               # schemas/ (PlatformUser, UserStatus), index.ts
 │   ├── profile/             # ProfilePage, index.ts
 │   └── home/                # HomePage, index.ts
 ├── shared/
@@ -142,20 +143,20 @@ e2e/                         # specs de Playwright (se omiten sin variables E2E_
 |---|---|---|
 | FR-001 | Guarda `ProtectedRoute`; solo `/access`, `/access/idle` y `/callback` son públicas | Componentes; V1 |
 | FR-002 | Inicio de sesión por redirección a Auth0 (PKCE); la app no tiene campos de contraseña | Componente; V2 |
-| FR-003, FR-004 | `useOperatorAccess` (3 etapas de D7) y `evaluateAccess` con motivos; las pantallas de acceso denegado y de comprobación fallida muestran el correo de la cuenta (D14) | Unitarias de la función pura; MSW; V7 |
+| FR-003, FR-004 | `useOperatorAccess` (una llamada `me`, D7) y `evaluateAccess` con motivos; las pantallas de acceso denegado y de comprobación fallida muestran el correo de la cuenta (D14) | Unitarias de la función pura; MSW; V7 |
 | FR-005, FR-006 | Estado `failed` con `AccessCheckFailedPage`; indicador mientras se resuelve; cada intento tiene un presupuesto de 8 s y hay como máximo 3, así que el fallo aparece a los 27 s o antes | MSW con 500 y con una respuesta que no llega, reloj simulado; V8, V18 |
 | FR-007 | `appState.returnTo` y `onRedirectCallback` | Componente; V2 |
 | FR-008, FR-009 | `AppLayout` (solo pantallas con acceso concedido) y `app/navigation/sections.ts` filtrado con `can()` | Componentes con secciones de ejemplo; V4 |
 | FR-010, FR-011 | `useLogout`, `sessionChannel`, `pageshow`, caché vaciada | Unitarias y componentes; V10, V11 |
 | FR-012 | `ProfilePage` de solo lectura con los datos del usuario de MailySoft (nombre, apellido paterno, apellido materno, correo, iniciales y roles; sin imagen: D14) | Componente; V13 |
-| FR-013 | `tokenErrors` convierte `login_required` y afines en `SessionExpiredError`; `useSessionExpiry` anota el aviso en la ubicación y cierra la sesión local; la guarda redirige a `/access` con `notice: 'expired'` y `returnTo` | Integración con doble de Auth0; V15 |
+| FR-013 | `tokenErrors` convierte `login_required` y afines en `SessionExpiredError`; `useSessionExpiry` anota el aviso `expired` en el estado de sesión y cierra la sesión local; la guarda redirige a `/access` con `returnTo` y la pantalla dice el motivo | Integración con doble de Auth0; V15 |
 | FR-014 | `ApiError` 403 se traduce en notificación sin cerrar sesión | Unitaria y componente |
 | FR-015 | Avisos `cancelled` e `idpError` en `/access` | Componente |
 | FR-016 | `NotFoundPage` | Componente; V14 |
 | FR-017, FR-018 | `can()` y `SectionDefinition`; el aviso se evalúa sobre `users`, `subscriptions` y `tenants` | Unitarias; V5, V16 |
 | FR-019, FR-021 | `refetchInterval` de 5 min y foco `always`; la guarda reacciona al cambio | Reloj simulado; V9 |
 | FR-020 | `react-idle-timer` con aviso a los 14 min y cierre a los 15 | Reloj simulado; V12 |
-| SC-001 | Llamadas de permisos en paralelo | Prueba de integración (conteo de etapas); medición en E2E |
+| SC-001 | Una sola llamada de acceso | Prueba de integración (conteo de solicitudes); medición en E2E |
 | SC-002, SC-003, SC-004 | Denegado sin contenido; cierre y Atrás; retorno tras vencimiento | Componentes; E2E cuando exista entorno |
 | SC-005 | Cerrar sesión y perfil en el encabezado | Componente |
 | SC-006 | Mensaje y acción de continuidad en cada fallo | Componentes |
@@ -172,3 +173,21 @@ e2e/                         # specs de Playwright (se omiten sin variables E2E_
 |-----------|------------|-------------------------------------|
 | Dependencia de desarrollo `axe-core` (MPL-2.0), que no es una licencia permisiva de la lista (MIT, Apache-2.0, BSD, ISC) | La constitución VI exige verificaciones automáticas con axe en las pruebas de las pantallas principales | No hay un motor de accesibilidad permisivo equivalente: `vitest-axe`, `jest-axe` y herramientas como Lighthouse se apoyan en axe-core. Es solo de pruebas, no se incluye en el bundle ni se distribuye, y no se modifica (las obligaciones de MPL aplican a archivos modificados que se distribuyen). |
 | Uso de `sessionStorage` (la constitución V solo permite guardar preferencias de UI no sensibles) para la ruta de retorno tras un cierre por inactividad | FR-020 exige volver a la pantalla donde estaba tras identificarse de nuevo, y el cierre de Auth0 es una navegación completa que borra la memoria | Estado en memoria: se pierde en la redirección. Ruta en la query de `returnTo`: depende de cómo Auth0 compare las URL de cierre permitidas (no verificado). No restaurar: incumple FR-020. Mitigación: solo `pathname` y parámetros permitidos (`page`, `page_size`, `sort`), sin texto libre, por pestaña, leído y borrado una sola vez; el cierre voluntario no guarda nada. |
+
+## Notas de implementación
+
+Decisiones tomadas al implementar que afinan lo planeado sin cambiar los requisitos:
+
+- **Resolución del acceso**: `useOperatorAccess` (la consulta y sus recomprobaciones cada 5 minutos) vive solo en la guarda `ProtectedRoute`. El resto de la aplicación lee el resultado con `useGrantedAccess`, que lee la caché de TanStack Query sin copiarla a Context ni a un estado local (constitución III). Así hay una sola consulta y un solo temporizador de recomprobación (SC-001).
+- **La guarda es la única que redirige** cuando la sesión termina, sea cual sea el motivo (cierre en otra pestaña, sesión vencida, inactividad), y fija el `returnTo` desde su propia ubicación. También renderiza `SessionWatchers` (escucha del cierre en otras pestañas y temporizador de inactividad) en todo estado con sesión, incluidas las pantallas de acceso denegado y de fallo de la comprobación (FR-010, FR-020).
+- **Estado de sesión por pestaña** (`SessionProvider`, en `AppRuntime`): el canal con las demás pestañas y el aviso que debe dar la pantalla de acceso cuando la sesión terminó sola (`expired`, `idle`). El aviso no viaja en el estado del router porque sus actualizaciones (con `startTransition`) no están ordenadas con las de Auth0. Quien cierra la sesión no reacciona a su propio aviso ni al de otra pestaña que cierra a la vez, para no leer dos veces la ruta de retorno guardada.
+- **Inactividad entre pestañas**: no se usa `crossTab` de `react-idle-timer`, que espera a que todas las pestañas que haya visto estén inactivas y dejaría la sesión abierta si el navegador descarta una (research D9). Cada pestaña avisa de su actividad por el canal (`{ type: 'activity' }`, una vez por segundo como máximo) y las demás reinician su cuenta.
+- **Tiempo de la obtención del token**: pedir el token a Auth0 (y la renovación forzada tras un 401) cuenta dentro del límite de tiempo de cada petición; una renovación que no responde no deja la pantalla de carga indefinidamente (FR-005, SC-011).
+- **Pantalla de acceso**: si ya hay sesión redirige a `/`, y es la guarda quien decide qué se ve (inicio, acceso denegado o fallo de comprobación). La pantalla de retorno (`/callback`) espera mientras la URL conserve el `code` y el `state`, porque el SDK termina de cargar antes de que el router se mueva.
+- **CSP**: MUI (Emotion) crea elementos `<style>` en tiempo de ejecución. La aplicación copia a cada uno el *nonce* que el servidor escribe en `<meta property="csp-nonce">` de `index.html` (`StyleCacheProvider`), y el SDK de Auth0 necesita `worker-src blob:`; el ejemplo de política está en el README (contracts/environment.md).
+- **Contraste**: la paleta de MUI por defecto no llega a AA con texto blanco en `warning` (3,1:1) ni `info` (3,9:1); el tema los sustituye y una prueba comprueba el contraste de cada color.
+- **Direcciones de API**: `VITE_*_API_URL` rechaza barras invertidas y espacios (un navegador lee `/\dominio.com` como `//dominio.com`), porque el token se envía a esas direcciones.
+- **Lint de capas**: `eslint-plugin-boundaries` 7 necesita un resolutor para el alias `@/` (`scripts/eslint-alias-resolver.cjs`). `.gitattributes` fija los finales de línea en LF para que Prettier no discrepe en Windows.
+- **Pruebas**: Testing Library se queda esperando con los relojes simulados de Vitest si no existe el global `jest` (se declara en `src/test/setup.ts`); `react-idle-timer` captura los temporizadores al cargarse, por lo que hay que llamar a `createMocks()` tras `vi.useFakeTimers()`; axe no calcula el contraste en jsdom, así que esa regla se desactiva allí y se comprobó en un Chromium real sobre las pantallas públicas (sin violaciones).
+- **Dependencias**: `@emotion/cache` (caché con *nonce*) y `@auth0/auth0-spa-js` (solo desarrollo: el doble de pruebas construye un `Auth0Client` real) se declaran de forma explícita aunque ya llegaban de forma transitiva. `npm audit` sin vulnerabilidades en producción. En desarrollo, `eslint-plugin-boundaries` arrastra avisos de `handlebars` y `micromatch`; la herramienta de lint no procesa entradas ajenas.
+- **Presupuesto de bundle**: la ruta de entrada pesa 264,8 KB gzip tras esta feature (límite: 300 KB).
