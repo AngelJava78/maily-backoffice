@@ -51,7 +51,17 @@ describe('getVisibleSections', () => {
     expect(getVisibleSections(accessWith('users:read', 'tenants:read'), [])).toEqual([]);
   });
 
-  it('is empty in the registry of this feature: only implemented sections are listed', () => {
-    expect(sections).toEqual([]);
+  // The registry lists only the sections that exist (FR-009): each feature adds its own.
+  it('registers the users section, the first one that exists (feature 002)', () => {
+    expect(sections).toEqual([
+      { id: 'users', path: '/users', labelKey: 'users', resource: 'users' },
+    ]);
+  });
+
+  it('shows the registered section only to someone who can read the users', () => {
+    expect(
+      getVisibleSections(accessWith('users:read'), sections).map((section) => section.id),
+    ).toEqual(['users']);
+    expect(getVisibleSections(accessWith('users:write', 'tenants:read'), sections)).toEqual([]);
   });
 });

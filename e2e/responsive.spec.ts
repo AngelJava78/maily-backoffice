@@ -75,5 +75,43 @@ for (const size of SIZES) {
       await expectNoHorizontalScroll(page);
       await expectHeaderShortcuts(page);
     });
+
+    test('the users list, a detail, the creation form and the edit form (A1) reflow, with the shortcuts in the header', async ({
+      page,
+    }) => {
+      test.skip(!hasAccounts('A1'), 'Needs E2E_AUTH0_USER_A1 and E2E_AUTH0_PASSWORD_A1');
+      await page.goto('/users');
+      await signIn(page, account('A1'));
+
+      // The table scrolls inside its own box: the page itself does not.
+      const heading = (name: string) => page.getByRole('heading', { level: 1, name });
+      await expect(heading(messages.users.title)).toBeVisible();
+      await expectNoHorizontalScroll(page);
+      await expectHeaderShortcuts(page);
+
+      await page
+        .getByRole('grid', { name: messages.users.list.gridLabel })
+        .getByRole('link')
+        .first()
+        .click();
+      await expect(heading(messages.users.detail.title)).toBeVisible();
+      await expect(page.getByRole('region', { name: messages.users.roles.title })).toBeVisible();
+      await expectNoHorizontalScroll(page);
+      await expectHeaderShortcuts(page);
+
+      await page.getByRole('link', { name: messages.users.actions.edit }).click();
+      await expect(heading(messages.users.edit.title)).toBeVisible();
+      await expectNoHorizontalScroll(page);
+      await expectHeaderShortcuts(page);
+
+      // Same-page navigation keeps the tokens, which live in memory.
+      await page.evaluate(() => {
+        window.history.pushState({}, '', '/users/new');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      });
+      await expect(heading(messages.users.form.createTitle)).toBeVisible();
+      await expectNoHorizontalScroll(page);
+      await expectHeaderShortcuts(page);
+    });
   });
 }

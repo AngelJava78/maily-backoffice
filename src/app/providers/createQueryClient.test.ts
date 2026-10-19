@@ -21,6 +21,15 @@ describe('createQueryClient', () => {
     expect(mutations?.retry).toBe(false);
   });
 
+  it('does not wait for the connection to come back: without it a call fails and the person sees it', () => {
+    // `navigator.onLine` is unreliable, and a query or mutation that waits for it would stay on
+    // "loading" or "saving" for ever instead of showing the error (constitution IV and VI).
+    const { queries, mutations } = createQueryClient({}).getDefaultOptions();
+
+    expect(queries?.networkMode).toBe('always');
+    expect(mutations?.networkMode).toBe('always');
+  });
+
   it('tells about a 403 from a query without ending anything', async () => {
     const onForbidden = vi.fn<(error: ApiError) => void>();
     const queryClient = createQueryClient({ onForbidden });

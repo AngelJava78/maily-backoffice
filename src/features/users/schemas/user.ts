@@ -39,6 +39,15 @@ export function getDisplayName(user: Pick<PlatformUser, 'firstName' | 'paternalL
   return `${user.firstName} ${user.paternalLastName}`;
 }
 
+/** Name as the list and the detail show it: first name and both last names, if there are two. */
+export function getFullName(
+  user: Pick<PlatformUser, 'firstName' | 'paternalLastName' | 'maternalLastName'>,
+): string {
+  return [user.firstName, user.paternalLastName, user.maternalLastName]
+    .filter((part): part is string => part !== null)
+    .join(' ');
+}
+
 /** First letter, in upper case, of each of the first two words. */
 export function getInitials(displayName: string): string {
   return displayName

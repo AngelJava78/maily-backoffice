@@ -31,6 +31,15 @@ export default defineConfig(({ mode }) => {
       environment: 'jsdom',
       environmentOptions: { jsdom: { url: 'http://localhost:5173' } },
       setupFiles: ['./src/test/setup.ts'],
+      // Dates are shown in the zone of the browser, so the tests pin one: they pass the same on a
+      // developer machine and in CI.
+      env: { TZ: 'UTC' },
+      // Each worker holds a jsdom with MUI (and the Data Grid) in memory: with one per processor a
+      // laptop with 8 GB runs out of memory and the workers crash (exit code 134, `spawn UNKNOWN`).
+      maxWorkers: 4,
+      // The tests of screens with dialogs and selectors take a few seconds when several workers (or
+      // the coverage instrumentation) compete for the processor; a real hang still fails.
+      testTimeout: 15_000,
       include: ['src/**/*.test.{ts,tsx}'],
       restoreMocks: true,
       coverage: {

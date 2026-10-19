@@ -1,4 +1,4 @@
-import { can, type PermissionResource } from '@/features/auth';
+import { can, type SectionResource } from '@/features/auth';
 import type { messages } from '@/shared/messages/es';
 
 /** A section of the backoffice, listed in the navigation when the person can read its resource. */
@@ -8,14 +8,16 @@ export interface SectionDefinition {
   readonly path: string;
   /** Key of the text in `messages.nav.sections`. */
   readonly labelKey: keyof typeof messages.nav.sections;
-  readonly resource: PermissionResource;
+  readonly resource: SectionResource;
 }
 
 /**
- * The sections that exist. Each feature registers its own when it is implemented (FR-009), so this
- * is empty for now and tests inject example sections.
+ * The sections that exist. Each feature registers its own when it is implemented (FR-009); tests
+ * inject example sections of their own.
  */
-export const sections: readonly SectionDefinition[] = [];
+export const sections: readonly SectionDefinition[] = [
+  { id: 'users', path: '/users', labelKey: 'users', resource: 'users' },
+];
 
 /** The sections whose resource the person can read, in the order of the registry. */
 export function getVisibleSections(

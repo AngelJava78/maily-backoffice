@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getDisplayName, getInitials, platformUserSchema } from './user';
+import { getDisplayName, getFullName, getInitials, platformUserSchema } from './user';
 import { isActiveStatus, USER_STATUS } from './userStatus';
 
 const validDto = {
@@ -80,6 +80,20 @@ describe('getDisplayName', () => {
     const user = platformUserSchema.parse({ ...validDto, maternal_last_name: 'Gómez' });
 
     expect(getDisplayName(user)).not.toContain('Gómez');
+  });
+});
+
+describe('getFullName', () => {
+  it('joins the first name and both last names', () => {
+    const user = platformUserSchema.parse(validDto);
+
+    expect(getFullName(user)).toBe('Ana Pérez Gómez');
+  });
+
+  it('leaves out the maternal last name when the user has none', () => {
+    const user = platformUserSchema.parse({ ...validDto, maternal_last_name: null });
+
+    expect(getFullName(user)).toBe('Ana Pérez');
   });
 });
 

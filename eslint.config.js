@@ -198,4 +198,32 @@ export default defineConfig(
       ],
     },
   },
+
+  // `auth` reads `users` (the operator is a user of the platform), so `users` must never read
+  // `auth` back: each would need the other to be loaded first, and the schemas that `auth` builds
+  // from `users` at load time would fail in an order that depends on the import graph. What `users`
+  // needs of the operator is handed to it by the application (research D2 of feature 002).
+  {
+    files: ['src/features/users/**/*.{ts,tsx}'],
+    ignores: ['**/*.test.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '@/features/auth',
+                '@/features/auth/*',
+                '**/features/auth',
+                '**/features/auth/*',
+              ],
+              message:
+                'features/users must not import features/auth: the application hands it what it needs (research D2 of 002).',
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

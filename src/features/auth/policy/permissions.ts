@@ -1,7 +1,15 @@
 /** Resources that have a section in the backoffice (clarification 3). */
 export const SECTION_RESOURCES = ['users', 'subscriptions', 'tenants'] as const;
 
-export type PermissionResource = (typeof SECTION_RESOURCES)[number];
+/**
+ * Every resource whose permissions are checked. The roles are only read, to offer assigning them to
+ * a user (feature 002): they are not administered here, so they have no section of their own.
+ */
+export const PERMISSION_RESOURCES = [...SECTION_RESOURCES, 'roles'] as const;
+
+export type SectionResource = (typeof SECTION_RESOURCES)[number];
+
+export type PermissionResource = (typeof PERMISSION_RESOURCES)[number];
 
 /** Interface action -> permission: view = read, create = write, modify = update, delete = delete. */
 export type PermissionAction = 'read' | 'write' | 'update' | 'delete';
@@ -11,8 +19,8 @@ interface PermissionHolder {
 }
 
 /**
- * The single place that decides whether an action is allowed (constitution V). Seeing a section
- * needs `read`; without it no other action of that section is offered.
+ * The single place that decides whether an action is allowed (constitution V). Seeing a resource
+ * needs `read`; without it no other action on that resource is offered.
  */
 export function can(
   access: PermissionHolder,

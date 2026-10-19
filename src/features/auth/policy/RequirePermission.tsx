@@ -5,7 +5,7 @@ import { messages } from '@/shared/messages/es';
 import { useNotify } from '@/shared/ui/Notifications';
 
 import { useGrantedAccess } from '../hooks/useGrantedAccess';
-import { can, type PermissionResource } from './permissions';
+import { can, type SectionResource } from './permissions';
 
 /**
  * Wraps the routes of a section. Seeing a section needs the `read` permission of its resource; when
@@ -16,7 +16,7 @@ export function RequirePermission({
   resource,
   children,
 }: {
-  readonly resource: PermissionResource;
+  readonly resource: SectionResource;
   readonly children: ReactNode;
 }) {
   const access = useGrantedAccess();
