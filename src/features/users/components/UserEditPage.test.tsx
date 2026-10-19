@@ -15,6 +15,7 @@ import { renderWithProviders } from '@/test/renderWithProviders';
 import { userKeys } from '../hooks/userKeys';
 import type { PlatformUser } from '../schemas/user';
 import { UserEditPage } from './UserEditPage';
+import { uuidOf } from '@/test/ids';
 
 const text = messages.users;
 const labels = text.form.fields;
@@ -33,7 +34,7 @@ function start(statusId = 1) {
     users: [
       ...base.users,
       directoryUser({
-        id: 121,
+        id: uuidOf(121),
         statusId,
         email: 'ana@clinica.com',
         firstName: 'Ana',
@@ -45,11 +46,11 @@ function start(statusId = 1) {
 }
 
 function renderEdit({
-  userId = 121,
+  userId = uuidOf(121),
   withSearch = true,
   onSaved,
 }: {
-  readonly userId?: number;
+  readonly userId?: string;
   readonly withSearch?: boolean;
   readonly onSaved?: (user: PlatformUser) => void;
 } = {}) {
@@ -120,14 +121,16 @@ describe('UserEditPage: the form', () => {
     await user.click(save());
 
     expect(await screen.findByText(text.edit.saved)).toBeInTheDocument();
-    expect(await screen.findByText(`Detalle 121: {"listSearch":"${LIST_SEARCH}"}`)).toBeVisible();
-    expect(mock.requestsTo('PATCH', '/api/v1/users/121')).toHaveLength(1);
-    expect(mock.requestsTo('PATCH', '/api/v1/users/121')[0]?.body).toEqual({
+    expect(
+      await screen.findByText(`Detalle ${uuidOf(121)}: {"listSearch":"${LIST_SEARCH}"}`),
+    ).toBeVisible();
+    expect(mock.requestsTo('PATCH', `/api/v1/users/${uuidOf(121)}`)).toHaveLength(1);
+    expect(mock.requestsTo('PATCH', `/api/v1/users/${uuidOf(121)}`)[0]?.body).toEqual({
       first_name: 'Anita',
       paternal_last_name: 'Pérez',
       maternal_last_name: 'Gómez',
     });
-    expect(mock.state.findUser(121)?.firstName).toBe('Anita');
+    expect(mock.state.findUser(uuidOf(121))?.firstName).toBe('Anita');
   });
 
   it('removes the maternal last name when it is emptied', async () => {
@@ -138,10 +141,10 @@ describe('UserEditPage: the form', () => {
     await user.click(save());
 
     await screen.findByText(text.edit.saved);
-    expect(mock.requestsTo('PATCH', '/api/v1/users/121')[0]?.body).toMatchObject({
+    expect(mock.requestsTo('PATCH', `/api/v1/users/${uuidOf(121)}`)[0]?.body).toMatchObject({
       maternal_last_name: null,
     });
-    expect(mock.state.findUser(121)?.maternalLastName).toBeNull();
+    expect(mock.state.findUser(uuidOf(121))?.maternalLastName).toBeNull();
   });
 
   it('does not save, tells which values are missing and puts the focus on the first one', async () => {
@@ -179,10 +182,10 @@ describe('UserEditPage: the form', () => {
 
     await user.click(screen.getByRole('link', { name: messages.common.cancel }));
 
-    expect(await screen.findByText(/^Detalle 121:/)).toBeInTheDocument();
+    expect(await screen.findByText(new RegExp(`^Detalle ${uuidOf(121)}:`))).toBeInTheDocument();
     expect(screen.getByText(/listSearch/)).toBeInTheDocument();
     expect(mock.requestsTo('PATCH', /./)).toHaveLength(0);
-    expect(mock.state.findUser(121)?.firstName).toBe('Ana');
+    expect(mock.state.findUser(uuidOf(121))?.firstName).toBe('Ana');
   });
 
   it('sends one request however many times it is saved while it works', async () => {
@@ -214,7 +217,7 @@ describe('UserEditPage: the form', () => {
     expect(await screen.findByText(text.errors.retryable)).toBeInTheDocument();
     expect(await field(labels.firstName)).toHaveValue('Anita');
     expect(save()).toBeEnabled();
-    expect(mock.state.findUser(121)?.firstName).toBe('Ana');
+    expect(mock.state.findUser(uuidOf(121))?.firstName).toBe('Ana');
   });
 
   it('does not repeat the notice of a lack of permission, which the application already shows', async () => {
@@ -248,7 +251,7 @@ describe('UserEditPage: a user that cannot be edited', () => {
       expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
       expect(screen.getByRole('link', { name: text.edit.inactive.backToDetail })).toHaveAttribute(
         'href',
-        '/users/121',
+        `/users/${uuidOf(121)}`,
       );
       expect(screen.getByRole('link', { name: text.edit.inactive.backToList })).toHaveAttribute(
         'href',
@@ -262,7 +265,7 @@ describe('UserEditPage: a user that cannot be edited', () => {
     const { user } = renderEdit();
     await replaceText(user, labels.firstName, 'Anita');
     // Another operator blocks the user while this form is open.
-    mock.setUserStatus(121, 2);
+    mock.setUserStatus(uuidOf(121), 2);
 
     await user.click(save());
 
@@ -270,15 +273,15 @@ describe('UserEditPage: a user that cannot be edited', () => {
     // The user is asked for again, and the form gives way to the explanation.
     expect(await screen.findByText(text.edit.inactive.title)).toBeInTheDocument();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
-    expect(mock.requestsTo('GET', '/api/v1/users/121')).toHaveLength(2);
-    expect(mock.state.findUser(121)?.firstName).toBe('Ana');
+    expect(mock.requestsTo('GET', `/api/v1/users/${uuidOf(121)}`)).toHaveLength(2);
+    expect(mock.state.findUser(uuidOf(121))?.firstName).toBe('Ana');
   });
 });
 
 describe('UserEditPage: a user that cannot be loaded', () => {
   it('says that the user was not found, with a way back to the list', async () => {
     start();
-    renderEdit({ userId: 999 });
+    renderEdit({ userId: uuidOf(999) });
 
     expect(await screen.findByText(text.detail.notFound.title)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: text.detail.notFound.backToList })).toHaveAttribute(
@@ -295,7 +298,7 @@ describe('UserEditPage: a user that cannot be loaded', () => {
     mock.failNext({ method: 'PATCH', status: 404, code: 'user_not_found' });
     mock.failNext({
       method: 'GET',
-      path: '/api/v1/users/121',
+      path: `/api/v1/users/${uuidOf(121)}`,
       status: 404,
       code: 'user_not_found',
     });
@@ -311,7 +314,7 @@ describe('UserEditPage: a user that cannot be loaded', () => {
     const mock = start();
     mock.failNext({
       method: 'GET',
-      path: '/api/v1/users/121',
+      path: `/api/v1/users/${uuidOf(121)}`,
       status: 500,
       code: 'internal_error',
     });
@@ -332,10 +335,15 @@ describe('UserEditPage: while it saves, and when asking for the user fails', () 
     const { user, queryClient } = renderEdit();
     await replaceText(user, labels.firstName, 'Anita');
 
-    mock.failNext({ method: 'GET', path: '/api/v1/users/121', status: 400, code: 'bad_request' });
-    await queryClient.invalidateQueries({ queryKey: userKeys.detail(121), exact: true });
+    mock.failNext({
+      method: 'GET',
+      path: `/api/v1/users/${uuidOf(121)}`,
+      status: 400,
+      code: 'bad_request',
+    });
+    await queryClient.invalidateQueries({ queryKey: userKeys.detail(uuidOf(121)), exact: true });
     await waitFor(() => {
-      expect(queryClient.getQueryState(userKeys.detail(121))?.status).toBe('error');
+      expect(queryClient.getQueryState(userKeys.detail(uuidOf(121)))?.status).toBe('error');
     });
 
     expect(await field(labels.firstName)).toHaveValue('Anita');
@@ -374,7 +382,7 @@ describe('UserEditPage: while it saves, and when asking for the user fails', () 
 
     expect(await screen.findByText(text.edit.saved)).toBeInTheDocument();
     await waitFor(() => {
-      expect(mock.state.findUser(121)?.firstName).toBe('Anita');
+      expect(mock.state.findUser(uuidOf(121))?.firstName).toBe('Anita');
     });
     expect(router.state.location.pathname).toBe('/users');
   });
@@ -389,7 +397,9 @@ describe('UserEditPage: while it saves, and when asking for the user fails', () 
 
     await screen.findByText(text.edit.saved);
     expect(onSaved).toHaveBeenCalledOnce();
-    expect(onSaved).toHaveBeenCalledWith(expect.objectContaining({ id: 121, firstName: 'Anita' }));
+    expect(onSaved).toHaveBeenCalledWith(
+      expect.objectContaining({ id: uuidOf(121), firstName: 'Anita' }),
+    );
   });
 
   it('takes the focus to the error that is not of a field, which is far from "Guardar" in a narrow screen', async () => {
@@ -418,7 +428,7 @@ describe('UserEditPage: accessibility', () => {
     expect(await axe(form.container)).toHaveNoViolations();
     form.unmount();
 
-    mock.setUserStatus(121, 2);
+    mock.setUserStatus(uuidOf(121), 2);
     const inactive = renderEdit();
     await screen.findByText(text.edit.inactive.title);
     expect(await axe(inactive.container)).toHaveNoViolations();
@@ -426,7 +436,7 @@ describe('UserEditPage: accessibility', () => {
 
     mock.failNext({
       method: 'GET',
-      path: '/api/v1/users/121',
+      path: `/api/v1/users/${uuidOf(121)}`,
       status: 500,
       code: 'internal_error',
     });

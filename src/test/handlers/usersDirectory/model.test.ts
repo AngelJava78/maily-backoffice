@@ -7,6 +7,7 @@ import {
   directoryUser,
   type DirectoryInitial,
 } from './model';
+import { uuidOf } from '@/test/ids';
 
 const ACTIVE = 1;
 const BLOCKED = 2;
@@ -39,11 +40,11 @@ describe('permissionsOf', () => {
 
   it('is the union of the permissions of the active roles of an active user', () => {
     const model = build({
-      users: [directoryUser({ id: 2, auth0Id: 'auth0|ana' })],
+      users: [directoryUser({ id: uuidOf(2), auth0Id: 'auth0|ana' })],
       roles: [marketing, doctor],
       associations: [
-        { userId: 2, roleId: 4 },
-        { userId: 2, roleId: 6 },
+        { userId: uuidOf(2), roleId: 4 },
+        { userId: uuidOf(2), roleId: 6 },
       ],
     });
 
@@ -52,11 +53,11 @@ describe('permissionsOf', () => {
 
   it('leaves out the roles that are not active', () => {
     const model = build({
-      users: [directoryUser({ id: 2, auth0Id: 'auth0|ana' })],
+      users: [directoryUser({ id: uuidOf(2), auth0Id: 'auth0|ana' })],
       roles: [marketing, directoryRole({ ...doctor, statusId: BLOCKED })],
       associations: [
-        { userId: 2, roleId: 4 },
-        { userId: 2, roleId: 6 },
+        { userId: uuidOf(2), roleId: 4 },
+        { userId: uuidOf(2), roleId: 6 },
       ],
     });
 
@@ -68,9 +69,9 @@ describe('permissionsOf', () => {
     ['deleted', DELETED],
   ])('is empty for a %s user, whatever roles it keeps', (_label, statusId) => {
     const model = build({
-      users: [directoryUser({ id: 2, auth0Id: 'auth0|ana', statusId })],
+      users: [directoryUser({ id: uuidOf(2), auth0Id: 'auth0|ana', statusId })],
       roles: [marketing],
-      associations: [{ userId: 2, roleId: 4 }],
+      associations: [{ userId: uuidOf(2), roleId: 4 }],
     });
 
     expect(model.permissionsOf('auth0|ana').size).toBe(0);
@@ -88,9 +89,9 @@ describe('accessOf (the answer of `me`)', () => {
     directoryRole({ id: 7, name: 'Support', statusId: BLOCKED, permissions: ['x:read'] }),
   ];
   const associations = [
-    { userId: 2, roleId: 6 },
-    { userId: 2, roleId: 4 },
-    { userId: 2, roleId: 7 },
+    { userId: uuidOf(2), roleId: 6 },
+    { userId: uuidOf(2), roleId: 4 },
+    { userId: uuidOf(2), roleId: 7 },
   ];
 
   it('has no user and no roles for someone who is not registered', () => {
@@ -99,20 +100,20 @@ describe('accessOf (the answer of `me`)', () => {
 
   it.each([BLOCKED, DELETED])('has the user but no roles when its status is %i', (statusId) => {
     const model = build({
-      users: [directoryUser({ id: 2, auth0Id: 'auth0|ana', statusId })],
+      users: [directoryUser({ id: uuidOf(2), auth0Id: 'auth0|ana', statusId })],
       roles,
       associations,
     });
 
     const access = model.accessOf('auth0|ana');
 
-    expect(access.user?.id).toBe(2);
+    expect(access.user?.id).toBe(uuidOf(2));
     expect(access.roles).toEqual([]);
   });
 
   it('has the active roles sorted by name, each with its permissions sorted', () => {
     const model = build({
-      users: [directoryUser({ id: 2, auth0Id: 'auth0|ana' })],
+      users: [directoryUser({ id: uuidOf(2), auth0Id: 'auth0|ana' })],
       roles,
       associations,
     });
@@ -128,41 +129,51 @@ describe('listActiveUsers', () => {
   it('lists only the active users, by name, paternal and maternal last name, then by id', () => {
     const model = build({
       users: [
-        directoryUser({ id: 1, firstName: 'beto', paternalLastName: 'Ruiz' }),
-        directoryUser({ id: 2, firstName: 'Ana', paternalLastName: 'Zamora' }),
+        directoryUser({ id: uuidOf(1), firstName: 'beto', paternalLastName: 'Ruiz' }),
+        directoryUser({ id: uuidOf(2), firstName: 'Ana', paternalLastName: 'Zamora' }),
         directoryUser({
-          id: 3,
+          id: uuidOf(3),
           firstName: 'Ana',
           paternalLastName: 'Pérez',
           maternalLastName: null,
         }),
         directoryUser({
-          id: 4,
+          id: uuidOf(4),
           firstName: 'Ana',
           paternalLastName: 'Pérez',
           maternalLastName: 'Gómez',
         }),
         directoryUser({
-          id: 5,
+          id: uuidOf(5),
           firstName: 'Ana',
           paternalLastName: 'Pérez',
           maternalLastName: 'gómez',
         }),
-        directoryUser({ id: 6, firstName: 'Aaron', paternalLastName: 'Cruz', statusId: BLOCKED }),
-        directoryUser({ id: 7, firstName: 'Aaron', paternalLastName: 'Cruz', statusId: DELETED }),
+        directoryUser({
+          id: uuidOf(6),
+          firstName: 'Aaron',
+          paternalLastName: 'Cruz',
+          statusId: BLOCKED,
+        }),
+        directoryUser({
+          id: uuidOf(7),
+          firstName: 'Aaron',
+          paternalLastName: 'Cruz',
+          statusId: DELETED,
+        }),
       ],
     });
 
     const page = model.listActiveUsers(1, 50);
 
-    expect(page.items.map((user) => user.id)).toEqual([4, 5, 3, 2, 1]);
+    expect(page.items.map((user) => user.id)).toEqual([4, 5, 3, 2, 1].map(uuidOf));
     expect(page).toMatchObject({ total: 5, page: 1, page_size: 50, pages: 1 });
   });
 
   it('counts only the active users in the total and in the number of pages', () => {
-    const users = Array.from({ length: 25 }, (_, i) => directoryUser({ id: i + 1 }));
+    const users = Array.from({ length: 25 }, (_, i) => directoryUser({ id: uuidOf(i + 1) }));
     const model = build({
-      users: [...users, directoryUser({ id: 99, statusId: BLOCKED })],
+      users: [...users, directoryUser({ id: uuidOf(99), statusId: BLOCKED })],
     });
 
     expect(model.listActiveUsers(1, 10)).toMatchObject({ total: 25, pages: 3 });
@@ -170,7 +181,7 @@ describe('listActiveUsers', () => {
   });
 
   it('answers a page past the last one with no items, not with an error', () => {
-    const model = build({ users: [directoryUser({ id: 1 })] });
+    const model = build({ users: [directoryUser({ id: uuidOf(1) })] });
 
     expect(model.listActiveUsers(9, 10)).toMatchObject({
       items: [],
@@ -188,14 +199,14 @@ describe('listActiveUsers', () => {
 describe('findByEmail', () => {
   const model = build({
     users: [
-      directoryUser({ id: 1, email: 'ana@clinica.com' }),
-      directoryUser({ id: 2, email: 'beto@clinica.com', statusId: BLOCKED }),
-      directoryUser({ id: 3, email: 'carla@clinica.com', statusId: DELETED }),
+      directoryUser({ id: uuidOf(1), email: 'ana@clinica.com' }),
+      directoryUser({ id: uuidOf(2), email: 'beto@clinica.com', statusId: BLOCKED }),
+      directoryUser({ id: uuidOf(3), email: 'carla@clinica.com', statusId: DELETED }),
     ],
   });
 
   it('ignores the case and the spaces around the email', () => {
-    expect(model.findByEmail('  ANA@Clinica.com ')?.id).toBe(1);
+    expect(model.findByEmail('  ANA@Clinica.com ')?.id).toBe(uuidOf(1));
   });
 
   it('finds the user whatever its status', () => {
@@ -210,7 +221,7 @@ describe('findByEmail', () => {
 
 describe('createUser', () => {
   it('stores an active user with the email in lower case and the texts trimmed', () => {
-    const model = build({ users: [directoryUser({ id: 7 })] });
+    const model = build({ users: [directoryUser({ id: uuidOf(7) })] });
 
     const user = model.createUser({
       email: 'Nueva@Clinica.COM',
@@ -220,7 +231,7 @@ describe('createUser', () => {
     });
 
     expect(user).toMatchObject({
-      id: 8,
+      id: uuidOf(8),
       email: 'nueva@clinica.com',
       firstName: 'Nora',
       paternalLastName: 'Díaz',
@@ -228,7 +239,7 @@ describe('createUser', () => {
       statusId: ACTIVE,
       auth0Id: 'auth0|sim-8',
     });
-    expect(model.findUser(8)).toEqual(user);
+    expect(model.findUser(uuidOf(8))).toEqual(user);
   });
 
   it.each([undefined, null, '', '   '])(
@@ -250,7 +261,9 @@ describe('createUser', () => {
     ['blocked', BLOCKED],
     ['deleted', DELETED],
   ])('rejects an email that belongs to a %s user, in any case', (_label, statusId) => {
-    const model = build({ users: [directoryUser({ id: 1, email: 'ana@clinica.com', statusId })] });
+    const model = build({
+      users: [directoryUser({ id: uuidOf(1), email: 'ana@clinica.com', statusId })],
+    });
 
     const failure = failureOf(() =>
       model.createUser({ email: ' ANA@clinica.com', firstName: 'A', paternalLastName: 'B' }),
@@ -269,10 +282,10 @@ describe('the changes of status', () => {
     ['deleteUser', ACTIVE, DELETED],
     ['reactivateUser', DELETED, ACTIVE],
   ] as const)('%s takes a user from %i to %i', (operation, from, to) => {
-    const model = build({ users: [directoryUser({ id: 1, statusId: from })] });
+    const model = build({ users: [directoryUser({ id: uuidOf(1), statusId: from })] });
 
-    expect(model[operation](1).statusId).toBe(to);
-    expect(model.findUser(1)?.statusId).toBe(to);
+    expect(model[operation](uuidOf(1)).statusId).toBe(to);
+    expect(model.findUser(uuidOf(1))?.statusId).toBe(to);
   });
 
   it.each([
@@ -291,17 +304,17 @@ describe('the changes of status', () => {
   ] as const)(
     '%s refuses a user in the status %i with %s and changes nothing',
     (operation, statusId, code) => {
-      const model = build({ users: [directoryUser({ id: 1, statusId })] });
+      const model = build({ users: [directoryUser({ id: uuidOf(1), statusId })] });
 
-      expect(failureOf(() => model[operation](1))).toMatchObject({ status: 409, code });
-      expect(model.findUser(1)?.statusId).toBe(statusId);
+      expect(failureOf(() => model[operation](uuidOf(1)))).toMatchObject({ status: 409, code });
+      expect(model.findUser(uuidOf(1))?.statusId).toBe(statusId);
     },
   );
 
   it.each(['blockUser', 'unblockUser', 'deleteUser', 'reactivateUser'] as const)(
     '%s refuses a user that does not exist with 404',
     (operation) => {
-      expect(failureOf(() => build()[operation](42))).toMatchObject({
+      expect(failureOf(() => build()[operation](uuidOf(42)))).toMatchObject({
         status: 404,
         code: 'user_not_found',
       });
@@ -310,38 +323,38 @@ describe('the changes of status', () => {
 
   it('keeps the data, the roles and the email of a deleted user, which can be reactivated', () => {
     const model = build({
-      users: [directoryUser({ id: 1, email: 'ana@clinica.com' })],
+      users: [directoryUser({ id: uuidOf(1), email: 'ana@clinica.com' })],
       roles: [directoryRole({ id: 4, name: 'Marketing' })],
-      associations: [{ userId: 1, roleId: 4 }],
+      associations: [{ userId: uuidOf(1), roleId: 4 }],
     });
 
-    model.deleteUser(1);
+    model.deleteUser(uuidOf(1));
 
     expect(model.findByEmail('ana@clinica.com')?.statusId).toBe(DELETED);
-    expect(model.rolesOf(1).map((role) => role.name)).toEqual(['Marketing']);
-    expect(model.reactivateUser(1).statusId).toBe(ACTIVE);
-    expect(model.listUserRoles(1).map((role) => role.name)).toEqual(['Marketing']);
+    expect(model.rolesOf(uuidOf(1)).map((role) => role.name)).toEqual(['Marketing']);
+    expect(model.reactivateUser(uuidOf(1)).statusId).toBe(ACTIVE);
+    expect(model.listUserRoles(uuidOf(1)).map((role) => role.name)).toEqual(['Marketing']);
   });
 });
 
 describe('updateUser', () => {
   it('changes the name of an active user and moves its modification date forward', () => {
-    const model = build({ users: [directoryUser({ id: 1, firstName: 'Ana' })] });
-    const before = model.getUser(1).updatedAt;
+    const model = build({ users: [directoryUser({ id: uuidOf(1), firstName: 'Ana' })] });
+    const before = model.getUser(uuidOf(1)).updatedAt;
 
-    const user = model.updateUser(1, { firstName: ' Anita ', maternalLastName: '' });
+    const user = model.updateUser(uuidOf(1), { firstName: ' Anita ', maternalLastName: '' });
 
     expect(user).toMatchObject({ firstName: 'Anita', maternalLastName: null });
     expect(user.updatedAt > before).toBe(true);
-    expect(user.createdAt).toBe(model.getUser(1).createdAt);
+    expect(user.createdAt).toBe(model.getUser(uuidOf(1)).createdAt);
   });
 
   it('keeps what the changes do not mention', () => {
     const model = build({
-      users: [directoryUser({ id: 1, firstName: 'Ana', paternalLastName: 'Pérez' })],
+      users: [directoryUser({ id: uuidOf(1), firstName: 'Ana', paternalLastName: 'Pérez' })],
     });
 
-    expect(model.updateUser(1, { paternalLastName: 'Gómez' })).toMatchObject({
+    expect(model.updateUser(uuidOf(1), { paternalLastName: 'Gómez' })).toMatchObject({
       firstName: 'Ana',
       paternalLastName: 'Gómez',
     });
@@ -352,32 +365,32 @@ describe('updateUser', () => {
     [DELETED, 'user_deleted'],
     [9, 'user_not_active'],
   ])('refuses a user in the status %i with %s', (statusId, code) => {
-    const model = build({ users: [directoryUser({ id: 1, statusId })] });
+    const model = build({ users: [directoryUser({ id: uuidOf(1), statusId })] });
 
-    expect(failureOf(() => model.updateUser(1, { firstName: 'X' }))).toMatchObject({
+    expect(failureOf(() => model.updateUser(uuidOf(1), { firstName: 'X' }))).toMatchObject({
       status: 409,
       code,
     });
   });
 
   it('refuses a user that does not exist with 404', () => {
-    expect(failureOf(() => build().updateUser(1, { firstName: 'X' })).status).toBe(404);
+    expect(failureOf(() => build().updateUser(uuidOf(1), { firstName: 'X' })).status).toBe(404);
   });
 
   it('lets the last of two changes win: there is no control of concurrency', () => {
-    const model = build({ users: [directoryUser({ id: 1, firstName: 'Ana' })] });
+    const model = build({ users: [directoryUser({ id: uuidOf(1), firstName: 'Ana' })] });
 
-    model.updateUser(1, { firstName: 'Beto' });
-    model.updateUser(1, { firstName: 'Carla' });
+    model.updateUser(uuidOf(1), { firstName: 'Beto' });
+    model.updateUser(uuidOf(1), { firstName: 'Carla' });
 
-    expect(model.getUser(1).firstName).toBe('Carla');
+    expect(model.getUser(uuidOf(1)).firstName).toBe('Carla');
   });
 });
 
 describe('the roles of a user', () => {
   function withRoles(statusId = ACTIVE) {
     return build({
-      users: [directoryUser({ id: 1, statusId }), directoryUser({ id: 2 })],
+      users: [directoryUser({ id: uuidOf(1), statusId }), directoryUser({ id: uuidOf(2) })],
       roles: [
         directoryRole({ id: 6, name: 'Doctor' }),
         directoryRole({ id: 4, name: 'Marketing' }),
@@ -385,9 +398,9 @@ describe('the roles of a user', () => {
         directoryRole({ id: 8, name: 'Billing', statusId: DELETED }),
       ],
       associations: [
-        { userId: 1, roleId: 6 },
-        { userId: 1, roleId: 4 },
-        { userId: 1, roleId: 7 },
+        { userId: uuidOf(1), roleId: 6 },
+        { userId: uuidOf(1), roleId: 4 },
+        { userId: uuidOf(1), roleId: 7 },
       ],
     });
   }
@@ -395,13 +408,13 @@ describe('the roles of a user', () => {
   it('lists the active roles of an active user, sorted by name', () => {
     expect(
       withRoles()
-        .listUserRoles(1)
+        .listUserRoles(uuidOf(1))
         .map((role) => role.name),
     ).toEqual(['Doctor', 'Marketing']);
   });
 
   it('lists nothing for a user without roles', () => {
-    expect(withRoles().listUserRoles(2)).toEqual([]);
+    expect(withRoles().listUserRoles(uuidOf(2))).toEqual([]);
   });
 
   it.each([
@@ -409,14 +422,14 @@ describe('the roles of a user', () => {
     [DELETED, 'user_deleted'],
     [9, 'user_not_active'],
   ])('cannot list the roles of a user in the status %i: %s', (statusId, code) => {
-    expect(failureOf(() => withRoles(statusId).listUserRoles(1))).toMatchObject({
+    expect(failureOf(() => withRoles(statusId).listUserRoles(uuidOf(1)))).toMatchObject({
       status: 409,
       code,
     });
   });
 
   it('cannot list the roles of a user that does not exist', () => {
-    expect(failureOf(() => withRoles().listUserRoles(99))).toMatchObject({
+    expect(failureOf(() => withRoles().listUserRoles(uuidOf(99)))).toMatchObject({
       status: 404,
       code: 'user_not_found',
     });
@@ -426,17 +439,17 @@ describe('the roles of a user', () => {
     it('gives the role to the user', () => {
       const model = withRoles();
 
-      model.associateRole(2, 4);
+      model.associateRole(uuidOf(2), 4);
 
-      expect(model.listUserRoles(2).map((role) => role.name)).toEqual(['Marketing']);
+      expect(model.listUserRoles(uuidOf(2)).map((role) => role.name)).toEqual(['Marketing']);
     });
 
     it('checks the user first: it must exist and be active', () => {
-      expect(failureOf(() => withRoles().associateRole(99, 4))).toMatchObject({
+      expect(failureOf(() => withRoles().associateRole(uuidOf(99), 4))).toMatchObject({
         status: 404,
         code: 'user_not_found',
       });
-      expect(failureOf(() => withRoles(BLOCKED).associateRole(1, 4))).toMatchObject({
+      expect(failureOf(() => withRoles(BLOCKED).associateRole(uuidOf(1), 4))).toMatchObject({
         status: 409,
         code: 'user_blocked',
       });
@@ -447,14 +460,14 @@ describe('the roles of a user', () => {
       ['is blocked', 7],
       ['is deleted', 8],
     ])('refuses a role that %s with 404 role_not_found', (_label, roleId) => {
-      expect(failureOf(() => withRoles().associateRole(2, roleId))).toMatchObject({
+      expect(failureOf(() => withRoles().associateRole(uuidOf(2), roleId))).toMatchObject({
         status: 404,
         code: 'role_not_found',
       });
     });
 
     it('refuses a role the user already has with 409', () => {
-      expect(failureOf(() => withRoles().associateRole(1, 4))).toMatchObject({
+      expect(failureOf(() => withRoles().associateRole(uuidOf(1), 4))).toMatchObject({
         status: 409,
         code: 'user_role_already_associated',
       });
@@ -467,7 +480,7 @@ describe('the roles of a user', () => {
       model.setRoleStatus(4, 2);
 
       const failure = failureOf(() => {
-        model.disassociateRole(1, 4);
+        model.disassociateRole(uuidOf(1), 4);
       });
 
       expect(failure).toMatchObject({ status: 404, code: 'role_not_found' });
@@ -475,27 +488,27 @@ describe('the roles of a user', () => {
 
     it('takes the role away from the user and from nobody else', () => {
       const model = withRoles();
-      model.associateRole(2, 4);
+      model.associateRole(uuidOf(2), 4);
 
-      model.disassociateRole(1, 4);
+      model.disassociateRole(uuidOf(1), 4);
 
-      expect(model.listUserRoles(1).map((role) => role.name)).toEqual(['Doctor']);
-      expect(model.listUserRoles(2).map((role) => role.name)).toEqual(['Marketing']);
+      expect(model.listUserRoles(uuidOf(1)).map((role) => role.name)).toEqual(['Doctor']);
+      expect(model.listUserRoles(uuidOf(2)).map((role) => role.name)).toEqual(['Marketing']);
     });
 
     it('checks the user, then the role, then that the user has it', () => {
-      const disassociate = (model: ReturnType<typeof withRoles>, userId: number, roleId: number) =>
+      const disassociate = (model: ReturnType<typeof withRoles>, userId: string, roleId: number) =>
         failureOf(() => {
           model.disassociateRole(userId, roleId);
         });
 
-      expect(disassociate(withRoles(), 99, 4).code).toBe('user_not_found');
-      expect(disassociate(withRoles(DELETED), 1, 4).code).toBe('user_deleted');
-      expect(disassociate(withRoles(), 1, 99)).toMatchObject({
+      expect(disassociate(withRoles(), uuidOf(99), 4).code).toBe('user_not_found');
+      expect(disassociate(withRoles(DELETED), uuidOf(1), 4).code).toBe('user_deleted');
+      expect(disassociate(withRoles(), uuidOf(1), 99)).toMatchObject({
         status: 404,
         code: 'role_not_found',
       });
-      expect(disassociate(withRoles(), 2, 4)).toMatchObject({
+      expect(disassociate(withRoles(), uuidOf(2), 4)).toMatchObject({
         status: 409,
         code: 'user_role_not_associated',
       });
@@ -526,7 +539,7 @@ describe('the helpers to prepare data', () => {
     const second = model.addUser({ firstName: 'Beto' });
     const role = model.addRole({ name: 'Auditor' });
 
-    expect([first.id, second.id]).toEqual([1, 2]);
+    expect([first.id, second.id]).toEqual([1, 2].map(uuidOf));
     expect(first.email).not.toBe(second.email);
     expect(second.firstName).toBe('Beto');
     expect(role.id).toBe(1);
@@ -534,22 +547,22 @@ describe('the helpers to prepare data', () => {
 
   it('changes the status of a user or a role without applying the rules', () => {
     const model = build({
-      users: [directoryUser({ id: 1 })],
+      users: [directoryUser({ id: uuidOf(1) })],
       roles: [directoryRole({ id: 4, name: 'Marketing' })],
     });
 
-    model.setUserStatus(1, DELETED);
+    model.setUserStatus(uuidOf(1), DELETED);
     model.setRoleStatus(4, BLOCKED);
 
-    expect(model.findUser(1)?.statusId).toBe(DELETED);
+    expect(model.findUser(uuidOf(1))?.statusId).toBe(DELETED);
     expect(model.findRole(4)?.statusId).toBe(BLOCKED);
   });
 
   it('grants and revokes the permission of a role by its name', () => {
     const model = build({
-      users: [directoryUser({ id: 1, auth0Id: 'auth0|ana' })],
+      users: [directoryUser({ id: uuidOf(1), auth0Id: 'auth0|ana' })],
       roles: [directoryRole({ id: 4, name: 'Marketing', permissions: [] })],
-      associations: [{ userId: 1, roleId: 4 }],
+      associations: [{ userId: uuidOf(1), roleId: 4 }],
     });
 
     model.grant('Marketing', 'users:read');

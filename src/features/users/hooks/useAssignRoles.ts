@@ -13,7 +13,7 @@ import { refreshAfterRoleChange } from './refreshUser';
  * itself if its status changed.
  */
 export function useAssignRoles(
-  userId: number,
+  userId: string,
 ): UseMutationResult<AssignRolesResult, Error, { readonly roles: readonly AssignableRole[] }> {
   const { users } = useHttpClients();
   const queryClient = useQueryClient();

@@ -12,6 +12,7 @@ import {
 import { createWrapper } from '@/test/renderWithProviders';
 
 import { useUserSearch } from './useUserSearch';
+import { uuidOf } from '@/test/ids';
 
 function start() {
   const base = defaultDirectory();
@@ -19,8 +20,8 @@ function start() {
     ...base,
     users: [
       ...base.users,
-      directoryUser({ id: 2, email: 'ana@clinica.com' }),
-      directoryUser({ id: 3, email: 'beto@clinica.com', statusId: 2 }),
+      directoryUser({ id: uuidOf(2), email: 'ana@clinica.com' }),
+      directoryUser({ id: uuidOf(3), email: 'beto@clinica.com', statusId: 2 }),
     ],
   });
 }
@@ -35,7 +36,10 @@ describe('useUserSearch', () => {
     await waitFor(() => {
       expect(result.current.data).not.toBeUndefined();
     });
-    expect(result.current.data).toMatchObject({ id: 3, status: { id: 2, name: 'Bloqueado' } });
+    expect(result.current.data).toMatchObject({
+      id: uuidOf(3),
+      status: { id: 2, name: 'Bloqueado' },
+    });
   });
 
   it('gives null, without an error and without retrying, when nobody has that email (FR-018)', async () => {
@@ -80,6 +84,6 @@ describe('useUserSearch', () => {
       expect(result.current[1].data).not.toBeUndefined();
     });
     expect(mock.requestCount).toBe(1);
-    expect(result.current[1].data).toMatchObject({ id: 2 });
+    expect(result.current[1].data).toMatchObject({ id: uuidOf(2) });
   });
 });

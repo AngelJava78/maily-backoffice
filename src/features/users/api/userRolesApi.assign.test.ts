@@ -6,8 +6,9 @@ import { server } from '@/test/server';
 import { createUsersClient, errorBody, usersUrl } from '@/test/usersClient';
 
 import { assignRole } from './userRolesApi';
+import { uuidOf } from '@/test/ids';
 
-const ROLES_URL = usersUrl('/api/v1/users/121/roles');
+const ROLES_URL = usersUrl(`/api/v1/users/${uuidOf(121)}/roles`);
 
 describe('assignRole', () => {
   it('sends the id of the role as JSON and gives the assignment', async () => {
@@ -16,17 +17,17 @@ describe('assignRole', () => {
       http.post(ROLES_URL, async ({ request }) => {
         seen.push({ method: request.method, body: await request.json() });
         return HttpResponse.json(
-          { user_id: 121, role: { id: 4, name: 'Marketing' } },
+          { user_id: uuidOf(121), role: { id: 4, name: 'Marketing' } },
           { status: 201 },
         );
       }),
     );
     const { client } = createUsersClient();
 
-    const assignment = await assignRole(client, 121, 4);
+    const assignment = await assignRole(client, uuidOf(121), 4);
 
     expect(seen).toEqual([{ method: 'POST', body: { role_id: 4 } }]);
-    expect(assignment).toEqual({ userId: 121, role: { id: 4, name: 'Marketing' } });
+    expect(assignment).toEqual({ userId: uuidOf(121), role: { id: 4, name: 'Marketing' } });
   });
 
   it.each([
@@ -37,17 +38,23 @@ describe('assignRole', () => {
     server.use(http.post(ROLES_URL, () => HttpResponse.json(errorBody(code), { status })));
     const { client } = createUsersClient();
 
-    const failure: unknown = await assignRole(client, 121, 4).catch((error: unknown) => error);
+    const failure: unknown = await assignRole(client, uuidOf(121), 4).catch(
+      (error: unknown) => error,
+    );
 
     expect(failure).toBeInstanceOf(ApiError);
     expect(failure).toMatchObject({ status, code });
   });
 
   it('reports an answer that does not match the contract as a contract failure', async () => {
-    server.use(http.post(ROLES_URL, () => HttpResponse.json({ user_id: 121 }, { status: 201 })));
+    server.use(
+      http.post(ROLES_URL, () => HttpResponse.json({ user_id: uuidOf(121) }, { status: 201 })),
+    );
     const { client } = createUsersClient();
 
-    const failure: unknown = await assignRole(client, 121, 4).catch((error: unknown) => error);
+    const failure: unknown = await assignRole(client, uuidOf(121), 4).catch(
+      (error: unknown) => error,
+    );
 
     expect(failure).toMatchObject({ kind: 'contract' });
   });
@@ -57,7 +64,7 @@ describe('assignRole', () => {
     const { client } = createUsersClient();
     const controller = new AbortController();
     const assertion = expect(
-      assignRole(client, 121, 4, { signal: controller.signal }),
+      assignRole(client, uuidOf(121), 4, { signal: controller.signal }),
     ).rejects.toMatchObject({ name: 'AbortError' });
 
     controller.abort();

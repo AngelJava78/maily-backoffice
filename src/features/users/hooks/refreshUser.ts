@@ -39,7 +39,7 @@ export function isUserOutOfDate(error: unknown, operation: UserOperation): boole
  * when what is on screen was asked for again, or after `REFRESH_WAIT_MS`; a mutation that returns
  * it stays pending until then.
  */
-export async function refreshUser(queryClient: QueryClient, userId: number): Promise<void> {
+export async function refreshUser(queryClient: QueryClient, userId: string): Promise<void> {
   await atMost(
     REFRESH_WAIT_MS,
     Promise.all([
@@ -58,7 +58,7 @@ export async function refreshUser(queryClient: QueryClient, userId: number): Pro
  */
 export async function refreshAfterRoleChange(
   queryClient: QueryClient,
-  userId: number,
+  userId: string,
   error: unknown,
   operation: UserOperation,
 ): Promise<void> {

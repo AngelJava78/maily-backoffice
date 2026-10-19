@@ -19,7 +19,7 @@ import { AddRoleDialog } from './AddRoleDialog';
 import { RefreshFailedAlert } from './RefreshFailedAlert';
 
 interface UserRolesPanelProps {
-  readonly userId: number;
+  readonly userId: string;
   /** The full name of the user, to name who is affected in the dialogs. */
   readonly userName: string;
   readonly statusId: number;

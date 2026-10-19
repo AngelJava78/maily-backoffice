@@ -12,16 +12,17 @@ import {
 import { renderWithProviders } from '@/test/renderWithProviders';
 
 import { UserRolesPanel } from './UserRolesPanel';
+import { uuidOf } from '@/test/ids';
 
 function start(statusId = 1, withRoles = true) {
   const base = defaultDirectory();
   const mock = createUsersDirectoryMock({
     ...base,
-    users: [...base.users, directoryUser({ id: 121, statusId })],
+    users: [...base.users, directoryUser({ id: uuidOf(121), statusId })],
   });
   if (withRoles) {
-    mock.assign(121, 4);
-    mock.assign(121, 6);
+    mock.assign(uuidOf(121), 4);
+    mock.assign(uuidOf(121), 6);
   }
   return mock;
 }
@@ -29,7 +30,7 @@ function start(statusId = 1, withRoles = true) {
 function renderPanel(statusId = 1) {
   return renderWithProviders(
     <UserRolesPanel
-      userId={121}
+      userId={uuidOf(121)}
       userName="Ana Pérez Gómez"
       statusId={statusId}
       canAddRoles={false}

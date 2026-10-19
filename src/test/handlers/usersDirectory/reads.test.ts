@@ -10,6 +10,7 @@ import {
   makeUsers,
   type DirectoryUser,
 } from './index';
+import { uuidOf } from '@/test/ids';
 
 const BLOCKED = 2;
 const DELETED = 3;
@@ -41,17 +42,27 @@ function idsOf(body: unknown): unknown {
 describe('GET /api/v1/users', () => {
   it('lists only the active users, in the order of the service, with their total and pages', async () => {
     startWith([
-      directoryUser({ id: 2, firstName: 'Beto', paternalLastName: 'Ruiz' }),
-      directoryUser({ id: 3, firstName: 'Ana', paternalLastName: 'Pérez' }),
-      directoryUser({ id: 4, firstName: 'Aaron', paternalLastName: 'Cruz', statusId: BLOCKED }),
-      directoryUser({ id: 5, firstName: 'Carla', paternalLastName: 'Díaz', statusId: DELETED }),
+      directoryUser({ id: uuidOf(2), firstName: 'Beto', paternalLastName: 'Ruiz' }),
+      directoryUser({ id: uuidOf(3), firstName: 'Ana', paternalLastName: 'Pérez' }),
+      directoryUser({
+        id: uuidOf(4),
+        firstName: 'Aaron',
+        paternalLastName: 'Cruz',
+        statusId: BLOCKED,
+      }),
+      directoryUser({
+        id: uuidOf(5),
+        firstName: 'Carla',
+        paternalLastName: 'Díaz',
+        statusId: DELETED,
+      }),
     ]);
 
     const answer = await callService('/api/v1/users?page=1&page_size=10');
 
     expect(answer.status).toBe(200);
     // Admin Sistema, Ana Pérez, Beto Ruiz: the blocked and the deleted ones are not listed or counted.
-    expect(idsOf(answer.body)).toEqual([1, 3, 2]);
+    expect(idsOf(answer.body)).toEqual([1, 3, 2].map(uuidOf));
     expect(answer.body).toMatchObject({ total: 3, page: 1, page_size: 10, pages: 1 });
   });
 
@@ -103,9 +114,9 @@ describe('GET /api/v1/users', () => {
 describe('GET /api/v1/users/by-email', () => {
   function startWithOthers() {
     return startWith([
-      directoryUser({ id: 2, email: 'ana@clinica.com' }),
-      directoryUser({ id: 3, email: 'beto@clinica.com', statusId: BLOCKED }),
-      directoryUser({ id: 4, email: 'carla@clinica.com', statusId: DELETED }),
+      directoryUser({ id: uuidOf(2), email: 'ana@clinica.com' }),
+      directoryUser({ id: uuidOf(3), email: 'beto@clinica.com', statusId: BLOCKED }),
+      directoryUser({ id: uuidOf(4), email: 'carla@clinica.com', statusId: DELETED }),
     ]);
   }
 
@@ -115,7 +126,7 @@ describe('GET /api/v1/users/by-email', () => {
     const answer = await callService('/api/v1/users/by-email?email=%20ANA%40Clinica.com%20');
 
     expect(answer.status).toBe(200);
-    expect(answer.body).toMatchObject({ id: 2, email: 'ana@clinica.com' });
+    expect(answer.body).toMatchObject({ id: uuidOf(2), email: 'ana@clinica.com' });
   });
 
   it('finds the users that are blocked or deleted, with their status', async () => {
@@ -158,20 +169,29 @@ describe('GET /api/v1/users/by-email', () => {
 describe('GET /api/v1/users/{id}', () => {
   it('gives a user of any status', async () => {
     startWith([
-      directoryUser({ id: 2 }),
-      directoryUser({ id: 3, statusId: BLOCKED }),
-      directoryUser({ id: 4, statusId: DELETED }),
+      directoryUser({ id: uuidOf(2) }),
+      directoryUser({ id: uuidOf(3), statusId: BLOCKED }),
+      directoryUser({ id: uuidOf(4), statusId: DELETED }),
     ]);
 
-    expect((await callService('/api/v1/users/2')).body).toMatchObject({ id: 2, status: { id: 1 } });
-    expect((await callService('/api/v1/users/3')).body).toMatchObject({ id: 3, status: { id: 2 } });
-    expect((await callService('/api/v1/users/4')).body).toMatchObject({ id: 4, status: { id: 3 } });
+    expect((await callService(`/api/v1/users/${uuidOf(2)}`)).body).toMatchObject({
+      id: uuidOf(2),
+      status: { id: 1 },
+    });
+    expect((await callService(`/api/v1/users/${uuidOf(3)}`)).body).toMatchObject({
+      id: uuidOf(3),
+      status: { id: 2 },
+    });
+    expect((await callService(`/api/v1/users/${uuidOf(4)}`)).body).toMatchObject({
+      id: uuidOf(4),
+      status: { id: 3 },
+    });
   });
 
   it('answers 404 user_not_found for an id that does not exist', async () => {
     startWith();
 
-    const answer = await callService('/api/v1/users/999');
+    const answer = await callService(`/api/v1/users/${uuidOf(999)}`);
 
     expect(answer.status).toBe(404);
     expect(answer.body).toMatchObject({ code: 'user_not_found' });
@@ -195,21 +215,21 @@ describe('GET /api/v1/users/{id}', () => {
 
 describe('GET /api/v1/users/{id}/roles', () => {
   it('gives the active roles of an active user, sorted by name', async () => {
-    const mock = startWith([directoryUser({ id: 2 })], true);
-    mock.assign(2, 8);
-    mock.assign(2, 4);
-    mock.assign(2, 9);
+    const mock = startWith([directoryUser({ id: uuidOf(2) })], true);
+    mock.assign(uuidOf(2), 8);
+    mock.assign(uuidOf(2), 4);
+    mock.assign(uuidOf(2), 9);
 
-    const answer = await callService('/api/v1/users/2/roles');
+    const answer = await callService(`/api/v1/users/${uuidOf(2)}/roles`);
 
     expect(answer.status).toBe(200);
     expect(answer.body).toMatchObject([{ name: 'Auditor' }, { name: 'Marketing' }]);
   });
 
   it('gives an empty list for a user without roles', async () => {
-    startWith([directoryUser({ id: 2 })]);
+    startWith([directoryUser({ id: uuidOf(2) })]);
 
-    expect((await callService('/api/v1/users/2/roles')).body).toEqual([]);
+    expect((await callService(`/api/v1/users/${uuidOf(2)}/roles`)).body).toEqual([]);
   });
 
   it.each([
@@ -217,9 +237,9 @@ describe('GET /api/v1/users/{id}/roles', () => {
     [DELETED, 'user_deleted'],
     [9, 'user_not_active'],
   ])('answers 409 for a user in the status %i: %s', async (statusId, code) => {
-    startWith([directoryUser({ id: 2, statusId })]);
+    startWith([directoryUser({ id: uuidOf(2), statusId })]);
 
-    const answer = await callService('/api/v1/users/2/roles');
+    const answer = await callService(`/api/v1/users/${uuidOf(2)}/roles`);
 
     expect(answer.status).toBe(409);
     expect(answer.body).toMatchObject({ code });
@@ -228,7 +248,7 @@ describe('GET /api/v1/users/{id}/roles', () => {
   it('answers 404 for a user that does not exist', async () => {
     startWith();
 
-    expect((await callService('/api/v1/users/999/roles')).body).toMatchObject({
+    expect((await callService(`/api/v1/users/${uuidOf(999)}/roles`)).body).toMatchObject({
       code: 'user_not_found',
     });
   });
@@ -239,9 +259,9 @@ describe('the permission to read (users:read)', () => {
     '/api/v1/users',
     '/api/v1/users?page=0',
     '/api/v1/users/by-email?email=no-es-correo',
-    '/api/v1/users/999',
+    `/api/v1/users/${uuidOf(999)}`,
     '/api/v1/users/abc',
-    '/api/v1/users/999/roles',
+    `/api/v1/users/${uuidOf(999)}/roles`,
   ])('is asked for before validating or searching: %s answers 403', async (path) => {
     startWith();
 

@@ -13,6 +13,7 @@ import {
 import { createWrapper } from '@/test/renderWithProviders';
 
 import { useUser } from './useUser';
+import { uuidOf } from '@/test/ids';
 
 function start() {
   const base = defaultDirectory();
@@ -20,8 +21,8 @@ function start() {
     ...base,
     users: [
       ...base.users,
-      directoryUser({ id: 121, firstName: 'Ana', paternalLastName: 'Pérez' }),
-      directoryUser({ id: 122, statusId: 3 }),
+      directoryUser({ id: uuidOf(121), firstName: 'Ana', paternalLastName: 'Pérez' }),
+      directoryUser({ id: uuidOf(122), statusId: 3 }),
     ],
   });
 }
@@ -31,12 +32,12 @@ describe('useUser', () => {
     start();
     const { wrapper } = createWrapper({ auth0: ADMIN_AUTH0 });
 
-    const active = renderHook(() => useUser(121), { wrapper });
-    const deleted = renderHook(() => useUser(122), { wrapper });
+    const active = renderHook(() => useUser(uuidOf(121)), { wrapper });
+    const deleted = renderHook(() => useUser(uuidOf(122)), { wrapper });
 
     await waitFor(() => {
-      expect(active.result.current.data).toMatchObject({ id: 121, firstName: 'Ana' });
-      expect(deleted.result.current.data).toMatchObject({ id: 122, status: { id: 3 } });
+      expect(active.result.current.data).toMatchObject({ id: uuidOf(121), firstName: 'Ana' });
+      expect(deleted.result.current.data).toMatchObject({ id: uuidOf(122), status: { id: 3 } });
     });
   });
 
@@ -47,7 +48,7 @@ describe('useUser', () => {
     });
     const { wrapper } = createWrapper({ auth0: ADMIN_AUTH0, queryClient });
 
-    const { result } = renderHook(() => useUser(999), { wrapper });
+    const { result } = renderHook(() => useUser(uuidOf(999)), { wrapper });
 
     await waitFor(() => {
       expect(result.current.isError).toBe(true);

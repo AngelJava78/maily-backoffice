@@ -8,8 +8,9 @@ import { createUsersClient, errorBody, usersUrl } from '@/test/usersClient';
 
 import type { UpdateUserBody } from '../schemas/userForm';
 import { updateUser } from './usersApi';
+import { uuidOf } from '@/test/ids';
 
-const USER_URL = usersUrl('/api/v1/users/121');
+const USER_URL = usersUrl(`/api/v1/users/${uuidOf(121)}`);
 
 const BODY: UpdateUserBody = {
   first_name: 'Anita',
@@ -32,11 +33,11 @@ describe('updateUser', () => {
     );
     const { client } = createUsersClient();
 
-    const user = await updateUser(client, 121, BODY);
+    const user = await updateUser(client, uuidOf(121), BODY);
 
     expect(seen).toEqual([{ method: 'PATCH', contentType: 'application/json', body: BODY }]);
     expect(seen[0]?.body).not.toHaveProperty('email');
-    expect(user).toMatchObject({ id: 121, firstName: 'Anita' });
+    expect(user).toMatchObject({ id: uuidOf(121), firstName: 'Anita' });
   });
 
   it('sends null to erase the maternal last name', async () => {
@@ -49,7 +50,7 @@ describe('updateUser', () => {
     );
     const { client } = createUsersClient();
 
-    const user = await updateUser(client, 121, { ...BODY, maternal_last_name: null });
+    const user = await updateUser(client, uuidOf(121), { ...BODY, maternal_last_name: null });
 
     expect(received).toMatchObject({ maternal_last_name: null });
     expect(user.maternalLastName).toBeNull();
@@ -64,7 +65,9 @@ describe('updateUser', () => {
     server.use(http.patch(USER_URL, () => HttpResponse.json(errorBody(code), { status })));
     const { client } = createUsersClient();
 
-    const failure: unknown = await updateUser(client, 121, BODY).catch((error: unknown) => error);
+    const failure: unknown = await updateUser(client, uuidOf(121), BODY).catch(
+      (error: unknown) => error,
+    );
 
     expect(failure).toBeInstanceOf(ApiError);
     expect(failure).toMatchObject({ status, code });
@@ -75,7 +78,7 @@ describe('updateUser', () => {
     const { client } = createUsersClient();
     const controller = new AbortController();
     const assertion = expect(
-      updateUser(client, 121, BODY, { signal: controller.signal }),
+      updateUser(client, uuidOf(121), BODY, { signal: controller.signal }),
     ).rejects.toMatchObject({ name: 'AbortError' });
 
     controller.abort();

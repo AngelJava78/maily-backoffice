@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { myAccessSchema } from './myAccess';
+import { uuidOf } from '@/test/ids';
 
 const userDto = {
-  id: 121,
+  id: uuidOf(121),
   auth0_id: 'auth0|abc123',
   email: 'ana@clinica.com',
   first_name: 'Ana',
@@ -27,7 +28,7 @@ describe('myAccessSchema', () => {
     const access = myAccessSchema.parse(validDto);
 
     expect(access.user).toMatchObject({
-      id: 121,
+      id: uuidOf(121),
       auth0Id: 'auth0|abc123',
       firstName: 'Ana',
       paternalLastName: 'Pérez',

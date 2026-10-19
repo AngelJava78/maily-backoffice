@@ -9,6 +9,7 @@ import { createUsersClient, errorBody, usersUrl } from '@/test/usersClient';
 
 import type { CreateUserBody } from '../schemas/userForm';
 import { createUser } from './usersApi';
+import { uuidOf } from '@/test/ids';
 
 const USERS_URL = usersUrl('/api/v1/users');
 
@@ -31,10 +32,10 @@ describe('createUser', () => {
           body: await request.json(),
         });
         return HttpResponse.json(
-          userDto({ id: 300, email: 'nora@clinica.com', first_name: 'Nora' }),
+          userDto({ id: uuidOf(300), email: 'nora@clinica.com', first_name: 'Nora' }),
           {
             status: 201,
-            headers: { Location: '/api/v1/users/300' },
+            headers: { Location: `/api/v1/users/${uuidOf(300)}` },
           },
         );
       }),
@@ -45,7 +46,7 @@ describe('createUser', () => {
 
     expect(seen).toEqual([{ method: 'POST', contentType: 'application/json', body: BODY }]);
     expect(seen[0]?.body).not.toHaveProperty('auth0_id');
-    expect(user).toMatchObject({ id: 300, firstName: 'Nora', email: 'nora@clinica.com' });
+    expect(user).toMatchObject({ id: uuidOf(300), firstName: 'Nora', email: 'nora@clinica.com' });
   });
 
   it('leaves the maternal last name out when the body has none', async () => {
@@ -53,7 +54,7 @@ describe('createUser', () => {
     server.use(
       http.post(USERS_URL, async ({ request }) => {
         received = await request.json();
-        return HttpResponse.json(userDto({ id: 301 }), { status: 201 });
+        return HttpResponse.json(userDto({ id: uuidOf(301) }), { status: 201 });
       }),
     );
     const { client } = createUsersClient();
@@ -79,7 +80,7 @@ describe('createUser', () => {
       ),
     ];
     server.use(
-      http.post(USERS_URL, () => HttpResponse.json(userDto({ id: 302 }), { status: 201 })),
+      http.post(USERS_URL, () => HttpResponse.json(userDto({ id: uuidOf(302) }), { status: 201 })),
     );
     const { client } = createUsersClient();
 

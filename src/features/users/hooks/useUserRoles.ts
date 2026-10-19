@@ -11,7 +11,7 @@ import { userKeys } from './userKeys';
  * the query only then (FR-019): for any other status it answers 409.
  */
 export function useUserRoles(
-  userId: number,
+  userId: string,
   { enabled }: { readonly enabled: boolean },
 ): UseQueryResult<Role[]> {
   const { users } = useHttpClients();

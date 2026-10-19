@@ -10,6 +10,7 @@ import {
   makeUsers,
 } from '@/test/handlers/usersDirectory';
 import { renderApp } from '@/test/renderApp';
+import { uuidOf } from '@/test/ids';
 
 // The screens are lazy, and the first visit transforms the Data Grid, which takes a while when many
 // files run at once: load them here so that no test pays for it while it waits for a screen.
@@ -29,8 +30,13 @@ function start() {
     users: [
       ...base.users,
       ...makeUsers(30),
-      directoryUser({ id: 200, email: 'beto@clinica.com', firstName: 'Beto', statusId: 2 }),
-      directoryUser({ id: 201, email: 'carla@clinica.com', firstName: 'Carla', statusId: 3 }),
+      directoryUser({ id: uuidOf(200), email: 'beto@clinica.com', firstName: 'Beto', statusId: 2 }),
+      directoryUser({
+        id: uuidOf(201),
+        email: 'carla@clinica.com',
+        firstName: 'Carla',
+        statusId: 3,
+      }),
     ],
   });
 }
@@ -114,7 +120,7 @@ describe('the users section: consulting (feature 002, user story 1)', { timeout:
 
   it('shows the status of a blocked user in its detail, and that its roles are not shown (V3)', async () => {
     start();
-    open('/users/200');
+    open(`/users/${uuidOf(200)}`);
 
     expect(await screen.findByText(messages.users.status.blocked)).toBeInTheDocument();
     expect(await screen.findByText(messages.users.roles.unavailable)).toBeInTheDocument();
@@ -152,7 +158,7 @@ describe('the users section: consulting (feature 002, user story 1)', { timeout:
     ).toBeInTheDocument();
     unmount();
 
-    open('/users/999999');
+    open(`/users/${uuidOf(999999)}`);
     expect(await screen.findByText(messages.users.detail.notFound.title)).toBeInTheDocument();
   });
 

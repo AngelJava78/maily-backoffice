@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { userDto } from '@/test/factories';
 
 import { userPageSchema } from './userPage';
+import { uuidOf } from '@/test/ids';
 
 function pageDto(overrides: Record<string, unknown> = {}) {
   return { items: [userDto()], total: 1, page: 1, page_size: 10, pages: 1, ...overrides };
@@ -12,7 +13,10 @@ describe('userPageSchema', () => {
   it('turns the DTO of the service into the domain model, with its users already parsed', () => {
     const page = userPageSchema.parse(
       pageDto({
-        items: [userDto(), userDto({ id: 122, email: 'beto@clinica.com', first_name: 'Beto' })],
+        items: [
+          userDto(),
+          userDto({ id: uuidOf(122), email: 'beto@clinica.com', first_name: 'Beto' }),
+        ],
         total: 34,
         page: 3,
         page_size: 25,

@@ -7,6 +7,7 @@ import { server } from '@/test/server';
 import { createUsersClient, errorBody, usersUrl } from '@/test/usersClient';
 
 import { getUser, getUserByEmail, listUsers } from './usersApi';
+import { uuidOf } from '@/test/ids';
 
 const USERS_URL = usersUrl('/api/v1/users');
 
@@ -45,7 +46,11 @@ describe('listUsers', () => {
 
     expect(seen).toEqual([{ method: 'GET', search: '?page=3&page_size=25', authorization }]);
     expect(page).toMatchObject({ total: 34, page: 3, pageSize: 25, pages: 2 });
-    expect(page.items[0]).toMatchObject({ id: 121, firstName: 'Ana', paternalLastName: 'Pérez' });
+    expect(page.items[0]).toMatchObject({
+      id: uuidOf(121),
+      firstName: 'Ana',
+      paternalLastName: 'Pérez',
+    });
   });
 
   it('reports an answer that does not match the contract as a contract failure', async () => {
@@ -90,7 +95,7 @@ describe('getUserByEmail', () => {
     const user = await getUserByEmail(client, ' Ana@Clinica.com ');
 
     expect(seen).toEqual([{ method: 'GET', search: '?email=Ana%40Clinica.com', authorization }]);
-    expect(user).toMatchObject({ id: 121, email: 'ana@clinica.com' });
+    expect(user).toMatchObject({ id: uuidOf(121), email: 'ana@clinica.com' });
   });
 
   it('finds a user whatever its status', async () => {
@@ -127,7 +132,7 @@ describe('getUserByEmail', () => {
 });
 
 describe('getUser', () => {
-  const USER_URL = usersUrl('/api/v1/users/121');
+  const USER_URL = usersUrl(`/api/v1/users/${uuidOf(121)}`);
 
   it('asks for the user by its id and gives a blocked one with its status', async () => {
     const seen = serve(USER_URL, () =>
@@ -135,7 +140,7 @@ describe('getUser', () => {
     );
     const { client, authorization } = createUsersClient();
 
-    const user = await getUser(client, 121);
+    const user = await getUser(client, uuidOf(121));
 
     expect(seen).toEqual([{ method: 'GET', search: '', authorization }]);
     expect(user.status).toEqual({ id: 2, name: 'Bloqueado' });
@@ -145,7 +150,7 @@ describe('getUser', () => {
     serve(USER_URL, () => HttpResponse.json(errorBody('user_not_found'), { status: 404 }));
     const { client } = createUsersClient();
 
-    const failure: unknown = await getUser(client, 121).catch((error: unknown) => error);
+    const failure: unknown = await getUser(client, uuidOf(121)).catch((error: unknown) => error);
 
     expect(failure).toBeInstanceOf(ApiError);
     expect(failure).toMatchObject({ status: 404, code: 'user_not_found' });
@@ -168,9 +173,9 @@ describe('cancelling', () => {
     ],
     [
       'getUser',
-      usersUrl('/api/v1/users/121'),
+      usersUrl(`/api/v1/users/${uuidOf(121)}`),
       (c: ReturnType<typeof createUsersClient>['client'], signal: AbortSignal) =>
-        getUser(c, 121, { signal }),
+        getUser(c, uuidOf(121), { signal }),
     ],
   ])('%s can be cancelled with the signal it receives', async (_name, url, call) => {
     server.use(http.get(url, () => new Promise<Response>(() => undefined)));

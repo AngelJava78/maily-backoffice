@@ -18,7 +18,7 @@ export interface AddUserRoleVariables {
  * retried on its own.
  */
 export function useAddUserRole(
-  userId: number,
+  userId: string,
 ): UseMutationResult<UserRoleAssignment, Error, AddUserRoleVariables> {
   const { users } = useHttpClients();
   const queryClient = useQueryClient();

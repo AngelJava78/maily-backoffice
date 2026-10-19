@@ -17,7 +17,7 @@ export interface RemoveUserRoleVariables {
  * its own.
  */
 export function useRemoveUserRole(
-  userId: number,
+  userId: string,
 ): UseMutationResult<void, Error, RemoveUserRoleVariables> {
   const { users } = useHttpClients();
   const queryClient = useQueryClient();

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { USERS_API_BASE_URL } from '../usersService';
 import { directoryRole, directoryUser } from './model';
 import { ADMIN_SUB, createUsersDirectoryMock, defaultDirectory, makeUsers } from './index';
+import { uuidOf } from '@/test/ids';
 
 const ME = `${USERS_API_BASE_URL}/api/v1/authorization/me`;
 
@@ -17,16 +18,16 @@ function askAs(sub: string | null, init: RequestInit = {}): Promise<Response> {
 
 function mockWithAna() {
   return createUsersDirectoryMock({
-    users: [directoryUser({ id: 2, auth0Id: 'auth0|ana', firstName: 'Ana' })],
+    users: [directoryUser({ id: uuidOf(2), auth0Id: 'auth0|ana', firstName: 'Ana' })],
     roles: [
       directoryRole({ id: 6, name: 'Doctor', permissions: ['tenants:read'] }),
       directoryRole({ id: 4, name: 'Marketing', permissions: ['tenants:update', 'tenants:read'] }),
       directoryRole({ id: 7, name: 'Support', statusId: 2, permissions: ['x:read'] }),
     ],
     associations: [
-      { userId: 2, roleId: 6 },
-      { userId: 2, roleId: 4 },
-      { userId: 2, roleId: 7 },
+      { userId: uuidOf(2), roleId: 6 },
+      { userId: uuidOf(2), roleId: 4 },
+      { userId: uuidOf(2), roleId: 7 },
     ],
   });
 }
@@ -41,7 +42,12 @@ describe('the simulator of the users service: me', () => {
     expect(response.headers.get('cache-control')).toBe('no-store');
     const body: unknown = await response.json();
     expect(body).toMatchObject({
-      user: { id: 2, auth0_id: 'auth0|ana', first_name: 'Ana', status: { id: 1, name: 'Activo' } },
+      user: {
+        id: uuidOf(2),
+        auth0_id: 'auth0|ana',
+        first_name: 'Ana',
+        status: { id: 1, name: 'Activo' },
+      },
       roles: [
         { id: 6, name: 'Doctor', permissions: ['tenants:read'] },
         { id: 4, name: 'Marketing', permissions: ['tenants:read', 'tenants:update'] },
@@ -57,7 +63,7 @@ describe('the simulator of the users service: me', () => {
 
   it('has the user but no roles when it is not active', async () => {
     const mock = mockWithAna();
-    mock.setUserStatus(2, 2);
+    mock.setUserStatus(uuidOf(2), 2);
 
     const body: unknown = await (await askAs('auth0|ana')).json();
 

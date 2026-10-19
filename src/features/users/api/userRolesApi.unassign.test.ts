@@ -6,8 +6,9 @@ import { server } from '@/test/server';
 import { createUsersClient, errorBody, usersUrl } from '@/test/usersClient';
 
 import { unassignRole } from './userRolesApi';
+import { uuidOf } from '@/test/ids';
 
-const ROLE_URL = usersUrl('/api/v1/users/121/roles/4');
+const ROLE_URL = usersUrl(`/api/v1/users/${uuidOf(121)}/roles/4`);
 
 describe('unassignRole', () => {
   it('asks to remove the role with a DELETE and gives nothing back for the 204', async () => {
@@ -24,7 +25,7 @@ describe('unassignRole', () => {
     );
     const { client, authorization } = createUsersClient();
 
-    await expect(unassignRole(client, 121, 4)).resolves.toBeUndefined();
+    await expect(unassignRole(client, uuidOf(121), 4)).resolves.toBeUndefined();
 
     expect(seen).toEqual([{ method: 'DELETE', hasBody: false, authorization }]);
   });
@@ -37,7 +38,9 @@ describe('unassignRole', () => {
     server.use(http.delete(ROLE_URL, () => HttpResponse.json(errorBody(code), { status })));
     const { client } = createUsersClient();
 
-    const failure: unknown = await unassignRole(client, 121, 4).catch((error: unknown) => error);
+    const failure: unknown = await unassignRole(client, uuidOf(121), 4).catch(
+      (error: unknown) => error,
+    );
 
     expect(failure).toBeInstanceOf(ApiError);
     expect(failure).toMatchObject({ status, code });
@@ -48,7 +51,7 @@ describe('unassignRole', () => {
     const { client } = createUsersClient();
     const controller = new AbortController();
     const assertion = expect(
-      unassignRole(client, 121, 4, { signal: controller.signal }),
+      unassignRole(client, uuidOf(121), 4, { signal: controller.signal }),
     ).rejects.toMatchObject({ name: 'AbortError' });
 
     controller.abort();

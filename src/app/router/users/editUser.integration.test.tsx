@@ -10,6 +10,7 @@ import {
 } from '@/test/handlers/usersDirectory';
 import { renderApp } from '@/test/renderApp';
 import { callService } from '@/test/usersClient';
+import { uuidOf } from '@/test/ids';
 
 beforeAll(async () => {
   configure({ asyncUtilTimeout: 10_000 });
@@ -34,7 +35,7 @@ function start() {
     users: [
       ...base.users,
       directoryUser({
-        id: 2,
+        id: uuidOf(2),
         email: 'ana@clinica.com',
         firstName: 'Ana',
         paternalLastName: 'Pérez',
@@ -42,7 +43,7 @@ function start() {
       }),
     ],
   });
-  mock.assign(2, 4);
+  mock.assign(uuidOf(2), 4);
   return mock;
 }
 
@@ -77,7 +78,7 @@ describe('the users section: editing (feature 002, user story 3)', { timeout: 30
       await screen.findByRole('heading', { level: 1, name: text.detail.title }),
     ).toBeInTheDocument();
     expect(await screen.findByText('Anita', { selector: 'dd' })).toBeInTheDocument();
-    expect(mock.state.findUser(2)?.firstName).toBe('Anita');
+    expect(mock.state.findUser(uuidOf(2))?.firstName).toBe('Anita');
 
     await user.click(screen.getByRole('link', { name: text.detail.backToList }));
     expect(await screen.findByRole('link', { name: 'Anita Pérez Gómez' })).toBeInTheDocument();
@@ -86,7 +87,7 @@ describe('the users section: editing (feature 002, user story 3)', { timeout: 30
 
   it('changes nothing when the edit is cancelled, and goes back to the same detail', async () => {
     const mock = start();
-    const { user, router } = open('/users/2/edit');
+    const { user, router } = open(`/users/${uuidOf(2)}/edit`);
     await typeFirstName(user, 'Otro nombre');
 
     await user.click(screen.getByRole('link', { name: messages.common.cancel }));
@@ -94,10 +95,10 @@ describe('the users section: editing (feature 002, user story 3)', { timeout: 30
     expect(
       await screen.findByRole('heading', { level: 1, name: text.detail.title }),
     ).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe('/users/2');
+    expect(router.state.location.pathname).toBe(`/users/${uuidOf(2)}`);
     expect(await screen.findByText('Ana', { selector: 'dd' })).toBeInTheDocument();
     expect(mock.requestsTo('PATCH', /./)).toHaveLength(0);
-    expect(mock.state.findUser(2)?.firstName).toBe('Ana');
+    expect(mock.state.findUser(uuidOf(2))?.firstName).toBe('Ana');
   });
 
   it('goes back to the page of the list it came from after saving', async () => {
@@ -119,11 +120,11 @@ describe('the users section: editing (feature 002, user story 3)', { timeout: 30
   it('does not offer to edit to someone without users:update, and sends them to the detail (FR-025)', async () => {
     const mock = start();
     mock.revoke('Administrator', 'users:update');
-    const { router } = open('/users/2/edit');
+    const { router } = open(`/users/${uuidOf(2)}/edit`);
 
     expect(await screen.findByText(messages.forbidden.action)).toBeInTheDocument();
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe('/users/2');
+      expect(router.state.location.pathname).toBe(`/users/${uuidOf(2)}`);
     });
     expect(await screen.findByText('Ana', { selector: 'dd' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: text.actions.edit })).not.toBeInTheDocument();
@@ -131,17 +132,17 @@ describe('the users section: editing (feature 002, user story 3)', { timeout: 30
 
   it('warns, applies nothing and shows the current status when the user was blocked in another tab (V18)', async () => {
     const mock = start();
-    const { user } = open('/users/2/edit');
+    const { user } = open(`/users/${uuidOf(2)}/edit`);
     await typeFirstName(user, 'Anita');
     // The other tab blocks the user while this form is open.
-    mock.setUserStatus(2, 2);
+    mock.setUserStatus(uuidOf(2), 2);
 
     await user.click(save());
 
     expect(await screen.findByText(text.errors.statusChanged)).toBeInTheDocument();
     expect(await screen.findByText(text.edit.inactive.title)).toBeInTheDocument();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
-    expect(mock.state.findUser(2)?.firstName).toBe('Ana');
+    expect(mock.state.findUser(uuidOf(2))?.firstName).toBe('Ana');
 
     await user.click(screen.getByRole('link', { name: text.edit.inactive.backToDetail }));
     expect(await screen.findByText(text.status.blocked)).toBeInTheDocument();
@@ -150,22 +151,25 @@ describe('the users section: editing (feature 002, user story 3)', { timeout: 30
 
   it('keeps the last of two changes made one after the other (Assumptions of US3)', async () => {
     const mock = start();
-    const { user } = open('/users/2/edit');
+    const { user } = open(`/users/${uuidOf(2)}/edit`);
     await typeFirstName(user, 'Uno');
     // Another operator changes the same user after this form was opened.
-    await callService('/api/v1/users/2', { method: 'PATCH', body: { first_name: 'Otro' } });
-    expect(mock.state.findUser(2)?.firstName).toBe('Otro');
+    await callService(`/api/v1/users/${uuidOf(2)}`, {
+      method: 'PATCH',
+      body: { first_name: 'Otro' },
+    });
+    expect(mock.state.findUser(uuidOf(2))?.firstName).toBe('Otro');
 
     await user.click(save());
 
     expect(await screen.findByText(text.edit.saved)).toBeInTheDocument();
     expect(await screen.findByText('Uno', { selector: 'dd' })).toBeInTheDocument();
-    expect(mock.state.findUser(2)?.firstName).toBe('Uno');
+    expect(mock.state.findUser(uuidOf(2))?.firstName).toBe('Uno');
   });
 
   it('shows the new name of the operator in the header as soon as they change their own, not minutes later', async () => {
     const mock = start();
-    const { user } = open('/users/1/edit');
+    const { user } = open(`/users/${uuidOf(1)}/edit`);
     const header = await screen.findByRole('banner');
     expect(await within(header).findByText('Admin Sistema')).toBeInTheDocument();
     await typeFirstName(user, 'Nuevo');
@@ -173,13 +177,13 @@ describe('the users section: editing (feature 002, user story 3)', { timeout: 30
     await user.click(save());
 
     expect(await screen.findByText(text.edit.saved)).toBeInTheDocument();
-    expect(mock.state.findUser(1)?.firstName).toBe('Nuevo');
+    expect(mock.state.findUser(uuidOf(1))?.firstName).toBe('Nuevo');
     expect(await within(header).findByText('Nuevo Sistema')).toBeInTheDocument();
   });
 
   it('does not ask for the access again when what is changed is the name of somebody else', async () => {
     const mock = start();
-    const { user } = open('/users/2/edit');
+    const { user } = open(`/users/${uuidOf(2)}/edit`);
     await typeFirstName(user, 'Anita');
     const asksBefore = mock.requestsTo('GET', '/api/v1/authorization/me').length;
 

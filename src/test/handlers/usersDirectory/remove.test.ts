@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { callService } from '@/test/usersClient';
 
 import { createUsersDirectoryMock, defaultDirectory, directoryUser } from './index';
+import { uuidOf } from '@/test/ids';
 
 const ACTIVE = 1;
 const BLOCKED = 2;
@@ -12,7 +13,7 @@ function start(statusId = ACTIVE) {
   const base = defaultDirectory();
   return createUsersDirectoryMock({
     ...base,
-    users: [...base.users, directoryUser({ id: 121, statusId, email: 'ana@clinica.com' })],
+    users: [...base.users, directoryUser({ id: uuidOf(121), statusId, email: 'ana@clinica.com' })],
   });
 }
 
@@ -22,37 +23,37 @@ const post = (path: string) => callService(path, { method: 'POST' });
 describe('DELETE /api/v1/users/{id}', () => {
   it('deletes an active user with a 204, and keeps its data and its roles', async () => {
     const mock = start();
-    mock.assign(121, 4);
-    const before = mock.state.findUser(121);
+    mock.assign(uuidOf(121), 4);
+    const before = mock.state.findUser(uuidOf(121));
 
-    const answer = await remove('/api/v1/users/121');
+    const answer = await remove(`/api/v1/users/${uuidOf(121)}`);
 
     expect(answer.status).toBe(204);
     expect(answer.body).toBeNull();
-    expect(mock.state.findUser(121)).toMatchObject({
+    expect(mock.state.findUser(uuidOf(121))).toMatchObject({
       statusId: DELETED,
       email: before?.email,
       firstName: before?.firstName,
       paternalLastName: before?.paternalLastName,
     });
-    expect(mock.state.findUser(121)?.updatedAt).not.toBe(before?.updatedAt);
-    expect(mock.state.rolesOf(121).map((role) => role.name)).toEqual(['Marketing']);
+    expect(mock.state.findUser(uuidOf(121))?.updatedAt).not.toBe(before?.updatedAt);
+    expect(mock.state.rolesOf(uuidOf(121)).map((role) => role.name)).toEqual(['Marketing']);
   });
 
   it('takes the user out of the list but still finds it by email, as deleted', async () => {
     start();
-    await remove('/api/v1/users/121');
+    await remove(`/api/v1/users/${uuidOf(121)}`);
 
     const list = await callService('/api/v1/users?page=1&page_size=10');
     const found = await callService('/api/v1/users/by-email?email=ana%40clinica.com');
 
     expect(list.body).toMatchObject({ total: 1 });
-    expect(found.body).toMatchObject({ id: 121, status: { id: DELETED } });
+    expect(found.body).toMatchObject({ id: uuidOf(121), status: { id: DELETED } });
   });
 
   it('keeps the email reserved: a user with it cannot be created while it is deleted', async () => {
     start();
-    await remove('/api/v1/users/121');
+    await remove(`/api/v1/users/${uuidOf(121)}`);
 
     const answer = await callService('/api/v1/users', {
       method: 'POST',
@@ -71,7 +72,7 @@ describe('DELETE /api/v1/users/{id}', () => {
   it('answers 404 user_not_found for a user that does not exist', async () => {
     start();
 
-    const answer = await remove('/api/v1/users/999');
+    const answer = await remove(`/api/v1/users/${uuidOf(999)}`);
 
     expect(answer.status).toBe(404);
     expect(answer.body).toMatchObject({ code: 'user_not_found' });
@@ -85,21 +86,21 @@ describe('DELETE /api/v1/users/{id}', () => {
   ])('answers 409 for a user in the status %i, and changes nothing', async (statusId, code) => {
     const mock = start(statusId);
 
-    const answer = await remove('/api/v1/users/121');
+    const answer = await remove(`/api/v1/users/${uuidOf(121)}`);
 
     expect(answer.status).toBe(409);
     expect(answer.body).toMatchObject({ code });
-    expect(mock.state.findUser(121)?.statusId).toBe(statusId);
+    expect(mock.state.findUser(uuidOf(121))?.statusId).toBe(statusId);
   });
 
   it('deletes the user even when it has no access account, which is no obstacle', async () => {
     const mock = start();
-    mock.identity.accountMissing(121);
+    mock.identity.accountMissing(uuidOf(121));
 
-    const answer = await remove('/api/v1/users/121');
+    const answer = await remove(`/api/v1/users/${uuidOf(121)}`);
 
     expect(answer.status).toBe(204);
-    expect(mock.state.findUser(121)?.statusId).toBe(DELETED);
+    expect(mock.state.findUser(uuidOf(121))?.statusId).toBe(DELETED);
   });
 
   it.each([
@@ -111,11 +112,11 @@ describe('DELETE /api/v1/users/{id}', () => {
       const mock = start();
       mock.identity[failure]();
 
-      const answer = await remove('/api/v1/users/121');
+      const answer = await remove(`/api/v1/users/${uuidOf(121)}`);
 
       expect(answer.status).toBe(status);
       expect(answer.body).toMatchObject({ code });
-      expect(mock.state.findUser(121)?.statusId).toBe(ACTIVE);
+      expect(mock.state.findUser(uuidOf(121))?.statusId).toBe(ACTIVE);
     },
   );
 
@@ -123,7 +124,7 @@ describe('DELETE /api/v1/users/{id}', () => {
     const mock = start(DELETED);
     mock.identity.unavailable();
 
-    const answer = await remove('/api/v1/users/121');
+    const answer = await remove(`/api/v1/users/${uuidOf(121)}`);
 
     expect(answer.status).toBe(409);
     expect(answer.body).toMatchObject({ code: 'user_deleted' });
@@ -133,10 +134,10 @@ describe('DELETE /api/v1/users/{id}', () => {
     const mock = start();
     mock.revoke('Administrator', 'users:delete');
 
-    const answer = await remove('/api/v1/users/121');
+    const answer = await remove(`/api/v1/users/${uuidOf(121)}`);
 
     expect(answer.status).toBe(403);
-    expect(mock.state.findUser(121)?.statusId).toBe(ACTIVE);
+    expect(mock.state.findUser(uuidOf(121))?.statusId).toBe(ACTIVE);
   });
 
   it.each(['abc', '0', '-1'])('answers 422 naming user_id for "%s"', async (userId) => {
@@ -152,17 +153,17 @@ describe('DELETE /api/v1/users/{id}', () => {
 describe('POST /api/v1/users/{id}/reactivate', () => {
   it('reactivates a deleted user, who recovers the active roles it had', async () => {
     const mock = start();
-    mock.assign(121, 4);
-    mock.assign(121, 6);
+    mock.assign(uuidOf(121), 4);
+    mock.assign(uuidOf(121), 6);
     mock.setRoleStatus(6, 2);
-    await remove('/api/v1/users/121');
+    await remove(`/api/v1/users/${uuidOf(121)}`);
 
-    const answer = await post('/api/v1/users/121/reactivate');
-    const roles = await callService('/api/v1/users/121/roles');
+    const answer = await post(`/api/v1/users/${uuidOf(121)}/reactivate`);
+    const roles = await callService(`/api/v1/users/${uuidOf(121)}/roles`);
 
     expect(answer.status).toBe(200);
-    expect(answer.body).toMatchObject({ id: 121, status: { id: ACTIVE } });
-    expect(mock.state.findUser(121)?.statusId).toBe(ACTIVE);
+    expect(answer.body).toMatchObject({ id: uuidOf(121), status: { id: ACTIVE } });
+    expect(mock.state.findUser(uuidOf(121))?.statusId).toBe(ACTIVE);
     // The role that was blocked in the meantime is not given back.
     expect(roles.body).toMatchObject([{ name: 'Marketing' }]);
   });
@@ -170,7 +171,7 @@ describe('POST /api/v1/users/{id}/reactivate', () => {
   it('answers 404 user_not_found for a user that does not exist', async () => {
     start();
 
-    const answer = await post('/api/v1/users/999/reactivate');
+    const answer = await post(`/api/v1/users/${uuidOf(999)}/reactivate`);
 
     expect(answer.status).toBe(404);
     expect(answer.body).toMatchObject({ code: 'user_not_found' });
@@ -183,22 +184,22 @@ describe('POST /api/v1/users/{id}/reactivate', () => {
   ])('answers 409 for a user in the status %i, and changes nothing', async (statusId, code) => {
     const mock = start(statusId);
 
-    const answer = await post('/api/v1/users/121/reactivate');
+    const answer = await post(`/api/v1/users/${uuidOf(121)}/reactivate`);
 
     expect(answer.status).toBe(409);
     expect(answer.body).toMatchObject({ code });
-    expect(mock.state.findUser(121)?.statusId).toBe(statusId);
+    expect(mock.state.findUser(uuidOf(121))?.statusId).toBe(statusId);
   });
 
   it('answers 409 auth0_account_not_found when the person has no access account, and keeps it deleted', async () => {
     const mock = start(DELETED);
-    mock.identity.accountMissing(121);
+    mock.identity.accountMissing(uuidOf(121));
 
-    const answer = await post('/api/v1/users/121/reactivate');
+    const answer = await post(`/api/v1/users/${uuidOf(121)}/reactivate`);
 
     expect(answer.status).toBe(409);
     expect(answer.body).toMatchObject({ code: 'auth0_account_not_found' });
-    expect(mock.state.findUser(121)?.statusId).toBe(DELETED);
+    expect(mock.state.findUser(uuidOf(121))?.statusId).toBe(DELETED);
   });
 
   it.each([
@@ -210,11 +211,11 @@ describe('POST /api/v1/users/{id}/reactivate', () => {
       const mock = start(DELETED);
       mock.identity[failure]();
 
-      const answer = await post('/api/v1/users/121/reactivate');
+      const answer = await post(`/api/v1/users/${uuidOf(121)}/reactivate`);
 
       expect(answer.status).toBe(status);
       expect(answer.body).toMatchObject({ code });
-      expect(mock.state.findUser(121)?.statusId).toBe(DELETED);
+      expect(mock.state.findUser(uuidOf(121))?.statusId).toBe(DELETED);
     },
   );
 
@@ -222,9 +223,9 @@ describe('POST /api/v1/users/{id}/reactivate', () => {
     const mock = start(DELETED);
     mock.revoke('Administrator', 'users:update');
 
-    const answer = await post('/api/v1/users/121/reactivate');
+    const answer = await post(`/api/v1/users/${uuidOf(121)}/reactivate`);
 
     expect(answer.status).toBe(403);
-    expect(mock.state.findUser(121)?.statusId).toBe(DELETED);
+    expect(mock.state.findUser(uuidOf(121))?.statusId).toBe(DELETED);
   });
 });

@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import { getDisplayName, getFullName, getInitials, platformUserSchema } from './user';
 import { isActiveStatus, USER_STATUS } from './userStatus';
+import { uuidOf } from '@/test/ids';
 
 const validDto = {
-  id: 121,
+  id: uuidOf(121),
   auth0_id: 'auth0|abc123',
   email: 'ana@clinica.com',
   first_name: 'Ana',
@@ -18,7 +19,7 @@ const validDto = {
 describe('platformUserSchema', () => {
   it('converts the snake_case DTO into the camelCase domain model', () => {
     expect(platformUserSchema.parse(validDto)).toEqual({
-      id: 121,
+      id: uuidOf(121),
       auth0Id: 'auth0|abc123',
       email: 'ana@clinica.com',
       firstName: 'Ana',
@@ -43,10 +44,10 @@ describe('platformUserSchema', () => {
   });
 
   it.each([
-    ['id 0', { id: 0 }],
-    ['a negative id', { id: -3 }],
-    ['a fractional id', { id: 1.5 }],
-    ['a textual id', { id: '121' }],
+    ['an id that is a whole number', { id: 121 }],
+    ['a textual id that is not a UUID', { id: '121' }],
+    ['an id without hyphens', { id: 'e7d3f1a24b5c4d6e8f9a0b1c2d3e4f5a' }],
+    ['an empty id', { id: '' }],
     ['an empty auth0_id', { auth0_id: '' }],
     ['a missing auth0_id', { auth0_id: undefined }],
     ['an empty first_name', { first_name: '' }],

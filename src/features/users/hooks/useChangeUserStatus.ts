@@ -16,7 +16,7 @@ export interface ChangeUserStatusVariables {
 }
 
 /** The user as the service returns it, or nothing when the service answers without a body. */
-type StatusOperation = (client: HttpClient, userId: number) => Promise<PlatformUser | undefined>;
+type StatusOperation = (client: HttpClient, userId: string) => Promise<PlatformUser | undefined>;
 
 // The action is a union written by the code, never text from outside, so a plain object is safe.
 const OPERATIONS = {
@@ -45,7 +45,7 @@ const LEAVE_ACTIVE: ReadonlySet<StatusAction> = new Set(['block', 'delete']);
  * believes asks for the user again.
  */
 export function useChangeUserStatus(
-  userId: number,
+  userId: string,
 ): UseMutationResult<PlatformUser | undefined, Error, ChangeUserStatusVariables> {
   const { users } = useHttpClients();
   const queryClient = useQueryClient();

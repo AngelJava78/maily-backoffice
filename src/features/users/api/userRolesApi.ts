@@ -19,7 +19,7 @@ interface Cancellable {
 /** U11: gives one role to an active user. */
 export function assignRole(
   client: HttpClient,
-  userId: number,
+  userId: string,
   roleId: number,
   { signal }: Cancellable = {},
 ): Promise<UserRoleAssignment> {
@@ -35,7 +35,7 @@ export function assignRole(
 /** U12: takes one role away from an active user. The answer is a 204 without a body. */
 export async function unassignRole(
   client: HttpClient,
-  userId: number,
+  userId: string,
   roleId: number,
   { signal }: Cancellable = {},
 ): Promise<void> {
@@ -51,7 +51,7 @@ export async function unassignRole(
 /** U10: the active roles of an active user, sorted by name. The roles of other users are refused. */
 export function listUserRoles(
   client: HttpClient,
-  userId: number,
+  userId: string,
   { signal }: Cancellable = {},
 ): Promise<Role[]> {
   return client.get(`${USERS_PATH}/${userId}/roles`, { schema: rolesSchema, signal });

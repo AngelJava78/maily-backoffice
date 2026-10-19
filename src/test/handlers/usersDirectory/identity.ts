@@ -45,7 +45,7 @@ export function checkNewAccount(identity: IdentityFailures, email: string): void
 }
 
 /** Enabling an access account (unblock, reactivate): without the account the person could not sign in. */
-export function checkAccountToEnable(identity: IdentityFailures, userId: number): void {
+export function checkAccountToEnable(identity: IdentityFailures, userId: string): void {
   failIfProviderDown(identity);
   if (identity.missingAccounts.has(userId)) {
     throw new DirectoryError(

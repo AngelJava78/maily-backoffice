@@ -76,7 +76,7 @@ export function createUser(
  */
 export function updateUser(
   client: HttpClient,
-  userId: number,
+  userId: string,
   body: UpdateUserBody,
   { signal }: Cancellable = {},
 ): Promise<PlatformUser> {
@@ -92,7 +92,7 @@ export function updateUser(
 /** U3: one user, whatever its status. It does not include its roles. */
 export function getUser(
   client: HttpClient,
-  userId: number,
+  userId: string,
   { signal }: Cancellable = {},
 ): Promise<PlatformUser> {
   return client.get(`${USERS_PATH}/${userId}`, { schema: platformUserSchema, signal });
@@ -104,7 +104,7 @@ export function getUser(
  */
 export function blockUser(
   client: HttpClient,
-  userId: number,
+  userId: string,
   { signal }: Cancellable = {},
 ): Promise<PlatformUser> {
   return client.request({
@@ -121,7 +121,7 @@ export function blockUser(
  */
 export function unblockUser(
   client: HttpClient,
-  userId: number,
+  userId: string,
   { signal }: Cancellable = {},
 ): Promise<PlatformUser> {
   return client.request({
@@ -139,7 +139,7 @@ export function unblockUser(
  */
 export async function deleteUser(
   client: HttpClient,
-  userId: number,
+  userId: string,
   { signal }: Cancellable = {},
 ): Promise<void> {
   // The client validates every answer, even an empty one: an empty body is read as `undefined`.
@@ -157,7 +157,7 @@ export async function deleteUser(
  */
 export function reactivateUser(
   client: HttpClient,
-  userId: number,
+  userId: string,
   { signal }: Cancellable = {},
 ): Promise<PlatformUser> {
   return client.request({

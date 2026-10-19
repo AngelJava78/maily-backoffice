@@ -14,6 +14,7 @@ import { renderWithProviders } from '@/test/renderWithProviders';
 
 import { roleKeys } from '../hooks/userKeys';
 import { UserCreatePage } from './UserCreatePage';
+import { uuidOf } from '@/test/ids';
 
 function DetailProbe() {
   const { userId } = useParams();
@@ -157,8 +158,8 @@ describe('UserCreatePage: the form', () => {
       await chooseRoles(user, 'Marketing', 'Doctor');
       await user.click(save());
 
-      expect(await screen.findByText(/^Detalle 2:/)).toBeInTheDocument();
-      expect(router.state.location.pathname).toBe('/users/2');
+      expect(await screen.findByText(new RegExp(`^Detalle ${uuidOf(2)}:`))).toBeInTheDocument();
+      expect(router.state.location.pathname).toBe(`/users/${uuidOf(2)}`);
       expect(await screen.findByText(messages.users.notices.created)).toBeInTheDocument();
       expect(mock.requestsTo('POST', '/api/v1/users')[0]?.body).toEqual({
         email: 'nora@clinica.com',
@@ -166,7 +167,10 @@ describe('UserCreatePage: the form', () => {
         first_name: 'Nora',
         paternal_last_name: 'Díaz',
       });
-      expect(mock.state.rolesOf(2).map((role) => role.name)).toEqual(['Marketing', 'Doctor']);
+      expect(mock.state.rolesOf(uuidOf(2)).map((role) => role.name)).toEqual([
+        'Marketing',
+        'Doctor',
+      ]);
     });
 
     it('sends the maternal last name when it is typed', async () => {
@@ -179,7 +183,7 @@ describe('UserCreatePage: the form', () => {
 
       await user.click(save());
 
-      await screen.findByText(/^Detalle 2:/);
+      await screen.findByText(new RegExp(`^Detalle ${uuidOf(2)}:`));
       expect(mock.requestsTo('POST', '/api/v1/users')[0]?.body).toMatchObject({
         maternal_last_name: 'Vega',
       });
@@ -196,9 +200,9 @@ describe('UserCreatePage: the form', () => {
       fireEvent.click(save());
       fireEvent.click(save());
 
-      await screen.findByText(/^Detalle 2:/);
+      await screen.findByText(new RegExp(`^Detalle ${uuidOf(2)}:`));
       expect(mock.requestsTo('POST', '/api/v1/users')).toHaveLength(1);
-      expect(mock.requestsTo('POST', '/api/v1/users/2/roles')).toHaveLength(1);
+      expect(mock.requestsTo('POST', `/api/v1/users/${uuidOf(2)}/roles`)).toHaveLength(1);
     });
 
     it('carries the search of the list it came from, to the detail and in "Cancelar"', async () => {
@@ -215,7 +219,7 @@ describe('UserCreatePage: the form', () => {
       await user.click(save());
 
       expect(
-        await screen.findByText('Detalle 2: {"listSearch":"?page=3&page_size=25"}'),
+        await screen.findByText(`Detalle ${uuidOf(2)}: {"listSearch":"?page=3&page_size=25"}`),
       ).toBeInTheDocument();
     });
   });
@@ -225,7 +229,10 @@ describe('UserCreatePage: the form', () => {
       const base = defaultDirectory();
       createUsersDirectoryMock({
         ...base,
-        users: [...base.users, directoryUser({ id: 2, email: 'nora@clinica.com', statusId: 3 })],
+        users: [
+          ...base.users,
+          directoryUser({ id: uuidOf(2), email: 'nora@clinica.com', statusId: 3 }),
+        ],
       });
       const { user } = renderCreate();
       await catalogReady();
@@ -301,7 +308,7 @@ describe('UserCreatePage: the form', () => {
         expect(mock.state.users()).toHaveLength(1);
         mock.identity.recover();
         await user.click(save());
-        expect(await screen.findByText(/^Detalle 2:/)).toBeInTheDocument();
+        expect(await screen.findByText(new RegExp(`^Detalle ${uuidOf(2)}:`))).toBeInTheDocument();
       },
     );
 
@@ -335,11 +342,11 @@ describe('UserCreatePage: the form', () => {
       await user.click(save());
 
       expect(await screen.findByText(messages.users.notices.createdPartial)).toBeInTheDocument();
-      expect(router.state.location.pathname).toBe('/users/2');
+      expect(router.state.location.pathname).toBe(`/users/${uuidOf(2)}`);
       expect(router.state.location.state).toEqual({
         rolesNotAssigned: [{ id: 6, name: 'Doctor' }],
       });
-      expect(mock.state.findUser(2)).toBeDefined();
+      expect(mock.state.findUser(uuidOf(2))).toBeDefined();
     });
   });
 
@@ -381,7 +388,7 @@ describe('UserCreatePage: the roles that were chosen, while it saves, and when a
     // What is left is Marketing, and saving again creates the user with it only.
     await user.click(save());
     expect(await screen.findByText(messages.users.notices.created)).toBeInTheDocument();
-    expect(mock.state.rolesOf(2).map((role) => role.name)).toEqual(['Marketing']);
+    expect(mock.state.rolesOf(uuidOf(2)).map((role) => role.name)).toEqual(['Marketing']);
   });
 
   it('keeps the field of the roles, with the roles that were chosen, when asking for the catalog again fails', async () => {
@@ -436,7 +443,7 @@ describe('UserCreatePage: the roles that were chosen, while it saves, and when a
 
     expect(await screen.findByText(messages.users.notices.created)).toBeInTheDocument();
     await waitFor(() => {
-      expect(mock.state.findUser(2)).toBeDefined();
+      expect(mock.state.findUser(uuidOf(2))).toBeDefined();
     });
     expect(router.state.location.pathname).toBe('/users');
   });

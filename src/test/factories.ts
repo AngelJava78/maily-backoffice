@@ -6,6 +6,8 @@ import { platformUserSchema } from '@/features/users';
 import type { roleSchema } from '@/features/users/schemas/role';
 import type { userPageSchema } from '@/features/users/schemas/userPage';
 
+import { uuidOf } from './ids';
+
 /** The users service speaks snake_case; these are the types of its answers (schema inputs). */
 export type UserDto = z.input<typeof platformUserSchema>;
 export type RoleDto = z.input<typeof accessRoleSchema>;
@@ -13,10 +15,10 @@ export type MyAccessDto = z.input<typeof myAccessSchema>;
 export type RoleRecordDto = z.input<typeof roleSchema>;
 export type UserPageDto = z.input<typeof userPageSchema>;
 
-/** A user as the users service returns it: active, with the id 121 and a maternal last name. */
+/** A user as the users service returns it: active, with the id `uuidOf(121)` and a maternal last name. */
 export function userDto(overrides: Partial<UserDto> = {}): UserDto {
   return {
-    id: 121,
+    id: uuidOf(121),
     auth0_id: 'auth0|user1',
     email: 'ana@clinica.com',
     first_name: 'Ana',

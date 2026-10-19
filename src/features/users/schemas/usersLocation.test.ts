@@ -93,15 +93,31 @@ describe('toUsersSearchParams', () => {
 });
 
 describe('parseUserId', () => {
-  it('reads a whole number from 1', () => {
-    expect(parseUserId('121')).toBe(121);
-    expect(parseUserId('1')).toBe(1);
+  const ID = '3f2b8c1e-7d4a-4e5b-9a60-1c2d3e4f5a6b';
+
+  it('reads a UUID written as 8-4-4-4-12 hexadecimal digits', () => {
+    expect(parseUserId(ID)).toBe(ID);
   });
 
-  it.each([undefined, '', 'abc', '0', '-1', '1.5', '12abc', ' 12', '012', '9007199254740993'])(
-    'is null for %j, which is not the id of a user',
-    (value) => {
-      expect(parseUserId(value)).toBeNull();
-    },
-  );
+  it('answers in lower case, as the users service returns the id', () => {
+    expect(parseUserId(ID.toUpperCase())).toBe(ID);
+  });
+
+  it.each([
+    undefined,
+    '',
+    'abc',
+    '121',
+    '0',
+    '-1',
+    ' ' + ID,
+    ID + ' ',
+    ID.replaceAll('-', ''),
+    `{${ID}}`,
+    `urn:uuid:${ID}`,
+    ID.slice(0, -1),
+    ID.replace('3f2b', 'zzzz'),
+  ])('is null for %j, which is not the id of a user', (value) => {
+    expect(parseUserId(value)).toBeNull();
+  });
 });

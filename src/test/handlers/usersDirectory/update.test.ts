@@ -8,6 +8,7 @@ import {
   directoryUser,
   type DirectoryUser,
 } from './index';
+import { uuidOf } from '@/test/ids';
 
 const BLOCKED = 2;
 const DELETED = 3;
@@ -19,7 +20,7 @@ function start(extra: readonly DirectoryUser[] = []) {
     users: [
       ...base.users,
       directoryUser({
-        id: 121,
+        id: uuidOf(121),
         firstName: 'Ana',
         paternalLastName: 'Pérez',
         maternalLastName: 'Gómez',
@@ -29,7 +30,7 @@ function start(extra: readonly DirectoryUser[] = []) {
   });
 }
 
-const patch = (body: unknown, path = '/api/v1/users/121', sub?: string) =>
+const patch = (body: unknown, path = `/api/v1/users/${uuidOf(121)}`, sub?: string) =>
   callService(path, { method: 'PATCH', body, ...(sub === undefined ? {} : { sub }) });
 
 function fieldsOf(body: unknown): unknown {
@@ -43,7 +44,7 @@ function fieldsOf(body: unknown): unknown {
 describe('PATCH /api/v1/users/{id}', () => {
   it('changes the name and the last names of an active user and answers the user', async () => {
     const mock = start();
-    const before = mock.state.getUser(121).updatedAt;
+    const before = mock.state.getUser(uuidOf(121)).updatedAt;
 
     const answer = await patch({
       first_name: ' Anita ',
@@ -53,13 +54,13 @@ describe('PATCH /api/v1/users/{id}', () => {
 
     expect(answer.status).toBe(200);
     expect(answer.body).toMatchObject({
-      id: 121,
+      id: uuidOf(121),
       first_name: 'Anita',
       paternal_last_name: 'Pérez Ruiz',
       maternal_last_name: 'Gómez',
       email: 'user121@ejemplo.com',
     });
-    expect(mock.state.getUser(121).updatedAt > before).toBe(true);
+    expect(mock.state.getUser(uuidOf(121)).updatedAt > before).toBe(true);
   });
 
   it('changes only the fields it receives', async () => {
@@ -87,19 +88,19 @@ describe('PATCH /api/v1/users/{id}', () => {
     ['a deleted user', 'user_deleted', DELETED],
     ['a user in an unknown status', 'user_not_active', 9],
   ])('refuses %s with 409 %s and changes nothing', async (_label, code, statusId) => {
-    const mock = start([directoryUser({ id: 130, statusId, firstName: 'Beto' })]);
+    const mock = start([directoryUser({ id: uuidOf(130), statusId, firstName: 'Beto' })]);
 
-    const answer = await patch({ first_name: 'Otro' }, '/api/v1/users/130');
+    const answer = await patch({ first_name: 'Otro' }, `/api/v1/users/${uuidOf(130)}`);
 
     expect(answer.status).toBe(409);
     expect(answer.body).toMatchObject({ code });
-    expect(mock.state.getUser(130).firstName).toBe('Beto');
+    expect(mock.state.getUser(uuidOf(130)).firstName).toBe('Beto');
   });
 
   it('answers 404 for a user that does not exist', async () => {
     start();
 
-    const answer = await patch({ first_name: 'Otro' }, '/api/v1/users/999');
+    const answer = await patch({ first_name: 'Otro' }, `/api/v1/users/${uuidOf(999)}`);
 
     expect(answer.status).toBe(404);
     expect(answer.body).toMatchObject({ code: 'user_not_found' });
@@ -127,7 +128,7 @@ describe('PATCH /api/v1/users/{id}', () => {
 
       expect(answer.status).toBe(422);
       expect(answer.body).toMatchObject({ code: 'validation_error' });
-      expect(mock.state.getUser(121).firstName).toBe('Ana');
+      expect(mock.state.getUser(uuidOf(121)).firstName).toBe('Ana');
     },
   );
 
@@ -162,7 +163,7 @@ describe('PATCH /api/v1/users/{id}', () => {
     const mock = start();
     mock.revoke('Administrator', 'users:update');
 
-    const answer = await patch({}, '/api/v1/users/999');
+    const answer = await patch({}, `/api/v1/users/${uuidOf(999)}`);
 
     expect(answer.status).toBe(403);
   });

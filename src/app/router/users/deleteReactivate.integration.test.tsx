@@ -9,6 +9,7 @@ import {
   directoryUser,
 } from '@/test/handlers/usersDirectory';
 import { renderApp } from '@/test/renderApp';
+import { uuidOf } from '@/test/ids';
 
 beforeAll(async () => {
   configure({ asyncUtilTimeout: 10_000 });
@@ -33,7 +34,7 @@ function start(statusId = ACTIVE) {
     users: [
       ...base.users,
       directoryUser({
-        id: 2,
+        id: uuidOf(2),
         statusId,
         email: 'ana@clinica.com',
         firstName: 'Ana',
@@ -42,7 +43,7 @@ function start(statusId = ACTIVE) {
       }),
     ],
   });
-  mock.assign(2, 4);
+  mock.assign(uuidOf(2), 4);
   return mock;
 }
 
@@ -91,13 +92,13 @@ describe(
       await waitFor(() => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       });
-      expect(mock.state.findUser(2)?.statusId).toBe(ACTIVE);
+      expect(mock.state.findUser(uuidOf(2))?.statusId).toBe(ACTIVE);
 
       await confirmDelete(user);
 
       expect(await screen.findByText(text.statusNotices.deleted)).toBeInTheDocument();
       expect(await screen.findByText(text.status.deleted)).toBeInTheDocument();
-      expect(mock.state.findUser(2)?.statusId).toBe(DELETED);
+      expect(mock.state.findUser(uuidOf(2))?.statusId).toBe(DELETED);
       // Its detail offers only to reactivate it, and says that its roles are not shown (US5-7).
       expect(await button(text.actions.reactivate)).toBeInTheDocument();
       expect(await screen.findByText(text.roles.unavailable)).toBeInTheDocument();
@@ -118,7 +119,7 @@ describe(
       await confirmReactivate(user);
       expect(await screen.findByText(text.statusNotices.reactivated)).toBeInTheDocument();
       expect(await screen.findByText('Marketing', { selector: 'li span' })).toBeInTheDocument();
-      expect(mock.state.findUser(2)?.statusId).toBe(ACTIVE);
+      expect(mock.state.findUser(uuidOf(2))?.statusId).toBe(ACTIVE);
       await user.click(screen.getByRole('link', { name: text.detail.backToList }));
       expect(await screen.findByText(text.status.active)).toBeInTheDocument();
       await user.click(screen.getByRole('button', { name: text.search.clear }));
@@ -151,7 +152,7 @@ describe(
 
     it('does not offer to delete the own user of the operator (US5-5)', async () => {
       start();
-      open('/users/1');
+      open(`/users/${uuidOf(1)}`);
 
       expect(await screen.findByText(text.detail.selfNote)).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: text.actions.delete })).not.toBeInTheDocument();
@@ -161,15 +162,15 @@ describe(
     it('offers to delete only to who has users:delete, and to reactivate only to who has users:update (US5-8, V24)', async () => {
       const mock = start();
       mock.revoke('Administrator', 'users:delete');
-      const withoutDelete = open('/users/2');
+      const withoutDelete = open(`/users/${uuidOf(2)}`);
       expect(await button(text.actions.block)).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: text.actions.delete })).not.toBeInTheDocument();
       withoutDelete.unmount();
 
-      mock.setUserStatus(2, DELETED);
+      mock.setUserStatus(uuidOf(2), DELETED);
       mock.grant('Administrator', 'users:delete');
       mock.revoke('Administrator', 'users:update');
-      open('/users/2');
+      open(`/users/${uuidOf(2)}`);
       await screen.findByText(text.roles.unavailable);
       expect(
         screen.queryByRole('button', { name: text.actions.reactivate }),
@@ -178,13 +179,13 @@ describe(
 
     it('warns that the person has no access account when reactivating, and the user stays deleted (V23)', async () => {
       const mock = start(DELETED);
-      mock.identity.accountMissing(2);
-      const { user } = open('/users/2');
+      mock.identity.accountMissing(uuidOf(2));
+      const { user } = open(`/users/${uuidOf(2)}`);
 
       await confirmReactivate(user);
 
       expect(await screen.findByText(text.errors.accountMissingReactivate)).toBeInTheDocument();
-      expect(mock.state.findUser(2)?.statusId).toBe(DELETED);
+      expect(mock.state.findUser(uuidOf(2))?.statusId).toBe(DELETED);
       expect(await button(text.actions.reactivate)).toBeInTheDocument();
     });
   },

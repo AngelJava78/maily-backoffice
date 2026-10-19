@@ -5,6 +5,7 @@ import { messages } from '@/shared/messages/es';
 import { renderWithProviders } from '@/test/renderWithProviders';
 
 import { useRouteAccessibility } from './useRouteAccessibility';
+import { uuidOf } from '@/test/ids';
 
 function Page() {
   useRouteAccessibility();
@@ -20,8 +21,8 @@ describe('useRouteAccessibility: the routes of the users section', () => {
   it.each([
     ['/users', '/users', 'users', 'Usuarios'],
     ['/users/new', '/users/new', 'userCreate', 'Crear usuario'],
-    ['/users/:userId', '/users/121', 'userDetail', 'Detalle del usuario'],
-    ['/users/:userId/edit', '/users/121/edit', 'userEdit', 'Editar usuario'],
+    ['/users/:userId', `/users/${uuidOf(121)}`, 'userDetail', 'Detalle del usuario'],
+    ['/users/:userId/edit', `/users/${uuidOf(121)}/edit`, 'userEdit', 'Editar usuario'],
   ] as const)('titles the route %s after its page', (path, url, titleKey, title) => {
     renderWithProviders([{ path, element: <Page />, handle: { titleKey } }], { route: url });
 
@@ -31,7 +32,7 @@ describe('useRouteAccessibility: the routes of the users section', () => {
 
   it.each([
     ['/users/:userId', '/users/abc', 'userDetail'],
-    ['/users/:userId', '/users/0', 'userDetail'],
+    ['/users/:userId', '/users/121', 'userDetail'],
     ['/users/:userId/edit', '/users/abc/edit', 'userEdit'],
   ] as const)(
     'titles %s at %s as a page that does not exist, because its id is not one',
@@ -54,7 +55,7 @@ describe('useRouteAccessibility: the routes of the users section', () => {
           handle: { titleKey: 'userDetail', userIdParam: 'userId' },
         },
       ],
-      { route: '/users/121' },
+      { route: `/users/${uuidOf(121)}` },
     );
 
     expect(document.title).toBe(`${messages.titles.userDetail} — ${messages.common.appName}`);

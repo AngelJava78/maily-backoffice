@@ -70,12 +70,12 @@ test.describe('the users section: readings (A1)', () => {
     await expect(page).toHaveURL(/page=3/);
   });
 
-  test('V5: says that a user does not exist, and that an address which is not a number is not a page', async ({
+  test('V5: says that a user does not exist, and that an address which is not a UUID is not a page', async ({
     page,
   }) => {
     await openAs(page, '/users');
 
-    await navigate(page, '/users/99999999');
+    await navigate(page, '/users/00000000-0000-4000-8000-000099999999');
     await expect(page.getByText(text.detail.notFound.title)).toBeVisible();
     await expect(page.getByRole('link', { name: text.detail.notFound.backToList })).toBeVisible();
 

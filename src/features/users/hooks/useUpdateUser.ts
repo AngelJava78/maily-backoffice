@@ -18,7 +18,7 @@ export interface UpdateUserVariables {
  * what the detail shows. It is never retried on its own.
  */
 export function useUpdateUser(
-  userId: number,
+  userId: string,
 ): UseMutationResult<PlatformUser, Error, UpdateUserVariables> {
   const { users } = useHttpClients();
   const queryClient = useQueryClient();

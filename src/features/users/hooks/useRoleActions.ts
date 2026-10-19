@@ -36,7 +36,7 @@ export interface RoleActions {
  * closes when its action ends, however it ended, and the result is told once it has closed: the
  * rest of the page is hidden from a screen reader while a dialog is on screen.
  */
-export function useRoleActions(userId: number): RoleActions {
+export function useRoleActions(userId: string): RoleActions {
   const { defer, flush } = useDeferredNotice();
   const notifyError = useNotifyUserError(defer);
   const add = useAddUserRole(userId);

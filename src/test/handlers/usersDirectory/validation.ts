@@ -55,8 +55,17 @@ function readPathId(params: PathParams, key: string, field: string): number {
   return Number(text);
 }
 
-/** The `{user_id}` of the path: a whole number from 1, or a 422. */
-export const readUserId = (params: PathParams): number => readPathId(params, 'userId', 'user_id');
+const CANONICAL_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The `{user_id}` of the path: a UUID written as 8-4-4-4-12 hexadecimal digits, or a 422. */
+export function readUserId(params: PathParams): string {
+  const raw = params.userId;
+  const text = typeof raw === 'string' ? raw : '';
+  if (!CANONICAL_UUID.test(text)) {
+    throw validationError([issue('user_id')]);
+  }
+  return text.toLowerCase();
+}
 
 /** The `{role_id}` of the path: a whole number from 1, or a 422. */
 export const readRoleId = (params: PathParams): number => readPathId(params, 'roleId', 'role_id');

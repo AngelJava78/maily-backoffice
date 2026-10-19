@@ -163,7 +163,7 @@ export function UserEditPage({
   userId,
   onSaved,
 }: {
-  readonly userId: number;
+  readonly userId: string;
   /** Called with the user once it was saved, while the form is still on screen. */
   readonly onSaved?: (user: PlatformUser) => void;
 }) {

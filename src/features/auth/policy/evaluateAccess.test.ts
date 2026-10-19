@@ -4,10 +4,11 @@ import type { PlatformUser } from '@/features/users';
 
 import type { AccessRole, MyAccess } from '../schemas/myAccess';
 import { evaluateAccess } from './evaluateAccess';
+import { uuidOf } from '@/test/ids';
 
 function makeUser(overrides: Partial<PlatformUser> = {}): PlatformUser {
   return {
-    id: 121,
+    id: uuidOf(121),
     auth0Id: 'auth0|abc123',
     email: 'ana@clinica.com',
     firstName: 'Ana',

@@ -10,7 +10,7 @@ const dateTimeSchema = z.iso.datetime({ offset: true });
  */
 export const platformUserSchema = z
   .object({
-    id: z.number().int().min(1),
+    id: z.uuid(),
     auth0_id: z.string().min(1),
     email: z.string().min(1),
     first_name: z.string().min(1),

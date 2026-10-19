@@ -9,6 +9,7 @@ import {
   directoryUser,
 } from '@/test/handlers/usersDirectory';
 import { renderApp } from '@/test/renderApp';
+import { uuidOf } from '@/test/ids';
 
 beforeAll(async () => {
   configure({ asyncUtilTimeout: 10_000 });
@@ -67,7 +68,7 @@ describe('the users section: creating (feature 002, user story 2)', { timeout: 3
     expect(
       await screen.findByRole('heading', { level: 1, name: messages.users.detail.title }),
     ).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe('/users/2');
+    expect(router.state.location.pathname).toBe(`/users/${uuidOf(2)}`);
     const roles = await screen.findByRole('region', { name: messages.users.roles.title });
     expect(await within(roles).findByText('Marketing')).toBeInTheDocument();
     expect(within(roles).getByText('Doctor')).toBeInTheDocument();
@@ -81,7 +82,10 @@ describe('the users section: creating (feature 002, user story 2)', { timeout: 3
     const base = defaultDirectory();
     const mock = createUsersDirectoryMock({
       ...base,
-      users: [...base.users, directoryUser({ id: 2, email: 'nora@clinica.com', statusId: 3 })],
+      users: [
+        ...base.users,
+        directoryUser({ id: uuidOf(2), email: 'nora@clinica.com', statusId: 3 }),
+      ],
     });
     const { user } = open('/users/new');
     await rolesReady();
