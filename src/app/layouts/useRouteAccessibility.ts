@@ -21,6 +21,7 @@ const routeHandleSchema = z.object({
     'userCreate',
     'userDetail',
     'userEdit',
+    'token',
   ]),
 });
 

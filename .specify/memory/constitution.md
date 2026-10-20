@@ -1,26 +1,3 @@
-<!--
-INFORME DE IMPACTO DE SINCRONIZACIÓN (temporal: eliminar antes de hacer commit)
-Cambio de versión: plantilla sin ratificar → 1.0.0
-Motivo del incremento: primera ratificación del documento (versión inicial).
-Principios (todos los marcadores de la plantilla se reemplazaron por contenido concreto):
-  marcador del principio 1 → I. Arquitectura por Features y React Idiomático
-  marcador del principio 2 → II. TypeScript Estricto y Datos Validados en la Frontera
-  marcador del principio 3 → III. Estado de Servidor Separado del Estado de Cliente
-  marcador del principio 4 → IV. Integración con APIs REST por Contrato
-  marcador del principio 5 → V. Seguridad y Autenticación con Auth0 (NO NEGOCIABLE)
-  principio añadido        → VI. Experiencia de Usuario, Accesibilidad y Consistencia
-  principio añadido        → VII. Calidad Verificable mediante Pruebas
-Secciones añadidas: Alcance, Stack y Restricciones Técnicas;
-  Flujo de Desarrollo y Puertas de Calidad.
-Secciones eliminadas: ninguna.
-Plantillas (plan, spec, tasks, checklist): sin cambios; leen la constitución en tiempo de ejecución.
-Marcadores sin resolver: ninguno.
-Decisiones diferidas a spec/plan (no son marcadores pendientes):
-  - Nombres de los roles de sistema y matriz role → capacidades.
-  - Endpoint del usuario actual y vínculo entre la identidad de Auth0 y el usuario de MailySoft.
-  - Contrato de creación de clínica con owner (operación única o varias llamadas).
--->
-
 # Constitución de MailySoft Backoffice
 
 Convención normativa (RFC 2119): DEBE = MUST, NO DEBE = MUST NOT, DEBERÍA = SHOULD, PUEDE = MAY.
@@ -146,7 +123,8 @@ integración, validado y con errores normalizados, acota el impacto de cualquier
   guardarse preferencias de UI no sensibles.
 - DEBEN existir login, logout y perfil de usuario. El logout DEBE cerrar también la sesión en
   Auth0, volver a una URL permitida y limpiar caché y estado (ver III). Si la renovación silenciosa
-  de la sesión falla, DEBE redirigirse a login conservando la ruta de retorno.
+  de la sesión falla, DEBE redirigirse a login conservando la ruta de retorno; la única excepción
+  es la de la herramienta temporal de token (ver su subsección más abajo).
 - Todas las rutas, salvo las públicas explícitas (inicio de sesión y callback), DEBEN estar
   protegidas. El contenido protegido NO DEBE renderizarse mientras la sesión o el role estén sin
   resolver (fail closed).
@@ -172,17 +150,25 @@ integración, validado y con errores normalizados, acota el impacto de cualquier
 
 **Herramienta temporal de token para Postman**
 
-- DEBE implementarse como módulo aislado (`features/postman-token`) tras una feature flag
-  (`VITE_FEATURE_POSTMAN_TOKEN`) apagada por defecto y activada explícitamente por entorno. Con la
-  flag apagada, su ruta y su módulo NO DEBEN registrarse ni cargarse. Solo está disponible para
-  usuarios autenticados con el role que el spec autorice.
+- DEBE implementarse como módulo aislado (`features/postman-token`) y su pantalla DEBE cargarse de
+  forma diferida, solo cuando la persona pasa la guarda de permiso. Su disponibilidad la decide
+  únicamente el permiso `token:read` de los roles de la persona, evaluado en el módulo de políticas
+  y asignado o retirado en la API de usuarios: NO DEBE depender del entorno ni de una variable de
+  configuración. Mientras ningún role tenga el permiso, la herramienta no existe para nadie.
 - "Generar" significa solicitar al SDK de Auth0 un access token vigente (con el `audience` de las
   APIs de MailySoft) del usuario autenticado. NO DEBE firmar tokens, usar client credentials ni
   manejar secretos. El token se muestra enmascarado por defecto, con acciones de mostrar/ocultar y
   copiar, su fecha de expiración y una advertencia de sensibilidad; vive solo en el estado del
   componente, se descarta al desmontar o cerrar sesión y NO DEBE persistirse ni registrarse.
-- Ningún otro módulo DEBE depender de él. Retirarlo (apagar la flag y eliminar el módulo y su
-  ruta) NO requiere enmienda de esta constitución.
+- Excepción a la renovación fallida: si la persona pulsa «Generar» o «Refrescar» y la renovación
+  de la sesión falla, la herramienta PUEDE mostrar el fallo en su pantalla, con «Reintentar» e
+  «Iniciar sesión de nuevo», en lugar de redirigir de inmediato, para no perder el token que ya
+  tiene en pantalla y poder reintentar. «Iniciar sesión de nuevo» DEBE redirigir a login
+  conservando la ruta de retorno. La excepción cubre solo la solicitud que la persona inicia en esa
+  pantalla: las renovaciones en segundo plano y los `401` de las APIs siguen la regla general.
+- Ningún otro módulo DEBE depender de él. Retirarlo (quitar el permiso a los roles y eliminar el
+  módulo, su ruta, su entrada de navegación y su recurso en el módulo de políticas) NO requiere
+  enmienda de esta constitución.
 
 **Razón**: un backoffice administra usuarios, clínicas y suscripciones de todos los clientes, así
 que un compromiso expone a todos ellos. Ocultar opciones en la UI no es seguridad: por eso la
@@ -269,10 +255,9 @@ probar comportamiento y no implementación las mantiene útiles ante cambios de 
 - La configuración por entorno DEBE viajar en variables `VITE_*` (públicas), validadas con Zod al
   arrancar con falla inmediata y mensaje claro, y documentadas en `.env.example` (versionado). Los
   archivos `.env*` reales NO DEBEN versionarse.
-- Variables mínimas: dominio, client id y audience de Auth0; la URL base de cada API (p. ej.
-  `VITE_USERS_API_URL`, `VITE_CLINICS_API_URL`, `VITE_SUBSCRIPTIONS_API_URL`); y la flag de la
-  herramienta de token. Las URLs de callback, logout y orígenes web permitidos en Auth0 se
-  configuran por entorno.
+- Variables mínimas: dominio, client id y audience de Auth0, y la URL base de cada API (p. ej.
+  `VITE_USERS_API_URL`, `VITE_CLINICS_API_URL`, `VITE_SUBSCRIPTIONS_API_URL`). Las URLs de
+  callback, logout y orígenes web permitidos en Auth0 se configuran por entorno.
 - Ningún secreto DEBE versionarse; si se detecta uno, DEBE rotarse de inmediato.
 
 ### Rendimiento y observabilidad
@@ -327,4 +312,4 @@ probar comportamiento y no implementación las mantiene útiles ante cambios de 
   trimestre o tras cada release mayor.
 - La guía operativa de desarrollo vive en `README.md` y en `specs/<feature>/quickstart.md`.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-17
+**Version**: 1.2.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-19

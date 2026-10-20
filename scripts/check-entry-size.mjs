@@ -7,6 +7,12 @@
 //    Spanish locale) and neither can `MuiDataGrid-` (its class names are built at run time).
 // 3. Fails when the build has the Data Grid in a lazy chunk but none of the markers appears there,
 //    which means a new version of the Data Grid changed them and guard 2 no longer protects.
+// 4. Fails when that entry-route JS contains the token tool of feature 005: its screen must stay in
+//    a lazy chunk that is only asked for once the permission guard lets the person in (constitution
+//    V, "Herramienta temporal"). The tool is recognised by the name of its error class, which
+//    `tokenFailure.ts` assigns as a literal so that minifying cannot rename it.
+// 5. Fails when the build has lazy chunks but none of them contains that marker, which means it was
+//    renamed and guard 4 no longer protects.
 // No dependencies.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -14,6 +20,7 @@ import { gzipSync } from 'node:zlib';
 
 const BUDGET_BYTES = 300 * 1024;
 const DATA_GRID_MARKERS = ['data-rowindex', 'data-colindex'];
+const TOKEN_TOOL_MARKERS = ['TokenRequestError'];
 const distDir = 'dist';
 const indexPath = join(distDir, 'index.html');
 
@@ -81,6 +88,14 @@ for (const row of rows) {
       failed = true;
     }
   }
+  for (const marker of TOKEN_TOOL_MARKERS) {
+    if (row.content.includes(marker)) {
+      console.error(
+        `${row.file} (entry route) contains "${marker}": the token tool must be loaded lazily.`,
+      );
+      failed = true;
+    }
+  }
 }
 
 const assetsDir = join(distDir, 'assets');
@@ -100,6 +115,17 @@ if (buildHasDataGrid && !markersInLazyChunks) {
   console.error(
     `The build has the Data Grid but none of ${DATA_GRID_MARKERS.join(', ')} appears in it: ` +
       'review DATA_GRID_MARKERS in scripts/check-entry-size.mjs (research D15 of 002).',
+  );
+  failed = true;
+}
+
+const tokenToolInLazyChunks = lazyChunks.some((content) =>
+  TOKEN_TOOL_MARKERS.some((marker) => content.includes(marker)),
+);
+if (lazyChunks.length > 0 && !tokenToolInLazyChunks) {
+  console.error(
+    `The build has lazy chunks but none of them contains ${TOKEN_TOOL_MARKERS.join(', ')}: ` +
+      'review TOKEN_TOOL_MARKERS in scripts/check-entry-size.mjs (research D15 of 005).',
   );
   failed = true;
 }

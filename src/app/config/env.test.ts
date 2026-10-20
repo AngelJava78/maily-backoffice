@@ -37,7 +37,6 @@ describe('parseEnv', () => {
         ...validSource,
         VITE_CLINICS_API_URL: undefined,
         VITE_SUBSCRIPTIONS_API_URL: undefined,
-        VITE_FEATURE_POSTMAN_TOKEN: false,
       },
     });
   });
@@ -187,25 +186,16 @@ describe('parseEnv', () => {
     });
   });
 
-  describe('VITE_FEATURE_POSTMAN_TOKEN', () => {
-    it.each([
-      ['true', true],
-      ['false', false],
-      [undefined, false],
-      ['', false],
-    ])('turns %j into %j', (value, expected) => {
+  describe('VITE_FEATURE_POSTMAN_TOKEN, which feature 005 removed', () => {
+    // The Token tool depends on the permission `token:read`, not on the environment (FR-006): a
+    // line that is left in a local `.env` is one more variable the contract does not know.
+    it.each(['true', 'false', 'maybe', ''])('ignores the value %j', (value) => {
       const result = parseEnv({ ...validSource, VITE_FEATURE_POSTMAN_TOKEN: value }, development);
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.env.VITE_FEATURE_POSTMAN_TOKEN).toBe(expected);
+        expect('VITE_FEATURE_POSTMAN_TOKEN' in result.env).toBe(false);
       }
-    });
-
-    it.each(['TRUE', '1', 'yes', 'on'])('rejects %j', (value) => {
-      expect(errorsFor({ ...validSource, VITE_FEATURE_POSTMAN_TOKEN: value })).toEqual([
-        `VITE_FEATURE_POSTMAN_TOKEN: ${messages.config.rules.flag}`,
-      ]);
     });
   });
 
@@ -214,15 +204,13 @@ describe('parseEnv', () => {
       ...validSource,
       VITE_AUTH0_DOMAIN: 'https://x.auth0.com',
       VITE_AUTH0_CLIENT_ID: '',
-      VITE_FEATURE_POSTMAN_TOKEN: 'maybe',
     });
 
-    expect(errors).toHaveLength(3);
+    expect(errors).toHaveLength(2);
     expect(errors).toEqual(
       expect.arrayContaining([
         `VITE_AUTH0_DOMAIN: ${messages.config.rules.domain}`,
         `VITE_AUTH0_CLIENT_ID: ${messages.config.rules.nonEmpty}`,
-        `VITE_FEATURE_POSTMAN_TOKEN: ${messages.config.rules.flag}`,
       ]),
     );
   });

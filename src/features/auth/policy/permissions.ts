@@ -1,5 +1,8 @@
-/** Resources that have a section in the backoffice (clarification 3). */
-export const SECTION_RESOURCES = ['users', 'subscriptions', 'tenants'] as const;
+/**
+ * Resources that have an entry in the navigation: the sections of the product (clarification 3) and
+ * the Token tool of feature 005, whose only permission is `token:read`.
+ */
+export const SECTION_RESOURCES = ['users', 'subscriptions', 'tenants', 'token'] as const;
 
 /**
  * Every resource whose permissions are checked. The roles are only read, to offer assigning them to
@@ -33,7 +36,11 @@ export function can(
   return action === 'read' || access.permissions.has(`${resource}:${action}`);
 }
 
-/** Whether at least one known section can be seen, whatever sections are implemented (FR-018). */
+/**
+ * Whether at least one known section or tool can be seen, whatever sections are implemented
+ * (FR-018): someone whose only permission is `token:read` has something to use, so they are not
+ * told that their role has no permissions.
+ */
 export function hasAnySectionPermission(access: PermissionHolder): boolean {
   return SECTION_RESOURCES.some((resource) => access.permissions.has(`${resource}:read`));
 }

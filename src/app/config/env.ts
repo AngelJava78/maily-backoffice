@@ -48,13 +48,6 @@ function createEnvSchema(isProduction: boolean) {
     .string({ error: rules.apiUrl })
     .refine((value) => isApiBase(value, isProduction), { error: rules.apiUrl });
   const optionalApiBase = z.preprocess(emptyToUndefined, apiBase.optional());
-  const flag = z.preprocess(
-    emptyToUndefined,
-    z
-      .enum(['true', 'false'], { error: rules.flag })
-      .transform((value) => value === 'true')
-      .default(false),
-  );
 
   return z.object({
     VITE_AUTH0_DOMAIN: z
@@ -66,7 +59,6 @@ function createEnvSchema(isProduction: boolean) {
     VITE_USERS_API_URL: apiBase,
     VITE_CLINICS_API_URL: optionalApiBase,
     VITE_SUBSCRIPTIONS_API_URL: optionalApiBase,
-    VITE_FEATURE_POSTMAN_TOKEN: flag,
   });
 }
 

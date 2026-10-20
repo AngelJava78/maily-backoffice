@@ -14,7 +14,6 @@ Toda la configuración viaja en variables `VITE_*` (públicas: nunca contienen s
 | `VITE_USERS_API_URL` | Sí | `/proxy/users` | Ruta que empieza con `/` o URL `http(s)`; en builds de producción una URL absoluta DEBE ser `https`. Sin `/` final. |
 | `VITE_CLINICS_API_URL` | No (feature 004) | `http://127.0.0.1:8001` | Igual que la anterior. |
 | `VITE_SUBSCRIPTIONS_API_URL` | No (feature 003) | `http://127.0.0.1:8002` | Igual que la anterior. |
-| `VITE_FEATURE_POSTMAN_TOKEN` | No | `false` | `true` o `false`; por defecto `false` (feature 005). |
 
 Variable solo de desarrollo, leída por `vite.config.ts` (sin prefijo `VITE_`, no llega al navegador):
 
@@ -31,7 +30,6 @@ VITE_AUTH0_AUDIENCE=https://api.mailysoft.example
 VITE_USERS_API_URL=/proxy/users
 # VITE_CLINICS_API_URL=
 # VITE_SUBSCRIPTIONS_API_URL=
-VITE_FEATURE_POSTMAN_TOKEN=false
 # Solo desarrollo (vite.config.ts):
 # USERS_API_PROXY_TARGET=http://127.0.0.1:8000
 ```

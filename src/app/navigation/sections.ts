@@ -17,6 +17,9 @@ export interface SectionDefinition {
  */
 export const sections: readonly SectionDefinition[] = [
   { id: 'users', path: '/users', labelKey: 'users', resource: 'users' },
+  // The Token tool of feature 005 (specs/005-postman-token-tool/contracts/app-routes.md): listed
+  // for whoever has `token:read`, and for nobody else.
+  { id: 'token', path: '/tools/postman-token', labelKey: 'token', resource: 'token' },
 ];
 
 /** The sections whose resource the person can read, in the order of the registry. */
