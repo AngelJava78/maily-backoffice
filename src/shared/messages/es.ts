@@ -1,4 +1,9 @@
 /** Single module of user-facing texts (constitution VI). Spanish only; no text lives in components. */
+
+/** How a monthly price is written: the form tells it, and so does a refusal of that field. */
+const PRICE_RULE =
+  'Escribe un importe de 0 a 99,999,999.99 solo con números y hasta dos decimales.';
+
 export const messages = {
   common: {
     appName: 'MailySoft Backoffice',
@@ -7,6 +12,7 @@ export const messages = {
     loading: 'Cargando',
     continue: 'Continuar',
     cancel: 'Cancelar',
+    save: 'Guardar',
     account: (email: string) => `Cuenta: ${email}`,
   },
   access: {
@@ -50,7 +56,7 @@ export const messages = {
     profile: 'Perfil',
     sections: {
       users: 'Usuarios',
-      subscriptionTypes: 'Tipos de suscripción',
+      subscriptions: 'Suscripciones',
       clinics: 'Clínicas',
       token: 'Token',
     },
@@ -216,7 +222,6 @@ export const messages = {
         'Debe cumplir los requisitos de seguridad de la cuenta de acceso. No se vuelve a mostrar.',
       showPassword: 'Mostrar contraseña',
       hidePassword: 'Ocultar contraseña',
-      save: 'Guardar',
       rolesEmpty: 'No hay roles disponibles: no se puede crear un usuario sin roles.',
       rolesLoadError: {
         title: 'No se pudieron cargar los roles',
@@ -272,6 +277,148 @@ export const messages = {
         'El sistema de cuentas de acceso rechazó la creación del usuario. No se creó nada.',
       identityRejected:
         'El sistema de cuentas de acceso rechazó la operación. No se hizo ningún cambio.',
+      retryable: 'No pudimos completar la acción. Inténtalo de nuevo.',
+    },
+  },
+  // The subscriptions section of feature 003 (contracts/app-routes.md).
+  subscriptions: {
+    title: 'Suscripciones',
+    // By the id of the status, never by its name (FR-016).
+    status: { active: 'Activa', inactive: 'Inactiva', blocked: 'Bloqueada' },
+    price: { perMonth: (amount: string) => `${amount}/mes` },
+    clinics: { notAvailable: 'No disponible' },
+    list: {
+      createAction: 'Nueva suscripción',
+      gridLabel: 'Suscripciones',
+      columns: {
+        name: 'Nombre',
+        monthlyPrice: 'Precio mensual',
+        status: 'Estatus',
+        clinics: 'Clínicas',
+      },
+      empty: 'No hay suscripciones registradas',
+      pageStatus: (from: number, to: number, total: number) =>
+        `Mostrando ${from} a ${to} de ${total} suscripciones.`,
+      loadError: {
+        title: 'No se pudieron cargar las suscripciones',
+        message: 'Ocurrió un problema al consultar las suscripciones. Puedes reintentar.',
+      },
+    },
+    detail: {
+      title: 'Detalle de la suscripción',
+      backToList: 'Volver al listado',
+      fields: {
+        name: 'Nombre',
+        description: 'Descripción',
+        monthlyPrice: 'Precio mensual',
+        status: 'Estatus',
+        clinics: 'Clínicas',
+        features: 'Lo que incluye',
+        createdAt: 'Fecha de creación',
+        updatedAt: 'Última modificación',
+      },
+      emptyValue: '—',
+      noFeatures: 'Sin elementos',
+      loadError: {
+        title: 'No se pudo cargar la suscripción',
+        message: 'Ocurrió un problema al consultar la suscripción. Puedes reintentar.',
+      },
+      refreshError:
+        'No se pudo actualizar la información de la suscripción. Se muestra la última que se tenía.',
+      notFound: {
+        title: 'Suscripción no encontrada',
+        message: 'La suscripción no existe o ya no está disponible.',
+        backToList: 'Volver al listado',
+      },
+    },
+    form: {
+      createTitle: 'Nueva suscripción',
+      fields: {
+        name: 'Nombre',
+        description: 'Descripción',
+        monthlyPrice: 'Precio mensual',
+        features: 'Lo que incluye',
+      },
+      descriptionHelper: 'Opcional. Hasta 500 caracteres.',
+      priceHelper: 'Solo números y punto decimal, por ejemplo 4500 o 4500.50.',
+      pricePrefix: '$',
+      priceSuffix: '/mes',
+      featuresHelper: 'Se muestra en este orden. Hasta 20 elementos.',
+      featureLabel: (n: number) => `Elemento ${n}`,
+      removeFeature: (n: number) => `Quitar el elemento ${n}`,
+      addFeature: 'Agregar elemento',
+      featuresCount: (n: number) => `${n} de 20`,
+      featuresMax: 'Se alcanzó el máximo de 20 elementos.',
+    },
+    notices: {
+      created: 'Suscripción creada.',
+      deleted: 'Suscripción eliminada.',
+    },
+    actions: {
+      edit: 'Editar',
+      changeStatus: 'Cambiar estatus',
+      delete: 'Eliminar',
+    },
+    deleteBlocked: (clinics: number) =>
+      clinics === 1 ? 'Tiene 1 clínica asignada' : `Tiene ${clinics} clínicas asignadas`,
+    // The verbs of the menu, by the id of the status they take the subscription to.
+    statusTargets: { activate: 'Activar', inactivate: 'Inactivar', block: 'Bloquear' },
+    dialogs: {
+      inactivate: {
+        title: 'Inactivar suscripción',
+        body: (name: string) =>
+          `La suscripción ${name} pasará a Inactiva. Las clínicas que ya la tienen la conservan.`,
+        confirm: 'Inactivar',
+      },
+      block: {
+        title: 'Bloquear suscripción',
+        body: (name: string) =>
+          `La suscripción ${name} pasará a Bloqueada. Las clínicas que ya la tienen la conservan.`,
+        confirm: 'Bloquear',
+      },
+      delete: {
+        title: 'Eliminar suscripción',
+        body: (name: string) =>
+          `La suscripción ${name} dejará de aparecer y su nombre quedará libre. Esta acción no se puede deshacer.`,
+        confirm: 'Eliminar',
+      },
+    },
+    statusNotices: {
+      activated: 'Suscripción activada.',
+      inactivated: 'Suscripción inactivada.',
+      blocked: 'Suscripción bloqueada.',
+    },
+    edit: {
+      title: 'Editar suscripción',
+      saved: 'Suscripción guardada.',
+      noChanges: 'No había cambios que guardar.',
+    },
+    validation: {
+      nameRequired: 'El nombre es obligatorio.',
+      nameTooLong: 'El nombre no puede superar los 100 caracteres.',
+      descriptionTooLong: 'La descripción no puede superar los 500 caracteres.',
+      priceRequired: 'El precio mensual es obligatorio.',
+      priceInvalid: PRICE_RULE,
+      featureRequired: 'Escribe el texto o quita el elemento.',
+      featureTooLong: 'Cada elemento admite hasta 150 caracteres.',
+      featuresTooMany: 'Lo que incluye admite hasta 20 elementos.',
+    },
+    // Own texts, chosen by the code of the refusal: the text of the API is never shown (FR-010).
+    errors: {
+      nameInUse: 'Ya existe una suscripción con este nombre.',
+      formInvalid: 'Hay datos no válidos en el formulario.',
+      fields: {
+        name: 'Revisa el nombre: debe tener de 1 a 100 caracteres.',
+        description: 'Revisa la descripción: admite hasta 500 caracteres.',
+        monthlyPrice: PRICE_RULE,
+        features: 'Revisa lo que incluye: hasta 20 elementos de 1 a 150 caracteres.',
+      },
+      notFound: 'La suscripción ya no existe.',
+      statusUnchanged: 'La suscripción ya tenía ese estatus. Se actualizó la pantalla.',
+      hasClinics:
+        'No se puede eliminar: la suscripción tiene clínicas asignadas. Se actualizó la pantalla.',
+      clinicsUnavailable:
+        'No se pudo comprobar si la suscripción tiene clínicas asignadas, así que no se eliminó. Inténtalo de nuevo.',
       retryable: 'No pudimos completar la acción. Inténtalo de nuevo.',
     },
   },
@@ -353,6 +500,10 @@ export const messages = {
     userCreate: 'Crear usuario',
     userDetail: 'Detalle del usuario',
     userEdit: 'Editar usuario',
+    subscriptions: 'Suscripciones',
+    subscriptionCreate: 'Nueva suscripción',
+    subscriptionDetail: 'Detalle de la suscripción',
+    subscriptionEdit: 'Editar suscripción',
     token: 'Token',
   },
 } as const;

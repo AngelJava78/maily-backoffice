@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
-// Lets the list hand its "create a user" action to the overlay that the grid shows without rows.
+// Lets a list hand its "create" action (a user, a subscription) to the overlay that the grid shows
+// without rows.
 declare module '@mui/x-data-grid' {
   interface NoRowsOverlayPropsOverrides {
     action?: ReactNode;

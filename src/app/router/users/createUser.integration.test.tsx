@@ -25,7 +25,7 @@ const email = () => screen.getByLabelText(new RegExp(`^${labels.email}`));
 const password = () => screen.getByLabelText(new RegExp(`^${labels.password}`));
 const firstName = () => screen.getByLabelText(new RegExp(`^${labels.firstName}`));
 const paternal = () => screen.getByLabelText(new RegExp(`^${labels.paternalLastName}`));
-const save = () => screen.getByRole('button', { name: new RegExp(`^${messages.users.form.save}`) });
+const save = () => screen.getByRole('button', { name: new RegExp(`^${messages.common.save}`) });
 const rolesBox = () => screen.getByRole('combobox', { name: /roles/i });
 
 type App = ReturnType<typeof renderApp>;

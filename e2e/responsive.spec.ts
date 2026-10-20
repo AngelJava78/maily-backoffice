@@ -114,6 +114,57 @@ for (const size of SIZES) {
       await expectHeaderShortcuts(page);
     });
 
+    test('the subscriptions list, a detail with its menu and dialog, and both forms (A1) reflow (quickstart V25)', async ({
+      page,
+    }) => {
+      test.skip(!hasAccounts('A1'), 'Needs E2E_AUTH0_USER_A1 and E2E_AUTH0_PASSWORD_A1');
+      await page.goto('/subscriptions');
+      await signIn(page, account('A1'));
+
+      const text = messages.subscriptions;
+      const heading = (name: string) => page.getByRole('heading', { level: 1, name });
+      // The table scrolls inside its own box: the page itself does not.
+      await expect(heading(text.title)).toBeVisible();
+      await expectNoHorizontalScroll(page);
+      await expectHeaderShortcuts(page);
+
+      await page.getByRole('grid', { name: text.list.gridLabel }).getByRole('link').first().click();
+      await expect(heading(text.detail.title)).toBeVisible();
+      await expectNoHorizontalScroll(page);
+      await expectHeaderShortcuts(page);
+      const detailPath = new URL(page.url()).pathname;
+
+      // The menu of statuses and the dialog that it opens fit in the window.
+      await page.getByRole('button', { name: text.actions.changeStatus }).click();
+      const menu = page.getByRole('menu');
+      await expect(menu).toBeVisible();
+      await expectNoHorizontalScroll(page);
+      await page.keyboard.press('Escape');
+      await expect(menu).toBeHidden();
+      await page.getByRole('button', { name: text.actions.delete }).click();
+      const dialog = page.getByRole('dialog', { name: text.dialogs.delete.title });
+      await expect(dialog).toBeVisible();
+      const box = await dialog.boundingBox();
+      expect(box === null ? 0 : box.width).toBeLessThanOrEqual(size.width);
+      await dialog.getByRole('button', { name: messages.common.cancel }).click();
+      await expect(dialog).toBeHidden();
+
+      await page.getByRole('link', { name: text.actions.edit }).click();
+      await expect(heading(text.edit.title)).toBeVisible();
+      await expect(page).toHaveURL(new RegExp(`${detailPath}/edit$`));
+      await expectNoHorizontalScroll(page);
+      await expectHeaderShortcuts(page);
+
+      // Same-page navigation keeps the tokens, which live in memory.
+      await page.evaluate(() => {
+        window.history.pushState({}, '', '/subscriptions/new');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      });
+      await expect(heading(text.form.createTitle)).toBeVisible();
+      await expectNoHorizontalScroll(page);
+      await expectHeaderShortcuts(page);
+    });
+
     test('the Token tool (A1) reflows, empty and with a long token on view, with the shortcuts in the header', async ({
       page,
     }) => {

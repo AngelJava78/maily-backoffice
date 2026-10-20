@@ -1,3 +1,30 @@
+<!--
+Sync Impact Report (borrador para revisar la enmienda; se elimina antes del commit)
+
+- Versión: 1.2.0 → 1.2.1 (PATCH: cambio de redacción, sin cambio semántico).
+- Motivo: el recurso se llama «suscripciones» en el backoffice (la sección «Suscripciones» de la
+  feature 003) y en su API (`/api/v1/subscriptions`); «tipos de suscripción» sonaba menos natural.
+  Es el mismo recurso, con los mismos permisos `subscriptions:*`.
+- Principios modificados: III. Estado de Servidor Separado del Estado de Cliente (solo la mención
+  del recurso). Ningún principio cambia de título.
+- Secciones modificadas: Alcance, Stack y Restricciones Técnicas → «Alcance del producto» (la lista
+  de recursos y el ejemplo de URL de desarrollo).
+- Secciones añadidas: ninguna. Secciones eliminadas: ninguna.
+- Migración: no aplica; la enmienda no rompe compatibilidad.
+- Plantillas: ✅ `.specify/templates/` (plan, spec, tasks, checklist y constitution) no usan el
+  término; sin cambios.
+- Artefactos dependientes:
+  - ✅ specs 001, 002, 004 y 005, README y texto de navegación: ya dicen «suscripciones» o
+    «Suscripciones» (alineados el 2026-10-20).
+  - ✅ `specs/003-manage-subscription-types/spec.md` (Key Entities y los supuestos «Terminología»,
+    «Desviación de la constitución» y «Restricciones», que ahora cita la 1.2.1) y su
+    `checklists/requirements.md`: alineados el 2026-10-20. La cita literal del Input se conserva.
+- Fuera de esta enmienda: los ejemplos de ruta del backend conservan `/suscriptions` (principio IV
+  y ejemplos de desarrollo local), que no es la ruta real (`/api/v1/subscriptions`); corregirlos
+  sería otro PATCH.
+- TODOs diferidos: ninguno.
+-->
+
 # Constitución de MailySoft Backoffice
 
 Convención normativa (RFC 2119): DEBE = MUST, NO DEBE = MUST NOT, DEBERÍA = SHOULD, PUEDE = MAY.
@@ -50,7 +77,7 @@ frontera convierte el desvío en un error explícito y no en un fallo silencioso
 
 ### III. Estado de Servidor Separado del Estado de Cliente
 
-- El estado de servidor (usuarios, clínicas, tipos de suscripción, usuario actual y su role) DEBE
+- El estado de servidor (usuarios, clínicas, suscripciones, usuario actual y su role) DEBE
   gestionarse con TanStack Query. NO DEBE copiarse a `useState`, Context ni stores globales.
 - Las query keys DEBEN producirse con factorías por feature (p. ej. `userKeys.list(params)`). Toda
   mutación DEBE invalidar o actualizar explícitamente las queries afectadas; las actualizaciones
@@ -226,7 +253,7 @@ probar comportamiento y no implementación las mantiene útiles ante cambios de 
 ### Alcance del producto
 
 - MailySoft Backoffice es una SPA interna cuyo único origen de datos son las APIs REST de MailySoft.
-  Administra (1) usuarios y su role de sistema, (2) tipos de suscripción y (3) clínicas, donde crear
+  Administra (1) usuarios y su role de sistema, (2) suscripciones y (3) clínicas, donde crear
   una clínica asigna un owner que pasa a ser su administrador. Incluye login, logout, perfil del
   usuario y la herramienta temporal de token para Postman.
 - "Administrar" significa Listar, Mostrar, Crear, Modificar y Eliminar.
@@ -234,7 +261,7 @@ probar comportamiento y no implementación las mantiene útiles ante cambios de 
   backends viven fuera y solo se simulan con MSW en las pruebas.
 - Ejemplos de desarrollo local (no normativos; siempre configurables por entorno):
   usuarios `http://127.0.0.1:8000/api/v1/users`, clínicas `http://127.0.0.1:8001/api/v1/clinics`,
-  tipos de suscripción `http://127.0.0.1:8002/api/v1/suscriptions`.
+  suscripciones `http://127.0.0.1:8002/api/v1/suscriptions`.
 
 ### Stack obligatorio
 
@@ -312,4 +339,4 @@ probar comportamiento y no implementación las mantiene útiles ante cambios de 
   trimestre o tras cada release mayor.
 - La guía operativa de desarrollo vive en `README.md` y en `specs/<feature>/quickstart.md`.
 
-**Version**: 1.2.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-19
+**Version**: 1.2.1 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-20

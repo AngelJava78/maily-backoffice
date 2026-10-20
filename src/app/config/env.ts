@@ -58,7 +58,8 @@ function createEnvSchema(isProduction: boolean) {
     VITE_AUTH0_AUDIENCE: nonEmpty(rules.audience),
     VITE_USERS_API_URL: apiBase,
     VITE_CLINICS_API_URL: optionalApiBase,
-    VITE_SUBSCRIPTIONS_API_URL: optionalApiBase,
+    // Required since feature 003: the subscriptions section cannot work without its API.
+    VITE_SUBSCRIPTIONS_API_URL: apiBase,
   });
 }
 

@@ -2,10 +2,11 @@ import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/r
 
 import type { HttpClient } from '@/shared/api/httpClient';
 import { useHttpClients } from '@/shared/api/httpClientsContext';
+import { atMost, REFRESH_WAIT_MS } from '@/shared/lib/atMost';
 
 import { blockUser, deleteUser, reactivateUser, unblockUser } from '../api/usersApi';
 import type { PlatformUser } from '../schemas/user';
-import { atMost, isUserOutOfDate, REFRESH_WAIT_MS, refreshUser } from './refreshUser';
+import { isUserOutOfDate, refreshUser } from './refreshUser';
 import { userKeys } from './userKeys';
 
 /** The changes of status of a user. */

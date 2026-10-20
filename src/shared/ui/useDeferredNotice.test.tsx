@@ -1,5 +1,5 @@
-import { act, renderHook, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { act, render, renderHook, screen } from '@testing-library/react';
+import { useEffect, type ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
 
 import { NotificationsProvider } from './Notifications';
@@ -47,5 +47,25 @@ describe('useDeferredNotice', () => {
     });
 
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('tells what it kept when the component that kept it goes away, as with a dialog that is gone', async () => {
+    function Owner() {
+      const { defer } = useDeferredNotice();
+      useEffect(() => {
+        defer({ severity: 'warning', message: 'La suscripción ya no existe.' });
+      }, [defer]);
+      return <p>Con diálogo</p>;
+    }
+    const { rerender } = render(
+      <NotificationsProvider>
+        <Owner />
+      </NotificationsProvider>,
+    );
+    expect(screen.queryByText('La suscripción ya no existe.')).not.toBeInTheDocument();
+
+    rerender(<NotificationsProvider>{null}</NotificationsProvider>);
+
+    expect(await screen.findByText('La suscripción ya no existe.')).toBeInTheDocument();
   });
 });

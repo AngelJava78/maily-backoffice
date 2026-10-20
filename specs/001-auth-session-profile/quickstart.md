@@ -2,7 +2,7 @@
 
 **Feature**: `001-auth-session-profile` | **Fecha**: 2026-10-17 | **Spec**: [spec.md](spec.md) | **Plan**: [plan.md](plan.md)
 
-Muestra cómo comprobar de punta a punta que la feature cumple la spec. Las secciones reales (Usuarios, Tipos de suscripción, Clínicas) llegan con las features 002 a 004: hasta entonces, la visibilidad de secciones por permiso (SC-007) se verifica con pruebas automatizadas que inyectan secciones de ejemplo.
+Muestra cómo comprobar de punta a punta que la feature cumple la spec. Las secciones reales (Usuarios, Suscripciones, Clínicas) llegan con las features 002 a 004: hasta entonces, la visibilidad de secciones por permiso (SC-007) se verifica con pruebas automatizadas que inyectan secciones de ejemplo.
 
 ## Requisitos previos
 

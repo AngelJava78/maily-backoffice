@@ -11,7 +11,7 @@
 | `/callback` | Pública | Cierre del inicio de sesión | Indicador de progreso mientras el SDK procesa el código; ante un error del proveedor redirige a `/access` con el aviso. No muestra contenido protegido. |
 | `/` | Protegida | Página principal | Nombre del operador, aviso de "sin permisos asignados" si procede, secciones disponibles. |
 | `/profile` | Protegida | Perfil (solo lectura) | Nombre, apellido paterno, apellido materno (vacío si no tiene), correo del usuario de MailySoft, iniciales y roles activos (sin imagen: la plataforma no la guarda). |
-| `/users/*`, `/subscription-types/*`, `/clinics/*` | Protegida + permiso | Secciones de las features 002 a 004 | Cada una se registra en `app/navigation` al implementarse y se envuelve en `RequirePermission` (`read` del recurso). |
+| `/users/*`, `/subscriptions/*`, `/clinics/*` | Protegida + permiso | Secciones de las features 002 a 004 | Cada una se registra en `app/navigation` al implementarse y se envuelve en `RequirePermission` (`read` del recurso). |
 | `/tools/postman-token` | Protegida + permiso `token:read` (feature 005) | Herramienta de token | Siempre registrada; la decide solo el permiso (aclaración 4, reemplazada por la 005). |
 | `*` | Protegida | Página no encontrada | Sin sesión se redirige antes a `/access` (FR-001); con acceso, enlace a `/`. |
 

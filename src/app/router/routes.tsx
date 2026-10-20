@@ -9,6 +9,10 @@ import { PublicLayout } from '../layouts/PublicLayout';
 import { NotFoundPage } from '../pages/LazyNotFoundPage';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
+import { SubscriptionCreateRoute } from './subscriptions/SubscriptionCreateRoute';
+import { SubscriptionDetailRoute } from './subscriptions/SubscriptionDetailRoute';
+import { SubscriptionEditRoute } from './subscriptions/SubscriptionEditRoute';
+import { SubscriptionsListRoute } from './subscriptions/SubscriptionsListRoute';
 import { UserCreateRoute } from './users/UserCreateRoute';
 import { UserDetailRoute } from './users/UserDetailRoute';
 import { UserEditRoute } from './users/UserEditRoute';
@@ -110,6 +114,47 @@ export const appRoutes: RouteObject[] = [
                     path: ':userId/edit',
                     Component: UserEditRoute,
                     handle: { titleKey: 'userEdit', userIdParam: 'userId' },
+                    ErrorBoundary: RouteErrorBoundary,
+                  },
+                ],
+              },
+              // The subscriptions section: seeing it needs `subscriptions:read`, and each screen asks
+              // for more when it does more (feature 003, contracts/app-routes.md).
+              {
+                path: '/subscriptions',
+                element: (
+                  <RequirePermission resource="subscriptions">
+                    <Outlet />
+                  </RequirePermission>
+                ),
+                ErrorBoundary: RouteErrorBoundary,
+                children: [
+                  {
+                    index: true,
+                    Component: SubscriptionsListRoute,
+                    handle: { titleKey: 'subscriptions' },
+                    ErrorBoundary: RouteErrorBoundary,
+                  },
+                  // Before `:subscriptionId`, which would take "new" for an id.
+                  {
+                    path: 'new',
+                    Component: SubscriptionCreateRoute,
+                    handle: { titleKey: 'subscriptionCreate' },
+                    ErrorBoundary: RouteErrorBoundary,
+                  },
+                  {
+                    path: ':subscriptionId',
+                    Component: SubscriptionDetailRoute,
+                    handle: {
+                      titleKey: 'subscriptionDetail',
+                      subscriptionIdParam: 'subscriptionId',
+                    },
+                    ErrorBoundary: RouteErrorBoundary,
+                  },
+                  {
+                    path: ':subscriptionId/edit',
+                    Component: SubscriptionEditRoute,
+                    handle: { titleKey: 'subscriptionEdit', subscriptionIdParam: 'subscriptionId' },
                     ErrorBoundary: RouteErrorBoundary,
                   },
                 ],

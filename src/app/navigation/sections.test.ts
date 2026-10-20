@@ -21,11 +21,7 @@ describe('getVisibleSections', () => {
       sampleSections,
     );
 
-    expect(visible.map((section) => section.id)).toEqual([
-      'users',
-      'subscription-types',
-      'clinics',
-    ]);
+    expect(visible.map((section) => section.id)).toEqual(['users', 'subscriptions', 'clinics']);
   });
 
   it('keeps the order of the registry', () => {
@@ -36,11 +32,7 @@ describe('getVisibleSections', () => {
       reversed,
     );
 
-    expect(visible.map((section) => section.id)).toEqual([
-      'clinics',
-      'subscription-types',
-      'users',
-    ]);
+    expect(visible.map((section) => section.id)).toEqual(['clinics', 'subscriptions', 'users']);
   });
 
   it('returns nothing to someone without permissions', () => {
@@ -52,17 +44,35 @@ describe('getVisibleSections', () => {
   });
 
   // The registry lists only the sections that exist (FR-009): each feature adds its own.
-  it('registers the users section, the first one that exists (feature 002), and then the Token tool (feature 005)', () => {
+  it('registers the users section (feature 002), the subscriptions section (feature 003) and then the Token tool (feature 005)', () => {
     expect(sections).toEqual([
       { id: 'users', path: '/users', labelKey: 'users', resource: 'users' },
+      {
+        id: 'subscriptions',
+        path: '/subscriptions',
+        labelKey: 'subscriptions',
+        resource: 'subscriptions',
+      },
       { id: 'token', path: '/tools/postman-token', labelKey: 'token', resource: 'token' },
     ]);
   });
 
-  it('shows the registered section only to someone who can read the users', () => {
+  it('shows the users section only to someone who can read the users', () => {
     expect(
       getVisibleSections(accessWith('users:read'), sections).map((section) => section.id),
     ).toEqual(['users']);
     expect(getVisibleSections(accessWith('users:write', 'tenants:read'), sections)).toEqual([]);
+  });
+
+  it('shows the subscriptions section only to someone who can read the subscriptions', () => {
+    expect(
+      getVisibleSections(accessWith('subscriptions:read'), sections).map((section) => section.id),
+    ).toEqual(['subscriptions']);
+    expect(
+      getVisibleSections(
+        accessWith('subscriptions:write', 'subscriptions:update', 'subscriptions:delete'),
+        sections,
+      ),
+    ).toEqual([]);
   });
 });

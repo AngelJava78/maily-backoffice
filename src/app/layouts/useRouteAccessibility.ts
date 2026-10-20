@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useLocation, useMatches } from 'react-router';
 import { z } from 'zod';
 
+import { parseSubscriptionId } from '@/features/subscriptions';
 import { parseUserId } from '@/features/users';
 import { messages } from '@/shared/messages/es';
 import { useDocumentTitle } from '@/shared/ui/useDocumentTitle';
@@ -12,6 +13,8 @@ const routeHandleSchema = z.object({
    * the page that shows is the one of an address that does not exist, so it is titled as that.
    */
   userIdParam: z.string().optional(),
+  /** The same, for the id of a subscription, such as `:subscriptionId`. */
+  subscriptionIdParam: z.string().optional(),
   titleKey: z.enum([
     'access',
     'home',
@@ -21,6 +24,10 @@ const routeHandleSchema = z.object({
     'userCreate',
     'userDetail',
     'userEdit',
+    'subscriptions',
+    'subscriptionCreate',
+    'subscriptionDetail',
+    'subscriptionEdit',
     'token',
   ]),
 });
@@ -32,9 +39,11 @@ function findTitleKey(matches: ReturnType<typeof useMatches>): TitleKey | undefi
   for (const match of [...matches].reverse()) {
     const handle = routeHandleSchema.safeParse(match.handle);
     if (handle.success) {
-      const { userIdParam, titleKey } = handle.data;
+      const { userIdParam, subscriptionIdParam, titleKey } = handle.data;
       const isNotAnId =
-        userIdParam !== undefined && parseUserId(match.params[userIdParam]) === null;
+        (userIdParam !== undefined && parseUserId(match.params[userIdParam]) === null) ||
+        (subscriptionIdParam !== undefined &&
+          parseSubscriptionId(match.params[subscriptionIdParam]) === null);
       return isNotAnId ? 'notFound' : titleKey;
     }
   }

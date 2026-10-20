@@ -29,6 +29,7 @@ import { HttpClientsContext } from '@/shared/api/httpClientsContext';
 import { NotificationsProvider } from '@/shared/ui/Notifications';
 
 import { auth0User, createAuth0Double, type Auth0Double, type Auth0State } from './auth0Double';
+import { SUBSCRIPTIONS_API_BASE_URL } from './handlers/subscriptionsCatalog/baseUrl';
 import { USERS_API_BASE_URL } from './handlers/usersService';
 
 export interface HarnessOptions {
@@ -85,12 +86,13 @@ function createHarness(options: HarnessOptions) {
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     });
   const onSessionExpired = vi.fn<() => void>(options.onSessionExpired);
+  const getAccessToken: GetAccessToken =
+    options.getAccessToken ?? (() => Promise.resolve(`test-token:${store.get().user?.sub ?? ''}`));
   const clients = {
-    users: createHttpClient({
-      baseUrl: USERS_API_BASE_URL,
-      getAccessToken:
-        options.getAccessToken ??
-        (() => Promise.resolve(`test-token:${store.get().user?.sub ?? ''}`)),
+    users: createHttpClient({ baseUrl: USERS_API_BASE_URL, getAccessToken, onSessionExpired }),
+    subscriptions: createHttpClient({
+      baseUrl: SUBSCRIPTIONS_API_BASE_URL,
+      getAccessToken,
       onSessionExpired,
     }),
   };

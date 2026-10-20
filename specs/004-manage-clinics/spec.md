@@ -150,5 +150,5 @@ Un operador elimina una clínica que ya no debe existir en MailySoft.
 - Localizar a un usuario concreto para elegirlo como owner puede requerir que la plataforma de usuarios ofrezca búsqueda por nombre o correo; si no la ofrece todavía, esto debe resolverse en la planeación.
 - Las operaciones de esta sección dependen de los permisos del operador sobre clínicas, según la feature 001-auth-session-profile: consultar requiere `tenants:read`, crear `tenants:write`, modificar `tenants:update` y eliminar `tenants:delete`.
 - La baja de una clínica la ejecuta la plataforma (puede ser lógica o física); el backoffice la presenta como eliminación y no ofrece deshacerla.
-- La relación entre clínicas y tipos de suscripción (si existe) no forma parte de esta feature.
+- La relación entre clínicas y suscripciones (si existe) no forma parte de esta feature.
 - Fuera de alcance: búsqueda, filtros y ordenamiento del listado de clínicas, exportación, acciones masivas, cambio de owner, historial de cambios y administración de otros administradores de la clínica.

@@ -23,7 +23,7 @@ beforeAll(async () => {
 
 const text = messages.users;
 const firstName = () => screen.findByLabelText(new RegExp(`^${text.form.fields.firstName}`));
-const save = () => screen.getByRole('button', { name: new RegExp(`^${text.form.save}`) });
+const save = () => screen.getByRole('button', { name: new RegExp(`^${messages.common.save}`) });
 
 type App = ReturnType<typeof renderApp>;
 

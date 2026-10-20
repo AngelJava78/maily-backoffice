@@ -13,6 +13,7 @@ import { appRoutes } from '@/app/router/routes';
 import { theme } from '@/app/theme/theme';
 import { NotificationsProvider } from '@/shared/ui/Notifications';
 
+import { SUBSCRIPTIONS_API_BASE_URL } from './handlers/subscriptionsCatalog/baseUrl';
 import { USERS_API_BASE_URL } from './handlers/usersService';
 
 const env: AppEnv = {
@@ -21,7 +22,7 @@ const env: AppEnv = {
   VITE_AUTH0_AUDIENCE: 'https://mailysoft-apis',
   VITE_USERS_API_URL: USERS_API_BASE_URL,
   VITE_CLINICS_API_URL: undefined,
-  VITE_SUBSCRIPTIONS_API_URL: undefined,
+  VITE_SUBSCRIPTIONS_API_URL: SUBSCRIPTIONS_API_BASE_URL,
 };
 
 export interface RenderAppOptions {

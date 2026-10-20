@@ -26,6 +26,32 @@ const RESTRICTED_GLOBALS = {
   fetch: 'Use the shared HTTP client in src/shared/api/httpClient.ts instead (constitution IV).',
 };
 
+/** Keeps a feature from importing `features/auth`, which reads that feature (except in its tests). */
+function forbidAuthImports(feature, reference) {
+  return {
+    files: [`src/features/${feature}/**/*.{ts,tsx}`],
+    ignores: ['**/*.test.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '@/features/auth',
+                '@/features/auth/*',
+                '**/features/auth',
+                '**/features/auth/*',
+              ],
+              message: `features/${feature} must not import features/auth: the application hands it what it needs (${reference}).`,
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
 /** Rules that forbid the given globals, also when reached through `window`, `globalThis` or `self`. */
 function restrictGlobals(names) {
   return {
@@ -203,27 +229,8 @@ export default defineConfig(
   // `auth` back: each would need the other to be loaded first, and the schemas that `auth` builds
   // from `users` at load time would fail in an order that depends on the import graph. What `users`
   // needs of the operator is handed to it by the application (research D2 of feature 002).
-  {
-    files: ['src/features/users/**/*.{ts,tsx}'],
-    ignores: ['**/*.test.{ts,tsx}'],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          patterns: [
-            {
-              group: [
-                '@/features/auth',
-                '@/features/auth/*',
-                '**/features/auth',
-                '**/features/auth/*',
-              ],
-              message:
-                'features/users must not import features/auth: the application hands it what it needs (research D2 of 002).',
-            },
-          ],
-        },
-      ],
-    },
-  },
+  forbidAuthImports('users', 'research D2 of 002'),
+  // The same for `subscriptions`: `auth` reads the type of its capabilities, and the capabilities
+  // reach the screens from the application (research D2 of feature 003).
+  forbidAuthImports('subscriptions', 'research D2 of 003'),
 );

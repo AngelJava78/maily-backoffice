@@ -11,6 +11,7 @@ import { useSessionNotice } from '@/features/auth/hooks/sessionContext';
 import { SessionExpiredError } from '@/shared/api/ApiError';
 import { useHttpClients } from '@/shared/api/httpClientsContext';
 import { createAuth0Double } from '@/test/auth0Double';
+import { SUBSCRIPTIONS_API_BASE_URL } from '@/test/handlers/subscriptionsCatalog/baseUrl';
 import { USERS_API_BASE_URL } from '@/test/handlers/usersService';
 import { server } from '@/test/server';
 
@@ -23,7 +24,7 @@ const env: AppEnv = {
   VITE_AUTH0_AUDIENCE: 'https://mailysoft-apis',
   VITE_USERS_API_URL: USERS_API_BASE_URL,
   VITE_CLINICS_API_URL: undefined,
-  VITE_SUBSCRIPTIONS_API_URL: undefined,
+  VITE_SUBSCRIPTIONS_API_URL: '/proxy/subscriptions',
 };
 
 const pingSchema = z.object({ ok: z.boolean() });
@@ -45,7 +46,8 @@ function setup() {
   const { result } = renderHook(() => ({ clients: useHttpClients(), notice: useSessionNotice() }), {
     wrapper: Wrapper,
   });
-  return { users: result.current.clients.users, result, mocks: auth0.mocks };
+  const { users, subscriptions } = result.current.clients;
+  return { users, subscriptions, result, mocks: auth0.mocks };
 }
 
 describe('HttpClientsProvider', () => {
@@ -63,6 +65,51 @@ describe('HttpClientsProvider', () => {
     await expect(users.get('/api/v1/ping', { schema: pingSchema })).resolves.toEqual({ ok: true });
 
     expect(authorization).toBe('Bearer the-access-token');
+  });
+
+  it('sends each request to the base of its own API, with the same access token (FR-022)', async () => {
+    const received: { readonly api: string; readonly authorization: string | null }[] = [];
+    server.use(
+      http.get(`${USERS_API_BASE_URL}/api/v1/ping`, ({ request }) => {
+        received.push({ api: 'users', authorization: request.headers.get('authorization') });
+        return HttpResponse.json({ ok: true });
+      }),
+      http.get(`${SUBSCRIPTIONS_API_BASE_URL}/api/v1/ping`, ({ request }) => {
+        received.push({
+          api: 'subscriptions',
+          authorization: request.headers.get('authorization'),
+        });
+        return HttpResponse.json({ ok: false });
+      }),
+    );
+    const { users, subscriptions, mocks } = setup();
+    mocks.getAccessTokenSilently.mockResolvedValue('the-access-token');
+
+    await expect(subscriptions.get('/api/v1/ping', { schema: pingSchema })).resolves.toEqual({
+      ok: false,
+    });
+    await expect(users.get('/api/v1/ping', { schema: pingSchema })).resolves.toEqual({ ok: true });
+
+    expect(received).toEqual([
+      { api: 'subscriptions', authorization: 'Bearer the-access-token' },
+      { api: 'users', authorization: 'Bearer the-access-token' },
+    ]);
+  });
+
+  it('closes the session from the subscriptions API too when Auth0 can no longer renew it', async () => {
+    const { subscriptions, mocks, result } = setup();
+    mocks.getAccessTokenSilently.mockRejectedValue(
+      new GenericError('login_required', 'Login required'),
+    );
+
+    await expect(subscriptions.get('/api/v1/ping', { schema: pingSchema })).rejects.toBeInstanceOf(
+      SessionExpiredError,
+    );
+
+    await vi.waitFor(() => {
+      expect(mocks.logout).toHaveBeenCalledExactlyOnceWith({ openUrl: false });
+    });
+    expect(result.current.notice).toBe('expired');
   });
 
   it('asks Auth0 for a fresh token, skipping its cache, after the service refuses one', async () => {

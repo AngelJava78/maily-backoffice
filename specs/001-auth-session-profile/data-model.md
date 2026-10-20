@@ -81,7 +81,7 @@ Estado de la guarda (derivado de la query): `resolving` (sin datos y cargando), 
 
 | Campo | Tipo | Notas |
 |---|---|---|
-| `id` | texto | `users`, `subscription-types` o `clinics`. |
+| `id` | texto | `users`, `subscriptions` o `clinics`. |
 | `path` | texto | Raíz de la sección. |
 | `labelKey` | clave de mensaje | Texto en español del módulo de mensajes. |
 | `resource` | texto | `users`, `subscriptions` o `tenants` (aclaración 3). |

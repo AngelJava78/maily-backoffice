@@ -62,7 +62,7 @@ describe('AppLayout', () => {
     ).toEqual([
       messages.nav.home,
       messages.nav.sections.users,
-      messages.nav.sections.subscriptionTypes,
+      messages.nav.sections.subscriptions,
       messages.nav.sections.clinics,
     ]);
   });

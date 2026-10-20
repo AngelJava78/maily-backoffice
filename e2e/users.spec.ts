@@ -157,7 +157,7 @@ test.describe
     await page.getByRole('option', { name: 'Marketing' }).click();
     await page.getByRole('option', { name: 'Developer' }).click();
     await page.keyboard.press('Escape');
-    await page.getByRole('button', { name: text.form.save }).click();
+    await page.getByRole('button', { name: messages.common.save }).click();
 
     await expect(page.getByText(text.notices.created)).toBeVisible();
     await expect(heading(page, text.detail.title)).toBeVisible();
