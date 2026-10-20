@@ -5,6 +5,11 @@ import type { HttpClient } from './httpClient';
 /** The HTTP clients of the platform services; each feature picks the one it needs. */
 export interface HttpClients {
   readonly users: HttpClient;
+  /**
+   * The client of `maily-system-api` (`VITE_SUBSCRIPTIONS_API_URL`): the subscriptions (feature 003)
+   * and the summary of the Panel (feature 007) are two routers of that same service, so they share
+   * it (research D3 of feature 007).
+   */
   readonly subscriptions: HttpClient;
 }
 

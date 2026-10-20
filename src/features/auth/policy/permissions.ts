@@ -6,9 +6,11 @@ export const SECTION_RESOURCES = ['users', 'subscriptions', 'tenants', 'token'] 
 
 /**
  * Every resource whose permissions are checked. The roles are only read, to offer assigning them to
- * a user (feature 002): they are not administered here, so they have no section of their own.
+ * a user (feature 002): they are not administered here, so they have no section of their own. Nor
+ * has `dashboard`, the indicators of the Panel (feature 007): the Panel is the home page, always in
+ * the navigation, and the permission only decides whether it shows them.
  */
-export const PERMISSION_RESOURCES = [...SECTION_RESOURCES, 'roles'] as const;
+export const PERMISSION_RESOURCES = [...SECTION_RESOURCES, 'roles', 'dashboard'] as const;
 
 export type SectionResource = (typeof SECTION_RESOURCES)[number];
 
@@ -37,10 +39,14 @@ export function can(
 }
 
 /**
- * Whether at least one known section or tool can be seen, whatever sections are implemented
- * (FR-018): someone whose only permission is `token:read` has something to use, so they are not
- * told that their role has no permissions.
+ * Whether the person has anything to see: a known section or tool, whatever sections are
+ * implemented (FR-018), or the indicators of the Panel (FR-012 of feature 007). Someone whose only
+ * permission is `token:read` or `dashboard:read` has something to use, so they are not told that
+ * their role has no permissions.
  */
-export function hasAnySectionPermission(access: PermissionHolder): boolean {
-  return SECTION_RESOURCES.some((resource) => access.permissions.has(`${resource}:read`));
+export function hasAnythingToSee(access: PermissionHolder): boolean {
+  return (
+    SECTION_RESOURCES.some((resource) => access.permissions.has(`${resource}:read`)) ||
+    can(access, { resource: 'dashboard', action: 'read' })
+  );
 }

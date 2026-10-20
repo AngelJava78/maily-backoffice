@@ -90,7 +90,9 @@ describe('coming back from Auth0', () => {
 
     const app = renderApp({ callback: { appState } });
 
-    expect(await screen.findByRole('heading', { level: 1, name: /^Hola, / })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: messages.home.title }),
+    ).toBeInTheDocument();
     expect(app.router.state.location.pathname).toBe('/');
   });
 });

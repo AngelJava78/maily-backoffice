@@ -41,10 +41,11 @@ describe('access flow with the real routes', () => {
 
     releaseAnswer();
 
-    // US1-2 and US1-5: the home page with the name of the operator.
+    // US1-2 and US1-5: the home page, the Panel since feature 007, with the name of the operator.
     expect(
-      await screen.findByRole('heading', { level: 1, name: messages.home.greeting('Ana Pérez') }),
+      await screen.findByRole('heading', { level: 1, name: messages.home.title }),
     ).toBeInTheDocument();
+    expect(await screen.findByText(messages.home.greeting('Ana Pérez'))).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/');
     expect(screen.getByRole('banner')).toHaveTextContent('Ana Pérez');
     expect(usersService.requestCount).toBe(1);

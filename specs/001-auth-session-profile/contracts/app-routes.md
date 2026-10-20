@@ -9,7 +9,7 @@
 | `/access` | Pública | Acceso | Botón "Iniciar sesión". Si ya hay sesión concedida, redirige a `/` (User Story 1, escenario 4). Muestra el aviso: `expired` o `idle` del estado de sesión de la pestaña (cuando la sesión terminó sola) o, si no hay, `cancelled` o `idpError` del estado del router. |
 | `/access/idle` | Pública | Acceso con aviso de inactividad | Misma pantalla; es el destino del cierre por inactividad (FR-020). Lee y borra la ruta de retorno guardada (D11). |
 | `/callback` | Pública | Cierre del inicio de sesión | Indicador de progreso mientras el SDK procesa el código; ante un error del proveedor redirige a `/access` con el aviso. No muestra contenido protegido. |
-| `/` | Protegida | Página principal | Nombre del operador, aviso de "sin permisos asignados" si procede, secciones disponibles. |
+| `/` | Protegida | Panel (antes "Página principal"; feature 007) | Nombre del operador, aviso de "sin permisos asignados" si procede, secciones disponibles. Con `dashboard:read`, el resumen de la plataforma: ver [specs/007-dashboard/contracts/app-routes.md](../../007-dashboard/contracts/app-routes.md). |
 | `/profile` | Protegida | Perfil (solo lectura) | Nombre, apellido paterno, apellido materno (vacío si no tiene), correo del usuario de MailySoft, iniciales y roles activos (sin imagen: la plataforma no la guarda). |
 | `/users/*`, `/subscriptions/*`, `/clinics/*` | Protegida + permiso | Secciones de las features 002 a 004 | Cada una se registra en `app/navigation` al implementarse y se envuelve en `RequirePermission` (`read` del recurso). |
 | `/tools/postman-token` | Protegida + permiso `token:read` (feature 005) | Herramienta de token | Siempre registrada; la decide solo el permiso (aclaración 4, reemplazada por la 005). |

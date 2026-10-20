@@ -8,8 +8,12 @@ const TEST_TOKEN_PREFIX = 'test-token:';
  * token, it asks the users API on every request. The simulator asks the simulator of the users
  * service, so a permission taken away from a role takes effect on the next request, and the answer
  * of `me` and the one of this API always agree. The users API can also fail to answer.
+ *
+ * Without `directory` (the tests of the hooks and components of the Panel, feature 007) every
+ * token of the tests has every permission: what those tests check is what the screen does with the
+ * answer.
  */
-export function createAuthorization(directory: UsersDirectoryMock) {
+export function createAuthorization(directory?: UsersDirectoryMock) {
   let unavailable = false;
 
   return {
@@ -42,7 +46,7 @@ export function createAuthorization(directory: UsersDirectoryMock) {
           'No se pudo verificar su permiso por ahora. Inténtelo de nuevo más tarde.',
         );
       }
-      if (!directory.state.permissionsOf(sub).has(permission)) {
+      if (directory !== undefined && !directory.state.permissionsOf(sub).has(permission)) {
         throw new CatalogError(
           403,
           'permission_denied',

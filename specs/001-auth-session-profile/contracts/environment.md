@@ -13,6 +13,7 @@ Toda la configuración viaja en variables `VITE_*` (públicas: nunca contienen s
 | `VITE_AUTH0_AUDIENCE` | Sí | `https://api.mailysoft.com` | Texto no vacío (identificador de la API de Auth0). |
 | `VITE_USERS_API_URL` | Sí | `/proxy/users` | Ruta que empieza con `/` o URL `http(s)`; en builds de producción una URL absoluta DEBE ser `https`. Sin `/` final. |
 | `VITE_SUBSCRIPTIONS_API_URL` | Sí (feature 003) | `/proxy/subscriptions` | Igual que la anterior. |
+| `VITE_DASHBOARD_REFRESH_MINUTES` | No (feature 007) | `10` | Entero de 1 a 60 (minutos), escrito solo con dígitos; ausente o vacía vale 5. Se fija al compilar. Detalle en [specs/007-dashboard/contracts/environment.md](../../007-dashboard/contracts/environment.md). |
 | `VITE_CLINICS_API_URL` | No (feature 004) | `http://127.0.0.1:8001` | Igual que la anterior. |
 
 Variables solo de desarrollo, leídas por `vite.config.ts` (sin prefijo `VITE_`, no llegan al navegador):
@@ -30,6 +31,8 @@ VITE_AUTH0_CLIENT_ID=your-spa-client-id
 VITE_AUTH0_AUDIENCE=https://api.mailysoft.example
 VITE_USERS_API_URL=/proxy/users
 VITE_SUBSCRIPTIONS_API_URL=/proxy/subscriptions
+# Minutos entre actualizaciones del Panel (1 a 60; 5 si no se define). Se fija al compilar.
+# VITE_DASHBOARD_REFRESH_MINUTES=5
 # VITE_CLINICS_API_URL=
 # Solo desarrollo (las lee vite.config.ts):
 # USERS_API_PROXY_TARGET=http://127.0.0.1:8000

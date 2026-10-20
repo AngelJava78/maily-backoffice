@@ -28,5 +28,24 @@ describe('formatDateTime', () => {
   it('returns the text as it came when it is not a valid date, without throwing', () => {
     expect(formatDateTime('no-es-fecha')).toBe('no-es-fecha');
     expect(formatDateTime('')).toBe('');
+    expect(formatDateTime('no-es-fecha', { seconds: true })).toBe('no-es-fecha');
+  });
+
+  // The last refresh of the Panel (feature 007, FR-009): the seconds show that it changed even
+  // within the same minute.
+  it('adds the seconds when they are asked for, keeping the date', () => {
+    const text = formatDateTime('2026-10-20T10:07:32Z', { seconds: true, timeZone: 'UTC' });
+
+    expect(text).toContain('20');
+    expect(text).toContain('oct');
+    expect(text).toContain('2026');
+    expect(text).toContain('10:07:32');
+  });
+
+  it('leaves the seconds out unless they are asked for', () => {
+    const text = formatDateTime('2026-10-20T10:07:32Z', { timeZone: 'UTC' });
+
+    expect(text).toContain('10:07');
+    expect(text).not.toContain(':32');
   });
 });

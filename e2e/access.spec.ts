@@ -7,7 +7,9 @@ import { signIn, startSignIn, submitCredentials } from './fixtures/signIn';
 /** SC-001: from the credentials being sent to the home page being shown. */
 const HOME_PAGE_BUDGET_MS = 5_000;
 
-const greeting = (page: Page) => page.getByRole('heading', { level: 1, name: /^Hola, / });
+/** The heading of the Panel, the home page since feature 007 (it no longer greets the person). */
+const panelHeading = (page: Page) =>
+  page.getByRole('heading', { level: 1, name: messages.home.title });
 
 test.describe('access with an authorized account (A1)', () => {
   test.skip(!hasAccounts('A1'), 'Needs E2E_AUTH0_USER_A1 and E2E_AUTH0_PASSWORD_A1');
@@ -44,7 +46,7 @@ test.describe('access with an authorized account (A1)', () => {
 
     const sentAt = Date.now();
     await submitCredentials(page, account('A1'));
-    await expect(greeting(page)).toBeVisible({ timeout: HOME_PAGE_BUDGET_MS });
+    await expect(panelHeading(page)).toBeVisible({ timeout: HOME_PAGE_BUDGET_MS });
 
     expect(Date.now() - sentAt).toBeLessThan(HOME_PAGE_BUDGET_MS);
   });

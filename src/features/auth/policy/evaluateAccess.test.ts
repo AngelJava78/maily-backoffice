@@ -144,4 +144,34 @@ describe('evaluateAccess', () => {
       expect(decision.kind).toBe('granted');
     });
   });
+
+  // Only the roles that give access decide whether the Panel shows its indicators (feature 007).
+  describe('the permission of the Panel (FR-013 of feature 007)', () => {
+    it('does not count dashboard:read when only a role without access to the backoffice has it', () => {
+      const decision = evaluateAccess(
+        makeAccess({
+          roles: [
+            makeRole(4, 'Marketing', ['tenants:read']),
+            makeRole(5, 'Owner', ['dashboard:read']),
+          ],
+        }),
+      );
+
+      expect(decision.kind).toBe('granted');
+      if (decision.kind === 'granted') {
+        expect(decision.access.permissions.has('dashboard:read')).toBe(false);
+      }
+    });
+
+    it('counts dashboard:read when a role that gives access has it', () => {
+      const decision = evaluateAccess(
+        makeAccess({ roles: [makeRole(1, 'Administrator', ['dashboard:read'])] }),
+      );
+
+      expect(decision.kind).toBe('granted');
+      if (decision.kind === 'granted') {
+        expect(decision.access.permissions.has('dashboard:read')).toBe(true);
+      }
+    });
+  });
 });

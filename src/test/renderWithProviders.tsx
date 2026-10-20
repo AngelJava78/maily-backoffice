@@ -20,6 +20,7 @@ import {
 import { RouterProvider } from 'react-router/dom';
 import { vi } from 'vitest';
 
+import { AppSettingsProvider } from '@/app/providers/AppSettingsProvider';
 import { theme } from '@/app/theme/theme';
 import { accessKeys } from '@/features/auth/hooks/accessKeys';
 import { SessionProvider } from '@/features/auth/hooks/sessionContext';
@@ -108,19 +109,22 @@ function createHarness(options: HarnessOptions) {
   function Providers({ children }: { readonly children: ReactNode }) {
     const auth0Value = useSyncExternalStore(store.subscribe, store.get);
     return (
-      <Auth0Context.Provider value={auth0Value}>
-        <QueryClientProvider client={queryClient}>
-          <ThemeProvider theme={theme}>
-            <NotificationsProvider>
-              <SessionProvider>
-                <HttpClientsContext.Provider value={clients}>
-                  {children}
-                </HttpClientsContext.Provider>
-              </SessionProvider>
-            </NotificationsProvider>
-          </ThemeProvider>
-        </QueryClientProvider>
-      </Auth0Context.Provider>
+      // The settings the routes read, with the refresh of the Panel of every 5 minutes.
+      <AppSettingsProvider env={{ VITE_DASHBOARD_REFRESH_MINUTES: 5 }}>
+        <Auth0Context.Provider value={auth0Value}>
+          <QueryClientProvider client={queryClient}>
+            <ThemeProvider theme={theme}>
+              <NotificationsProvider>
+                <SessionProvider>
+                  <HttpClientsContext.Provider value={clients}>
+                    {children}
+                  </HttpClientsContext.Provider>
+                </SessionProvider>
+              </NotificationsProvider>
+            </ThemeProvider>
+          </QueryClientProvider>
+        </Auth0Context.Provider>
+      </AppSettingsProvider>
     );
   }
 

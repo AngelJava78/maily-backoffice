@@ -34,7 +34,7 @@ describe('parseEnv', () => {
   it('accepts the minimal configuration and applies the defaults', () => {
     expect(parseEnv(validSource, development)).toEqual({
       ok: true,
-      env: { ...validSource, VITE_CLINICS_API_URL: undefined },
+      env: { ...validSource, VITE_CLINICS_API_URL: undefined, VITE_DASHBOARD_REFRESH_MINUTES: 5 },
     });
   });
 
@@ -224,6 +224,47 @@ describe('parseEnv', () => {
         ),
       ).toEqual([`VITE_CLINICS_API_URL: ${messages.config.rules.apiUrl}`]);
     });
+  });
+
+  // How often the Panel refreshes itself (feature 007, contracts/environment.md): whole minutes from
+  // 1 to 60, written with digits only, and 5 when it is not set.
+  describe('VITE_DASHBOARD_REFRESH_MINUTES', () => {
+    function refreshMinutesOf(value: string | undefined): number {
+      const source =
+        value === undefined
+          ? validSource
+          : { ...validSource, VITE_DASHBOARD_REFRESH_MINUTES: value };
+      const result = parseEnv(source, development);
+      if (!result.ok) {
+        throw new Error(`Expected ${JSON.stringify(value)} to be accepted`);
+      }
+      return result.env.VITE_DASHBOARD_REFRESH_MINUTES;
+    }
+
+    it('is 5 when it is not set, or set to an empty value', () => {
+      expect(refreshMinutesOf(undefined)).toBe(5);
+      expect(refreshMinutesOf('')).toBe(5);
+    });
+
+    it.each([
+      ['1', 1],
+      ['5', 5],
+      ['05', 5],
+      ['30', 30],
+      ['60', 60],
+    ])('reads %j as %d minutes', (value, minutes) => {
+      expect(refreshMinutesOf(value)).toBe(minutes);
+    });
+
+    it.each(['0', '61', '999', '2.5', '5.0', '1e1', 'cinco', '+5', '-5', ' 5', '5 ', '   '])(
+      // The whole message is the name and the rule, so the value received never shows up in it.
+      'rejects %j with the rule and without repeating the value',
+      (value) => {
+        expect(errorsFor({ ...validSource, VITE_DASHBOARD_REFRESH_MINUTES: value })).toEqual([
+          `VITE_DASHBOARD_REFRESH_MINUTES: ${messages.config.rules.refreshMinutes}`,
+        ]);
+      },
+    );
   });
 
   describe('VITE_FEATURE_POSTMAN_TOKEN, which feature 005 removed', () => {

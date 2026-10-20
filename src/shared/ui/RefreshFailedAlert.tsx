@@ -6,22 +6,25 @@ import { messages } from '@/shared/messages/es';
 /**
  * What is shown above data that is still on screen when asking for it again failed. The data stays,
  * because a failed refresh does not make it wrong, only possibly out of date; the person is told,
- * and can try again.
+ * and can try again. A screen that refreshes itself gives no `onRetry`: its next cycle tries again
+ * (constitution VI, feature 007).
  */
 export function RefreshFailedAlert({
   message,
   onRetry,
 }: {
   readonly message: string;
-  readonly onRetry: () => void;
+  readonly onRetry?: () => void;
 }) {
   return (
     <Alert
       severity="warning"
       action={
-        <Button color="inherit" size="small" onClick={onRetry}>
-          {messages.common.retry}
-        </Button>
+        onRetry === undefined ? undefined : (
+          <Button color="inherit" size="small" onClick={onRetry}>
+            {messages.common.retry}
+          </Button>
+        )
       }
     >
       {message}

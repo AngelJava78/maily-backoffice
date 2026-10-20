@@ -233,4 +233,7 @@ export default defineConfig(
   // The same for `subscriptions`: `auth` reads the type of its capabilities, and the capabilities
   // reach the screens from the application (research D2 of feature 003).
   forbidAuthImports('subscriptions', 'research D2 of 003'),
+  // And for `dashboard`: the home page decides with the permissions whether to show the summary,
+  // and the summary gets the refresh interval through its props (research D1 of feature 007).
+  forbidAuthImports('dashboard', 'research D1 of 007'),
 );

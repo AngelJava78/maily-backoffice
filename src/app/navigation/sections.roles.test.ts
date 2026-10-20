@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   can,
-  hasAnySectionPermission,
+  hasAnythingToSee,
   SECTION_RESOURCES,
   type PermissionAction,
 } from '@/features/auth/policy/permissions';
@@ -95,7 +95,7 @@ describe('sections and actions per role (SC-007, FR-017)', () => {
 
     expect(getVisibleSections(access, sampleSections)).toEqual([]);
     expect(allowedActions(access.permissions)).toEqual([]);
-    expect(hasAnySectionPermission(access)).toBe(false);
+    expect(hasAnythingToSee(access)).toBe(false);
   });
 
   it('Marketing together with Owner behaves as Marketing alone', () => {
@@ -105,7 +105,7 @@ describe('sections and actions per role (SC-007, FR-017)', () => {
       'clinics',
     ]);
     expect(allowedActions(access.permissions)).toEqual(['tenants:read']);
-    expect(hasAnySectionPermission(access)).toBe(true);
+    expect(hasAnythingToSee(access)).toBe(true);
   });
 
   it('shows neither the section nor any action when write exists without read', () => {
@@ -113,7 +113,7 @@ describe('sections and actions per role (SC-007, FR-017)', () => {
 
     expect(getVisibleSections(access, sampleSections)).toEqual([]);
     expect(allowedActions(access.permissions)).toEqual([]);
-    expect(hasAnySectionPermission(access)).toBe(false);
+    expect(hasAnythingToSee(access)).toBe(false);
   });
 
   it('matches the permissions of the authorized roles exactly, for every combination', () => {

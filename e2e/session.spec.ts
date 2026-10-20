@@ -8,7 +8,9 @@ import { signIn } from './fixtures/signIn';
 /** The answer of the `me` operation, kept as loose as needed to change the status of the user. */
 const meAnswerSchema = z.looseObject({ user: z.looseObject({ status: z.looseObject({}) }) });
 
-const greeting = (page: Page) => page.getByRole('heading', { level: 1, name: /^Hola, / });
+/** The heading of the Panel, the home page since feature 007 (it no longer greets the person). */
+const panelHeading = (page: Page) =>
+  page.getByRole('heading', { level: 1, name: messages.home.title });
 
 test.describe('the life of the session', () => {
   test.skip(!hasAccounts('A1'), 'Needs E2E_AUTH0_USER_A1 and E2E_AUTH0_PASSWORD_A1');
@@ -20,7 +22,7 @@ test.describe('the life of the session', () => {
     await page.clock.install();
     await page.goto('/');
     await signIn(page, account('A1'));
-    await expect(greeting(page)).toBeVisible();
+    await expect(panelHeading(page)).toBeVisible();
 
     // From now on the users service reports the user as blocked (the database is not touched).
     await page.route('**/api/v1/authorization/me', async (route) => {
@@ -46,18 +48,18 @@ test.describe('the life of the session', () => {
   test('V11: logging out in one tab takes the other tab to the access screen', async ({ page }) => {
     await page.goto('/');
     await signIn(page, account('A1'));
-    await expect(greeting(page)).toBeVisible();
+    await expect(panelHeading(page)).toBeVisible();
 
     const otherTab = await page.context().newPage();
     await otherTab.goto('/');
     // Depending on the browser, the Auth0 session is picked up at once or after one click.
-    const otherGreeting = greeting(otherTab);
+    const otherPanel = panelHeading(otherTab);
     const signInButton = otherTab.getByRole('button', { name: messages.access.loginButton });
-    await expect(otherGreeting.or(signInButton)).toBeVisible();
+    await expect(otherPanel.or(signInButton)).toBeVisible();
     if (await signInButton.isVisible()) {
       await signInButton.click();
     }
-    await expect(otherGreeting).toBeVisible();
+    await expect(otherPanel).toBeVisible();
 
     await page.getByRole('button', { name: messages.common.logout }).click();
 
