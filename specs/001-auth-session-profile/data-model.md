@@ -86,7 +86,7 @@ Estado de la guarda (derivado de la query): `resolving` (sin datos y cargando), 
 | `labelKey` | clave de mensaje | Texto en español del módulo de mensajes. |
 | `resource` | texto | `users`, `subscriptions` o `tenants` (aclaración 3). |
 
-El registro solo contiene las secciones implementadas (FR-009); en la 001 está vacío y las pruebas inyectan secciones de ejemplo. El aviso de "sin permisos asignados" (FR-018) no depende del registro: se evalúa sobre los tres recursos conocidos (`users`, `subscriptions` y `tenants`) y aparece solo si el operador no tiene `read` en ninguno.
+El registro solo contiene las secciones implementadas (FR-009); en la 001 está vacío y las pruebas inyectan secciones de ejemplo. El aviso de "sin permisos asignados" (FR-018) no depende del registro: se evalúa sobre los cuatro recursos conocidos (`users`, `subscriptions`, `tenants` y `token`, este de la feature 005) y aparece solo si el operador no tiene `read` en ninguno.
 
 ### Correspondencia acción → permiso (aclaración 3)
 

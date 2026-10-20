@@ -18,8 +18,8 @@ Amplía [../../001-auth-session-profile/contracts/app-routes.md](../../001-auth-
 | Situación | Resultado |
 |---|---|
 | Sin sesión | `ProtectedRoute` lleva a `/access` con la ruta de retorno; no se muestra ningún token (US2-9) |
-| Acceso resolviéndose o fallido | Lo que ya decide la guarda de la 001; la pantalla no se renderiza hasta que el acceso esté concedido |
-| Con acceso y **sin** `token:read` | `RequirePermission` redirige a `/` con la notificación «Tus permisos cambiaron y la sección en la que estabas ya no está disponible.»; no se renderiza la pantalla, no se pide su chunk ni se llama a Auth0 (US2-6, FR-005) |
+| Acceso resolviéndose, o fallido sin respuesta previa | Lo que ya decide la guarda de la 001; la pantalla no se renderiza hasta que el acceso esté concedido. Si ya se había resuelto y una recomprobación falla, la 001 conserva la última respuesta y la pantalla sigue (FR-003) |
+| Con acceso y **sin** `token:read` | `RequirePermission` redirige a `/` con la notificación propia de la herramienta, `messages.token.noPermission` («No tienes permiso para usar la herramienta Token.»); no se renderiza la pantalla, no se pide su chunk ni se llama a Auth0 (US2-6, FR-005) |
 | Con `token:read` | Se renderiza la pantalla en su estado inicial |
 | Pierde `token:read` con la pantalla abierta | Tras la recomprobación de la 001 (cada 5 minutos, al volver a la pestaña o al recargar) la guarda redirige a `/` con la misma notificación y la pantalla se desmonta: el token en pantalla se descarta (US2-8, FR-018) |
 
@@ -88,6 +88,7 @@ No existe ningún control para generar credenciales de otra persona ni de una ap
 | `errors.sessionExpired` | Tu sesión ya no es válida / No se pudo obtener el token porque tu sesión terminó. Reintenta o inicia sesión de nuevo. |
 | `errors.unreadableToken` | No se pudo leer el token / El proveedor de acceso devolvió un token con un formato inesperado. Puedes reintentar. |
 | `errors.unknown` | No se pudo obtener el token / Ocurrió un problema al pedir el token. Puedes reintentar. |
+| `noPermission` | No tienes permiso para usar la herramienta Token. |
 
 «Reintentar» sale de `messages.common.retry`. Los textos exactos se afinan al implementar; lo que no cambia es que viven todos en el módulo de mensajes.
 
@@ -100,7 +101,7 @@ No existe ningún control para generar credenciales de otra persona ni de una ap
 | Token generado | Anuncio `role="status"` | Llega un token (también tras «Refrescar») |
 | El token expiró | Anuncio `role="status"` y cambio del `Chip` | Llega la hora de expiración |
 | Fallo | Alerta en la página | Falla una solicitud |
-| Sin permiso o permiso retirado | Redirección a `/` y notificación de siempre | La guarda (arriba) |
+| Sin permiso o permiso retirado | Redirección a `/` y notificación propia de la herramienta (`messages.token.noPermission`) | La guarda (arriba) |
 
 ## Accesibilidad
 

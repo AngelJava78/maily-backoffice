@@ -20,6 +20,9 @@
 - Q: ¿Qué ve la persona tras generar el token y cómo obtiene otro? → A: Ve el token, una opción para copiarlo y la fecha y hora en que caduca, y el botón "Generar" pasa a llamarse "Refrescar". Al pulsar "Refrescar" se repite el proceso (token nuevo, con su opción de copiar y su nueva fecha y hora de expiración) sin salir de la página. Esto reemplaza al antiguo "Generar nuevo".
 - Q: Cuando la persona pulsa "Generar" o "Refrescar", ¿el token debe aparecer oculto (y verse completo solo con "Mostrar") o visible desde el primer momento? → A: Oculto por defecto: aparece enmascarado en su espacio y solo se ve completo con "Mostrar" (vuelve a ocultarse con "Ocultar"); "Copiar" funciona sin revelarlo. Por tanto, "se muestra el token" del flujo original se entiende como que el token ocupa su espacio en la página.
 - Q: ¿La herramienta se activa por entorno (desarrollo, QA, producción) o solo por el permiso del role? → A: Solo por el permiso `token:read`: no depende del entorno ni de una configuración del backoffice. Se activa o desactiva asignando o quitando el permiso a los roles en la base de datos de la API de usuarios, según se necesite, y llega al backoffice con los permisos de los roles que devuelve la consulta de la propia persona (feature 001). Esto reemplaza el interruptor por entorno que tenía la herramienta (deshabilitada por defecto y habilitada en cada entorno).
+- Q: Si una persona que no tiene el permiso `token:read` escribe directamente la dirección de la herramienta Token en el navegador, ¿qué debe ocurrir? → A: Se le lleva a la página principal con un aviso propio de la herramienta, más claro que el de las demás secciones, que le indica que no tiene permiso para usarla (por ejemplo, «No tienes permiso para usar la herramienta Token.»), con la sesión abierta y sin generar ningún token. No hay una pantalla de "sin permisos" aparte. Esto reemplaza el "estado de sin permisos" de la versión anterior.
+- Q: Si con la herramienta Token abierta el backoffice repite la comprobación de los permisos de la persona y la API de usuarios no responde, ¿la herramienta debe seguir disponible o debe ocultarse? → A: Sigue disponible: se conserva la última respuesta conocida, igual que en el resto del backoffice (feature 001), hasta que una comprobación correcta indique otra cosa. "Ante la duda se oculta" vale solo mientras los permisos todavía no se han podido resolver (por ejemplo, justo después de iniciar sesión).
+- Q: Si una persona tiene un role de sistema y otro role que no lo es, y solo ese otro role incluye `token:read`, ¿debe ver la herramienta Token? → A: Solo pueden ingresar al backoffice las personas con un role de tipo "Role de sistema"; cualquier otro role no da acceso. Una vez dentro, se evalúa si la persona tiene el permiso `token:read`: si lo tiene, puede entrar a la página; si no, no puede entrar a la opción Token. Por tanto, cuentan los permisos de sus roles de sistema activos (como en el resto del backoffice, feature 001) y un `token:read` que solo tenga otro role no cuenta.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -50,7 +53,7 @@ Una persona con permiso para usar la herramienta (`token:read`; por ejemplo, con
 
 ### User Story 2 - Ver la opción solo si mi role tiene el permiso token:read (Priority: P1)
 
-Al iniciar sesión, el backoffice conoce el role de la persona y los permisos de ese role, y muestra la opción "Token" solo si alguno de sus roles activos incluye el permiso `token:read`; para cualquier otra persona la opción no existe, sea cual sea el nombre de su role.
+Al iniciar sesión, el backoffice conoce el role de la persona y los permisos de ese role, y muestra la opción "Token" solo si alguno de sus roles de sistema activos incluye el permiso `token:read`; para cualquier otra persona la opción no existe, sea cual sea el nombre de su role.
 
 **Why this priority**: Un token de acceso es una función sensible; limitarla a quienes tienen un permiso específico, que MailySoft asigna a los roles que lo necesiten, es la condición para poder liberarla.
 
@@ -61,9 +64,9 @@ Al iniciar sesión, el backoffice conoce el role de la persona y los permisos de
 1. **Given** una persona cuyo role incluye `token:read`, **When** inicia sesión, **Then** la navegación muestra "Token".
 2. **Given** una persona cuyos roles no incluyen `token:read`, **When** inicia sesión, **Then** la navegación no muestra "Token".
 3. **Given** un role que incluye `token:read` y otro que no, **When** sus personas inician sesión, **Then** solo la del primero ve la opción, aunque el segundo se llame Administrator o Developer y el primero Marketing o Billing: el nombre del role no cuenta.
-4. **Given** una persona con varios roles de los cuales al menos uno activo incluye `token:read`, **When** inicia sesión, **Then** ve la opción.
-5. **Given** una persona cuyo role con `token:read` está bloqueado o eliminado y que no tiene otro role activo que lo incluya, **When** inicia sesión, **Then** no ve la opción.
-6. **Given** una persona sin el permiso `token:read`, **When** abre directamente la dirección de la herramienta, **Then** ve el estado de "sin permisos", no se genera ningún token y su sesión permanece abierta.
+4. **Given** una persona con varios roles de los cuales al menos uno, de sistema y activo, incluye `token:read`, **When** inicia sesión, **Then** ve la opción.
+5. **Given** una persona cuyo role con `token:read` está bloqueado o eliminado y que no tiene otro role de sistema activo que lo incluya, **When** inicia sesión, **Then** no ve la opción.
+6. **Given** una persona sin el permiso `token:read`, **When** abre directamente la dirección de la herramienta, **Then** se le lleva a la página principal con un aviso que le indica que no tiene permiso para usar la herramienta, no se genera ningún token y su sesión permanece abierta.
 7. **Given** una persona que acaba de iniciar sesión y cuyo role y permisos aún no se han resuelto, **When** carga el backoffice, **Then** la opción no se muestra hasta que se conozcan.
 8. **Given** una persona con la opción visible, **When** su role o los permisos de su role cambian, el backoffice vuelve a resolverlos y ya no incluyen `token:read`, **Then** la opción desaparece de la navegación y cualquier token que estuviera en pantalla se descarta.
 9. **Given** una persona sin sesión, **When** abre la dirección de la herramienta, **Then** se le pide identificarse primero y no se muestra ningún token.
@@ -114,21 +117,22 @@ La persona identifica de un vistazo si su token sigue vigente o ya expiró y, cu
 - ¿Qué ocurre si la persona recarga la página del navegador? Igual que al volver a entrar: aparece el estado inicial, sin token, porque el token no se conserva.
 - ¿Qué ocurre con un token muy largo? Al mostrarlo se ajusta a la pantalla sin recortarse y "Copiar" copia siempre el valor íntegro.
 - ¿Qué ocurre si cambia el role de la persona, o los permisos de su role, mientras tiene la herramienta abierta? Cuando el backoffice vuelve a resolverlos y ya no incluyen `token:read`, se retira la opción y se descarta el token que estuviera en pantalla (ver User Story 2, escenario 8); los tokens ya generados no se revocan y siguen siendo válidos en Postman hasta su fecha de expiración.
-- ¿Qué ocurre si no se pueden resolver el role y sus permisos (la API de usuarios no responde)? La opción no se muestra: ante la duda se oculta, y el backoffice sigue el manejo habitual de ese fallo definido en la feature 001.
+- ¿Qué ocurre si no se pueden resolver el role y sus permisos (la API de usuarios no responde)? Si nunca se habían resuelto (por ejemplo, justo después de iniciar sesión), la opción no se muestra: ante la duda se oculta, y el backoffice sigue el manejo habitual de ese fallo definido en la feature 001. Si ya se habían resuelto y falla una comprobación posterior, se conserva la última respuesta conocida: la opción y la herramienta siguen disponibles, con el token que tuviera en pantalla, hasta que una comprobación correcta indique otra cosa.
 - ¿Qué ocurre si el permiso `token:read` todavía no existe en la API de usuarios o no está asignado a ningún role? Nadie ve la opción: la herramienta queda inaccesible hasta que el permiso exista y se asigne.
 - ¿Qué ocurre con varias pestañas abiertas? Cada una gestiona su propio token de forma independiente.
-- ¿Qué ocurre con una persona sin acceso al backoffice? No llega a la herramienta, porque primero se le niega el acceso (feature 001).
-- ¿Qué ocurre si una persona sin el permiso `token:read` obtiene la dirección de la herramienta? Ve el estado de "sin permisos"; no hay forma de generar el token desde esa pantalla.
+- ¿Qué ocurre con una persona sin acceso al backoffice (por ejemplo, con roles que no son de sistema)? No llega a la herramienta, porque primero se le niega el acceso (feature 001).
+- ¿Qué ocurre si una persona sin el permiso `token:read` obtiene la dirección de la herramienta? Se le lleva a la página principal con un aviso que le indica que no tiene permiso para usarla; no hay forma de generar el token porque la pantalla de la herramienta no llega a mostrarse.
+- ¿Qué ocurre si la persona tiene un role de sistema y otro role que no lo es, y solo ese otro role incluye `token:read`? No cuenta: la herramienta no aparece, porque solo cuentan los permisos de sus roles de sistema activos, como en el resto del backoffice (feature 001).
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: El sistema DEBE mostrar la opción "Token" en la navegación solo cuando se cumplan las dos condiciones: la persona tiene acceso al backoffice y alguno de sus roles activos incluye el permiso `token:read`.
+- **FR-001**: El sistema DEBE mostrar la opción "Token" en la navegación solo cuando se cumplan las dos condiciones: la persona tiene acceso al backoffice (solo lo tienen quienes cuentan con un role de sistema, como define la feature 001) y alguno de sus roles de sistema activos incluye el permiso `token:read`.
 - **FR-002**: La decisión de mostrar u ocultar la opción DEBE tomarse al iniciar sesión, a partir del role de la persona y los permisos de ese role en MailySoft, y DEBE volver a evaluarse cada vez que el backoffice resuelva de nuevo su role y sus permisos.
-- **FR-003**: Mientras el role y los permisos de la persona no estén resueltos, o si no se pueden resolver, la opción NO DEBE mostrarse y la herramienta NO DEBE generar tokens.
-- **FR-004**: Solo cuentan los permisos de los roles activos: un role bloqueado o eliminado NO DEBE aportar `token:read`. El acceso lo decide únicamente ese permiso: el nombre del role NO DEBE influir, y las personas sin `token:read` NO DEBEN ver la opción.
-- **FR-005**: Si una persona sin el permiso `token:read` abre la dirección de la herramienta, el sistema DEBE mostrar el estado de "sin permisos" sin cerrar su sesión y sin generar ningún token.
+- **FR-003**: Mientras el role y los permisos de la persona no se hayan resuelto con éxito ni una sola vez desde que inició sesión (por ejemplo, justo después de iniciar sesión, o si la API de usuarios no responde), la opción NO DEBE mostrarse y la herramienta NO DEBE generar tokens. Una vez resueltos, si una comprobación posterior falla, el sistema DEBE conservar la última respuesta conocida, como en el resto del backoffice (feature 001), hasta que una comprobación correcta indique otra cosa.
+- **FR-004**: Solo cuentan los permisos de los roles de sistema activos: un role bloqueado, eliminado o que no sea de sistema NO DEBE aportar `token:read`. Una vez dentro del backoffice, el acceso a la herramienta lo decide únicamente ese permiso: el nombre del role NO DEBE influir, y las personas sin `token:read` NO DEBEN ver la opción ni entrar a la herramienta.
+- **FR-005**: Si una persona sin el permiso `token:read` abre la dirección de la herramienta, el sistema DEBE llevar a esa persona a la página principal con un aviso propio de la herramienta que le indique que no tiene permiso para usarla (por ejemplo, «No tienes permiso para usar la herramienta Token.»), sin cerrar su sesión y sin generar ningún token.
 - **FR-006**: La disponibilidad de la herramienta DEBE depender únicamente del permiso `token:read` de los roles de la persona, que se activa o desactiva asignándolo o quitándolo en la API de usuarios. NO DEBE depender del entorno (desarrollo, QA o producción) ni de una configuración del backoffice, y mientras ningún role tenga el permiso la herramienta DEBE estar desactivada para todas las personas.
 - **FR-007**: El sistema DEBE generar un token vigente a nombre de la persona autenticada, con los mismos permisos que tiene en su sesión; la herramienta NO DEBE ampliar sus permisos.
 - **FR-008**: El sistema NO DEBE generar credenciales para otras identidades ni credenciales de aplicación o de servicio.
@@ -148,7 +152,7 @@ La persona identifica de un vistazo si su token sigue vigente o ya expiró y, cu
 ### Key Entities *(include if feature involves data)*
 
 - **Token de acceso**: Credencial temporal que identifica a la persona ante la plataforma de MailySoft y permite a herramientas externas, como Postman, invocar las APIs con los permisos de esa persona. Tiene valor y fecha de expiración, está vinculada a una sola persona y es vigente o expirada según esa fecha. Mientras está en pantalla puede estar oculto (enmascarado, su estado por defecto) o visible (valor completo); "en pantalla" significa presente en la página en cualquiera de los dos estados. Hay como máximo uno en pantalla a la vez y, mientras la persona no pulse "Generar", ninguno.
-- **Role**: Agrupación de permisos asignada a la persona (definida en la feature 001). Para esta feature solo importa si alguno de sus roles activos incluye el permiso `token:read`, no cómo se llame el role.
+- **Role**: Agrupación de permisos asignada a la persona (definida en la feature 001). Solo los roles de tipo "Role de sistema" (los roles autorizados de la feature 001) dan acceso al backoffice; cualquier otro role no. Para esta feature solo importa si alguno de sus roles de sistema activos incluye el permiso `token:read`, no cómo se llame el role.
 - **Permiso `token:read`**: Permiso, con el formato `recurso:acción` de la feature 001, que habilita ver la opción "Token" y usar todas sus acciones (generar, copiar y refrescar). Se concede a través de roles (solo Administrator y Developer) y es a la vez el criterio de acceso por persona y el interruptor de la herramienta; no existe un permiso aparte para cada acción.
 
 ## Success Criteria *(mandatory)*
@@ -157,7 +161,7 @@ La persona identifica de un vistazo si su token sigue vigente o ya expiró y, cu
 
 - **SC-001**: Una persona con el permiso `token:read` genera y copia un token válido en menos de 30 segundos desde que abre la página, con solo dos acciones: "Generar" y "Copiar".
 - **SC-002**: El 100 % de los tokens generados por la herramienta, mientras están vigentes, son aceptados por la plataforma en una llamada de prueba.
-- **SC-003**: El 100 % de las personas con un role activo que incluye `token:read` ven la opción al iniciar sesión, y el 0 % de las que no tienen ese permiso la ven.
+- **SC-003**: El 100 % de las personas con un role de sistema activo que incluye `token:read` ven la opción al iniciar sesión, y el 0 % de las que no tienen ese permiso la ven.
 - **SC-004**: Para una persona sin el permiso `token:read` hay 0 puntos de acceso a la herramienta: no aparece en la navegación y, al abrir su dirección, no se genera ningún token.
 - **SC-005**: Después de salir de la página, recargarla, cerrar sesión o perder el permiso requerido, 0 tokens permanecen en pantalla.
 - **SC-006**: Desactivar la herramienta no altera ninguna otra función: el 100 % de las pruebas de las demás secciones siguen pasando.
