@@ -195,3 +195,40 @@ e2e/subscriptions.spec.ts                   # recorrido crítico (se omite sin v
 |-----------|------------|-------------------------------------|
 | El listado descarga el catálogo completo y lo ordena y pagina en el cliente (constitución IV: DEBE paginar en servidor y NO DEBE descargar una colección completa para paginarla en el cliente) | La API devuelve el catálogo sin paginar y ordenado por fecha de creación (su spec decidió «no es necesario paginar»), mientras que la spec del Backoffice pide un orden fijo distinto (aclaraciones 1 y 7) y una tabla paginada (FR-001). La propia spec del Backoffice pidió registrar este desvío y justificarlo aquí | Pedir paginación y orden a la API: es un cambio incompatible en otro repositorio, que su spec descartó y retrasaría esta feature. Mostrar el catálogo sin paginar: contradice FR-001 y el patrón común de la constitución VI. Mitigación: catálogo esperado de unas decenas (la API lo garantiza completo hasta 500), una sola solicitud, el grid nunca recibe más filas que el `page_size` y, si la API empieza a paginar (un cambio versionado), la feature se revisa. |
 | Esquemas Zod escritos a mano en lugar de derivarlos del OpenAPI de la API (constitución IV: DEBERÍAN derivarse) | Zod es la fuente única de cada entidad (constitución II). El OpenAPI publicado difiere en detalles del documentado (por ejemplo, `clinics_count` no figura como obligatorio), y son seis operaciones con formas sencillas | Generar tipos de TypeScript: sería una segunda fuente de verdad junto a Zod. Generar esquemas Zod desde el OpenAPI: añade una dependencia y un paso que necesita el servicio en marcha, o su repositorio, en CI. Mitigación: validación en la frontera, un simulador fiel al contrato y las diferencias anotadas en [contracts/subscriptions-service.md](contracts/subscriptions-service.md) (D4). |
+
+## Notas de implementación
+
+Decisiones tomadas durante `/speckit-implement` (2026-10-20) que afinan lo planeado sin cambiar los requisitos.
+
+### Alcance del desvío de la constitución IV
+
+El desvío de Complexity Tracking es puntual: solo el catálogo de suscripciones se descarga completo, porque es el único recurso cuya API no pagina; los usuarios siguen paginados en el servidor. Está acotado por el contrato (la API garantiza el catálogo completo hasta 500 suscripciones, y hoy son unas decenas), se pide una sola vez por montaje del listado y el grid nunca recibe más filas que el `page_size`. Disparador de revisión: si la API empieza a paginar (un cambio versionado) o el catálogo se acerca al límite, el listado pasa a pedir las páginas al servidor y este desvío se retira.
+
+### Piezas comunes y cambios en lo existente
+
+- **Movidas a `shared` y `app` sin cambiar su comportamiento**: `RequireCapability` (`src/app/router/`), `atMost` (`src/shared/lib/`), `RefreshFailedAlert` y el marco del formulario (`FormFrame`, antes `UserForm`) en `src/shared/ui/`, con «Guardar» en `messages.common.save`. También pasan a `src/shared/ui/` los estilos del pie del Data Grid (`dataGridStyles.ts`) y la ampliación de tipos del overlay vacío (`dataGridAugmentation.d.ts`), porque los usan los dos listados. El fragmento perezoso del Data Grid toma ahora el nombre de `dataGridStyles`; es solo el nombre.
+- **`useDeferredNotice`** dice lo que guardaba cuando su componente se desmonta. Un diálogo que se va con la página, como cuando otra persona eliminó la suscripción y el detalle pasa a «no encontrada», nunca termina de cerrarse; sin esto el aviso se perdía. Por la misma razón, el menú de estatus y la eliminación usan `mutateAsync`: su resultado se dice aunque el componente ya no esté.
+- **`sections.token.test.ts`** (de la 005) fijaba la navegación en `users, token`; ahora es `users, subscriptions, token`, y Token sigue al final.
+- **`src/vite-env.d.ts`** conserva `VITE_SUBSCRIPTIONS_API_URL` como `string | undefined`, y no como `string` (T002): la variable cruda puede faltar, y la que se vuelve obligatoria es la de `parseEnv`, que la valida con Zod al arrancar.
+- **Simulador compartido**: el registro de solicitudes guarda `unreadableBody` solo cuando el cuerpo no es JSON legible, para que las comparaciones exactas de los registros del simulador de usuarios sigan pasando sin cambios.
+
+### Comportamiento
+
+- `describeSubscriptionError`: un `validation_error` fuera del alta y la edición (catálogo, detalle, estatus y eliminación) es `unexpected` y no `form`, porque ahí no hay formulario y la interfaz nunca envía datos inválidos.
+- La edición compara lo escrito con la suscripción tal como se abrió el formulario, no con la de una carga posterior: si otra persona cambió un dato mientras tanto y la pantalla se refresca, su valor no se reenvía con el anterior (US3-7).
+- El formulario usa `abort: true` en los mínimos de Zod, así que un campo vacío solo dice «obligatorio». `formatMxn` valida el texto decimal antes de formatear (`Number('')` daría «$0.00»). `needsStatusConfirmation` es un guard de tipo (`ConfirmedStatusId`).
+- Los rechazos del alta y de la edición se reparten con `applyRefusal` (los campos o el error general). El estado «no encontrada» del detalle no lleva la barra de acciones, como en Usuarios: su enlace al listado es el del bloque de error.
+- El botón «Nueva suscripción» del listado, que planeaba T089, se adelantó a US1, porque el listado ya recibía sus capacidades.
+
+### Lo aprendido
+
+- **Simulador**: separar las reglas (modelo) de la validación y del envoltorio en el orden del contrato hizo que cada historia solo añadiera su manejador. Los permisos salen del simulador de usuarios, así que retirar un permiso a un role cambia a la vez `me` y la API. `quickstartCatalog()` reproduce el catálogo del paso 2 de [quickstart.md](quickstart.md) (hallazgo U3 del análisis) y `makeSubscriptions(count, { firstId = 8 })` sigue al catálogo por defecto (U2).
+- **Data Grid paginado fuera del grid**: el grid recibe la página ya cortada con `paginationMode="server"`, y siempre una página que existe. Mientras el catálogo carga recibe la página 1 sin filas, y la página de la URL se corrige con `replace` solo cuando el catálogo ya llegó.
+- **Lo que incluye**: con `useFieldArray`, el foco tras quitar un elemento se guarda en una referencia y se aplica en el render siguiente; tras agregar, lo pone React Hook Form. Los campos no son controlados, por lo que las pruebas leen `value` y no el atributo.
+- **Accesibilidad del menú**: axe con el menú abierto se pasa sobre el propio menú, porque la regla «region» (de página) marca el popup que MUI pinta fuera de los landmarks; el diálogo, por ser un diálogo, se revisa con toda la página. Mientras el menú está abierto, el resto de la página queda oculto a los roles.
+
+### Tamaños (T137, 2026-10-20)
+
+- JS de la ruta de entrada: **276,8 KB gzip** (límite de 300 KB; era 274,3 KB tras la 005). La 003 suma 2,5 KB: textos, rutas, `parseSubscriptionId` y el esquema que importa (0,6 KB).
+- Fragmentos perezosos nuevos (gzip): listado 1,8 KB, detalle 2,9 KB, alta 0,9 KB, edición 1,3 KB, campos del formulario 2,0 KB, etiqueta de estatus 0,4 KB, y el menú de MUI 6,2 KB. El Data Grid sigue en su propio fragmento (139,5 KB).
+- La guarda funciona: al importar `SubscriptionsListPage` de forma estática en `routes.tsx`, `npm run size` falla con la entrada en 452,9 KB y los marcadores `data-rowindex` y `data-colindex` en `index-*.js`.

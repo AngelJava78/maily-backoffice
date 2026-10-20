@@ -9,6 +9,7 @@ const validSource = {
   VITE_AUTH0_CLIENT_ID: 'spa-client-id',
   VITE_AUTH0_AUDIENCE: 'https://mailysoft-apis',
   VITE_USERS_API_URL: '/proxy/users',
+  VITE_SUBSCRIPTIONS_API_URL: '/proxy/subscriptions',
 };
 
 const development = { isProduction: false };
@@ -33,11 +34,7 @@ describe('parseEnv', () => {
   it('accepts the minimal configuration and applies the defaults', () => {
     expect(parseEnv(validSource, development)).toEqual({
       ok: true,
-      env: {
-        ...validSource,
-        VITE_CLINICS_API_URL: undefined,
-        VITE_SUBSCRIPTIONS_API_URL: undefined,
-      },
+      env: { ...validSource, VITE_CLINICS_API_URL: undefined },
     });
   });
 
@@ -158,31 +155,74 @@ describe('parseEnv', () => {
     });
   });
 
-  describe.each(['VITE_CLINICS_API_URL', 'VITE_SUBSCRIPTIONS_API_URL'])('%s', (name) => {
+  // The subscriptions section needs its API (feature 003, research D13): without it nothing works.
+  describe('VITE_SUBSCRIPTIONS_API_URL', () => {
+    it.each(['/proxy/subscriptions', 'http://127.0.0.1:8010', 'https://plans.mailysoft.com'])(
+      'accepts %s in development',
+      (url) => {
+        expect(parseEnv({ ...validSource, VITE_SUBSCRIPTIONS_API_URL: url }, development).ok).toBe(
+          true,
+        );
+      },
+    );
+
+    it('is required: a missing value is rejected', () => {
+      expect(errorsFor(without(validSource, 'VITE_SUBSCRIPTIONS_API_URL'))).toEqual([
+        `VITE_SUBSCRIPTIONS_API_URL: ${messages.config.rules.apiUrl}`,
+      ]);
+    });
+
+    it('is required: an empty value is rejected, not taken as unset', () => {
+      expect(errorsFor({ ...validSource, VITE_SUBSCRIPTIONS_API_URL: '' })).toEqual([
+        `VITE_SUBSCRIPTIONS_API_URL: ${messages.config.rules.apiUrl}`,
+      ]);
+    });
+
+    it('follows the same rule as the users API URL', () => {
+      expect(
+        errorsFor({ ...validSource, VITE_SUBSCRIPTIONS_API_URL: '/proxy/subscriptions/' }),
+      ).toEqual([`VITE_SUBSCRIPTIONS_API_URL: ${messages.config.rules.apiUrl}`]);
+      expect(
+        errorsFor(
+          { ...validSource, VITE_SUBSCRIPTIONS_API_URL: 'http://plans.mailysoft.com' },
+          production,
+        ),
+      ).toEqual([`VITE_SUBSCRIPTIONS_API_URL: ${messages.config.rules.apiUrl}`]);
+      expect(parseEnv(validSource, production).ok).toBe(true);
+    });
+  });
+
+  describe('VITE_CLINICS_API_URL', () => {
     it('is optional, and an empty value counts as not set', () => {
       expect(parseEnv(validSource, development).ok).toBe(true);
 
-      const result = parseEnv({ ...validSource, [name]: '' }, development);
+      const result = parseEnv({ ...validSource, VITE_CLINICS_API_URL: '' }, development);
 
       expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.env).toMatchObject({ [name]: undefined });
+        expect(result.env).toMatchObject({ VITE_CLINICS_API_URL: undefined });
       }
     });
 
     it('follows the same rule as the users API URL', () => {
-      const accepted = parseEnv({ ...validSource, [name]: 'http://127.0.0.1:8001' }, development);
+      const accepted = parseEnv(
+        { ...validSource, VITE_CLINICS_API_URL: 'http://127.0.0.1:8001' },
+        development,
+      );
 
       expect(accepted.ok).toBe(true);
       if (accepted.ok) {
-        expect(accepted.env).toMatchObject({ [name]: 'http://127.0.0.1:8001' });
+        expect(accepted.env).toMatchObject({ VITE_CLINICS_API_URL: 'http://127.0.0.1:8001' });
       }
-      expect(errorsFor({ ...validSource, [name]: 'http://127.0.0.1:8001/' })).toEqual([
-        `${name}: ${messages.config.rules.apiUrl}`,
-      ]);
+      expect(errorsFor({ ...validSource, VITE_CLINICS_API_URL: 'http://127.0.0.1:8001/' })).toEqual(
+        [`VITE_CLINICS_API_URL: ${messages.config.rules.apiUrl}`],
+      );
       expect(
-        errorsFor({ ...validSource, [name]: 'http://clinics.mailysoft.com' }, production),
-      ).toEqual([`${name}: ${messages.config.rules.apiUrl}`]);
+        errorsFor(
+          { ...validSource, VITE_CLINICS_API_URL: 'http://clinics.mailysoft.com' },
+          production,
+        ),
+      ).toEqual([`VITE_CLINICS_API_URL: ${messages.config.rules.apiUrl}`]);
     });
   });
 

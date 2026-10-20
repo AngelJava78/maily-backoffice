@@ -1,6 +1,5 @@
 import Link from '@mui/material/Link';
 import Stack from '@mui/material/Stack';
-import type { SxProps, Theme } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import { DataGrid, GridOverlay, type GridColDef } from '@mui/x-data-grid';
 import type { ReactNode } from 'react';
@@ -8,6 +7,7 @@ import { Link as RouterLink } from 'react-router';
 
 import { formatDateTime } from '@/shared/lib/formatDateTime';
 import { messages } from '@/shared/messages/es';
+import { GRID_PAGINATION_STYLES } from '@/shared/ui/dataGridStyles';
 
 import { getFullName, type PlatformUser } from '../schemas/user';
 import { PAGE_SIZE_OPTIONS } from '../schemas/usersLocation';
@@ -26,20 +26,6 @@ interface UsersGridProps {
   readonly emptyAction?: ReactNode;
   readonly onPaginationChange: (page: number, pageSize: number) => void;
 }
-
-/**
- * The footer of the grid hides "Filas por página" under 600 px to save room, but then the operator
- * cannot ask for 25 or 50 users on a phone (FR-001, US1-2). It is kept, and the footer wraps onto a
- * second line when it does not fit, so the page never scrolls sideways.
- */
-const PAGINATION_STYLES: SxProps<Theme> = (theme) => ({
-  '& .MuiTablePagination-selectLabel': { display: 'block' },
-  '& .MuiTablePagination-input': { display: 'inline-flex' },
-  [theme.breakpoints.down('sm')]: {
-    '& .MuiTablePagination-toolbar': { flexWrap: 'wrap', justifyContent: 'flex-end', rowGap: 0.5 },
-    '& .MuiTablePagination-spacer': { display: 'none' },
-  },
-});
 
 function NoRowsOverlay({ action }: { readonly action?: ReactNode }) {
   return (
@@ -115,7 +101,8 @@ export function UsersGrid({
       slots={{ noRowsOverlay: NoRowsOverlay }}
       slotProps={{
         noRowsOverlay: { action: emptyAction },
-        basePagination: { material: { sx: PAGINATION_STYLES } },
+        // 'Filas por página' stays on a phone (FR-001, US1-2): see GRID_PAGINATION_STYLES.
+        basePagination: { material: { sx: GRID_PAGINATION_STYLES } },
       }}
     />
   );

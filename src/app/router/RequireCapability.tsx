@@ -5,9 +5,10 @@ import { messages } from '@/shared/messages/es';
 import { useNotify } from '@/shared/ui/Notifications';
 
 /**
- * Wraps a screen that needs more than reading the section (such as creating a user). Without the
- * capability, or if it is taken away while the person is inside, they go back to `to`, replacing
- * the entry, with a notice (FR-015). The service still has the last word with its 403.
+ * Wraps a screen of a section that needs more than reading it (such as creating a user or editing
+ * a subscription). Without the capability, or if it is taken away while the person is inside, they
+ * go back to `to`, replacing the entry, with a notice (FR-015 of 002, FR-013 of 003). The API still
+ * has the last word with its 403.
  */
 export function RequireCapability({
   allowed,

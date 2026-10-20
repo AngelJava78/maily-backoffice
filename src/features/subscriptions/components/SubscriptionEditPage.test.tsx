@@ -1,0 +1,287 @@
+import { screen, waitFor } from '@testing-library/react';
+import { useLocation, useParams } from 'react-router';
+import { describe, expect, it } from 'vitest';
+import { axe } from 'vitest-axe';
+
+import { messages } from '@/shared/messages/es';
+import { createSubscriptionsCatalogMock } from '@/test/handlers/subscriptionsCatalog';
+import { ADMIN_AUTH0, createUsersDirectoryMock } from '@/test/handlers/usersDirectory';
+import { renderWithProviders } from '@/test/renderWithProviders';
+
+import { subscriptionKeys } from '../hooks/subscriptionKeys';
+import { SubscriptionEditPage } from './SubscriptionEditPage';
+
+const text = messages.subscriptions;
+
+function DetailProbe() {
+  const { subscriptionId } = useParams();
+  const location = useLocation();
+  return <p>{`Detalle ${subscriptionId ?? ''}: ${JSON.stringify(location.state ?? null)}`}</p>;
+}
+
+function start() {
+  const catalog = createSubscriptionsCatalogMock({ directory: createUsersDirectoryMock() });
+  catalog.addStatus(5, 'En revisión');
+  catalog.setStatus(4, 5);
+  return catalog;
+}
+
+function renderEdit(subscriptionId = 2, state?: unknown) {
+  const pathname = `/subscriptions/${subscriptionId}/edit`;
+  return renderWithProviders(
+    [
+      {
+        path: '/subscriptions/:subscriptionId/edit',
+        element: <SubscriptionEditPage subscriptionId={subscriptionId} />,
+      },
+      { path: '/subscriptions/:subscriptionId', element: <DetailProbe /> },
+      { path: '/subscriptions', element: <p>Listado</p> },
+    ],
+    { auth0: ADMIN_AUTH0, initialEntries: [state === undefined ? pathname : { pathname, state }] },
+  );
+}
+
+const field = (label: string) => screen.getByRole('textbox', { name: new RegExp(`^${label}`) });
+const name = () => field(text.form.fields.name);
+const description = () => field(text.form.fields.description);
+const price = () => field(text.form.fields.monthlyPrice);
+const element = (n: number) => field(text.form.featureLabel(n));
+const save = () => screen.getByRole('button', { name: new RegExp(`^${messages.common.save}`) });
+const PATCHES = '/api/v1/subscriptions/2';
+
+/** Waits for the form, which is built once the subscription arrived. */
+async function formReady() {
+  await waitFor(() => {
+    expect(name()).toHaveValue('Pro');
+  });
+}
+
+describe('SubscriptionEditPage', () => {
+  it('shows its title from the first render, and that it is loading', async () => {
+    const catalog = start();
+    const release = catalog.defer();
+    renderEdit();
+
+    expect(screen.getByRole('heading', { level: 1, name: text.edit.title })).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: messages.common.loading })).toBeInTheDocument();
+    release();
+    await formReady();
+  });
+
+  it('opens with the current values, what it includes in its order and the price as it is', async () => {
+    start();
+    renderEdit();
+    await formReady();
+
+    expect(description()).toHaveValue('Para clínicas en crecimiento.');
+    expect(price()).toHaveValue('4500.00');
+    expect(element(1)).toHaveValue('Hasta 5 consultorios');
+    expect(element(2)).toHaveValue('Usuarios ilimitados');
+    expect(element(3)).toHaveValue('Todo lo clínico');
+    expect(screen.queryByLabelText(/estatus/i)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [7, 'Suspendido'],
+    [4, 'Enterprise'],
+  ])('edits a subscription in any status that is vigente (%i, %s)', async (id, current) => {
+    start();
+    renderEdit(id);
+
+    await waitFor(() => {
+      expect(name()).toHaveValue(current);
+    });
+  });
+
+  describe('sending only what changed (FR-012)', () => {
+    it('sends only the price when only the price changed', async () => {
+      const catalog = start();
+      const { user } = renderEdit();
+      await formReady();
+
+      await user.clear(price());
+      await user.type(price(), '5000');
+      await user.click(save());
+
+      await screen.findByText(/^Detalle 2:/);
+      expect(catalog.requestsTo('PATCH', PATCHES).map((request) => request.body)).toEqual([
+        { monthly_price: '5000' },
+      ]);
+    });
+
+    it('sends the name when only its upper case changed', async () => {
+      const catalog = start();
+      const { user } = renderEdit();
+      await formReady();
+
+      await user.clear(name());
+      await user.type(name(), 'PRO');
+      await user.click(save());
+
+      await screen.findByText(/^Detalle 2:/);
+      expect(catalog.requestsTo('PATCH', PATCHES)[0]?.body).toEqual({ name: 'PRO' });
+    });
+
+    it('sends null when the description was emptied, and the whole list when an element was removed', async () => {
+      const catalog = start();
+      const { user } = renderEdit();
+      await formReady();
+
+      await user.clear(description());
+      await user.click(screen.getByRole('button', { name: text.form.removeFeature(2) }));
+      await user.click(save());
+
+      await screen.findByText(/^Detalle 2:/);
+      expect(catalog.requestsTo('PATCH', PATCHES)[0]?.body).toEqual({
+        description: null,
+        features: ['Hasta 5 consultorios', 'Todo lo clínico'],
+      });
+    });
+
+    it('sends nothing when nothing changed, and goes back to the detail saying so', async () => {
+      const catalog = start();
+      const { user, router } = renderEdit();
+      await formReady();
+
+      expect(save()).toBeEnabled();
+      await user.type(price(), '{Backspace}{Backspace}{Backspace}');
+      await user.click(save());
+
+      await screen.findByText(/^Detalle 2:/);
+      expect(router.state.historyAction).toBe('REPLACE');
+      const notice = await screen.findByText(text.edit.noChanges);
+      expect(notice.closest('.MuiAlert-root')).toHaveClass('MuiAlert-colorInfo');
+      expect(catalog.requestsTo('PATCH', PATCHES)).toHaveLength(0);
+    });
+  });
+
+  it('goes to the detail with the list it came from, replacing the form, and says that it was saved', async () => {
+    start();
+    const { user, router } = renderEdit(2, { listSearch: '?page=2' });
+    await formReady();
+
+    await user.clear(name());
+    await user.type(name(), 'Pro Plus');
+    await user.click(save());
+
+    expect(await screen.findByText('Detalle 2: {"listSearch":"?page=2"}')).toBeInTheDocument();
+    expect(router.state.historyAction).toBe('REPLACE');
+    expect(await screen.findByText(text.edit.saved)).toBeInTheDocument();
+  });
+
+  it('goes back to the detail without sending anything when it is cancelled', async () => {
+    const catalog = start();
+    const { user } = renderEdit(2, { listSearch: '?page=2' });
+    await formReady();
+    await user.type(name(), ' cambiado');
+
+    await user.click(screen.getByRole('link', { name: messages.common.cancel }));
+
+    expect(await screen.findByText('Detalle 2: {"listSearch":"?page=2"}')).toBeInTheDocument();
+    expect(catalog.requestsTo('PATCH', PATCHES)).toHaveLength(0);
+  });
+
+  it('says that the subscription was not found when it does not exist', async () => {
+    start();
+    renderEdit(99);
+
+    expect(await screen.findByText(text.detail.notFound.title)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: text.detail.notFound.backToList })).toHaveAttribute(
+      'href',
+      '/subscriptions',
+    );
+  });
+
+  it('warns when it was deleted meanwhile, and shows that it does not exist (US3-8)', async () => {
+    const catalog = start();
+    const { user } = renderEdit();
+    await formReady();
+    catalog.remove(2);
+
+    await user.clear(name());
+    await user.type(name(), 'Otro');
+    await user.click(save());
+
+    const notice = await screen.findByText(text.errors.notFound);
+    expect(notice.closest('.MuiAlert-root')).toHaveClass('MuiAlert-colorWarning');
+    expect(await screen.findByText(text.detail.notFound.title)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: text.detail.notFound.backToList })).toBeInTheDocument();
+  });
+
+  it('shows a name in use next to the name', async () => {
+    start();
+    const { user } = renderEdit();
+    await formReady();
+
+    await user.clear(name());
+    await user.type(name(), 'premium');
+    await user.click(save());
+
+    await waitFor(() => {
+      expect(name()).toHaveAccessibleDescription(text.errors.nameInUse);
+    });
+  });
+
+  it('shows the error with a way to retry and a way back when it cannot load', async () => {
+    const catalog = start();
+    catalog.failNext({ method: 'GET', path: PATCHES, status: 500, code: 'internal_error' });
+    const { user } = renderEdit();
+
+    expect(await screen.findByText(text.detail.loadError.title)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: text.detail.backToList })).toHaveAttribute(
+      'href',
+      '/subscriptions',
+    );
+    await user.click(screen.getByRole('button', { name: messages.common.retry }));
+
+    await formReady();
+  });
+
+  it('does not overwrite what was typed when the subscription is loaded again', async () => {
+    const catalog = start();
+    const { user, queryClient } = renderEdit();
+    await formReady();
+    await user.clear(name());
+    await user.type(name(), 'Escrito');
+
+    catalog.update(2, { name: 'Cambiado por otra persona' });
+    await queryClient.invalidateQueries({ queryKey: subscriptionKeys.detail(2), exact: true });
+
+    await waitFor(() => {
+      expect(queryClient.getQueryData(subscriptionKeys.detail(2))).toMatchObject({
+        name: 'Cambiado por otra persona',
+      });
+    });
+    expect(name()).toHaveValue('Escrito');
+  });
+
+  it('does not send back a datum that another person changed while the form was open (US3-7)', async () => {
+    const catalog = start();
+    const { user, queryClient } = renderEdit();
+    await formReady();
+
+    catalog.update(2, { monthly_price: '4800' });
+    await queryClient.invalidateQueries({ queryKey: subscriptionKeys.detail(2), exact: true });
+    await waitFor(() => {
+      expect(queryClient.getQueryData(subscriptionKeys.detail(2))).toMatchObject({
+        monthlyPrice: '4800.00',
+      });
+    });
+    await user.type(description(), ' Con soporte.');
+    await user.click(save());
+
+    await screen.findByText(/^Detalle 2:/);
+    expect(catalog.requestsTo('PATCH', PATCHES)[0]?.body).toEqual({
+      description: 'Para clínicas en crecimiento. Con soporte.',
+    });
+    expect(catalog.state.find(2)?.monthlyPrice).toBe('4800.00');
+  });
+
+  it('has no accessibility violations', async () => {
+    start();
+    const { container } = renderEdit();
+    await formReady();
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});

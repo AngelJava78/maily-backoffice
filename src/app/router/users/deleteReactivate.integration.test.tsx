@@ -141,7 +141,9 @@ describe(
       await user.click(screen.getByRole('combobox', { name: /roles/i }));
       await user.click(screen.getByRole('option', { name: 'Marketing' }));
       await user.keyboard('{Escape}');
-      await user.click(screen.getByRole('button', { name: new RegExp(`^${text.form.save}`) }));
+      await user.click(
+        screen.getByRole('button', { name: new RegExp(`^${messages.common.save}`) }),
+      );
 
       expect(await screen.findByText(text.errors.emailAlreadyRegistered)).toBeInTheDocument();
       expect(screen.getByRole('link', { name: text.errors.searchThisEmail })).toHaveAttribute(

@@ -5,6 +5,7 @@ import type { HttpClient } from './httpClient';
 /** The HTTP clients of the platform services; each feature picks the one it needs. */
 export interface HttpClients {
   readonly users: HttpClient;
+  readonly subscriptions: HttpClient;
 }
 
 export const HttpClientsContext = createContext<HttpClients | null>(null);

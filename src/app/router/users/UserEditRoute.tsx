@@ -4,7 +4,7 @@ import { getUserCapabilities, useGrantedAccess, useRefreshOperatorAccess } from 
 import { parseUserId, UserEditPage } from '@/features/users';
 
 import { NotFoundPage } from '../../pages/LazyNotFoundPage';
-import { RequireCapability } from './RequireCapability';
+import { RequireCapability } from '../RequireCapability';
 
 /**
  * Editing a user needs `users:update`, and not only the reading of the section (FR-025). Without

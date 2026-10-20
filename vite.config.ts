@@ -8,6 +8,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const usersApiProxyTarget = env.USERS_API_PROXY_TARGET ?? 'http://127.0.0.1:8000';
+  // The port the subscriptions API documents (its README reserves 8001 for its clinics stub).
+  const subscriptionsApiProxyTarget = env.SUBSCRIPTIONS_API_PROXY_TARGET ?? 'http://127.0.0.1:8010';
 
   return {
     plugins: [react()],
@@ -24,6 +26,13 @@ export default defineConfig(({ mode }) => {
           target: usersApiProxyTarget,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/proxy\/users/, ''),
+        },
+        // The subscriptions API only enables CORS for the sites of its CORS_ALLOWED_ORIGINS, which is
+        // empty by default: in development the proxy avoids it too (research D13 of 003).
+        '/proxy/subscriptions': {
+          target: subscriptionsApiProxyTarget,
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/proxy\/subscriptions/, ''),
         },
       },
     },

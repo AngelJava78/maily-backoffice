@@ -78,7 +78,7 @@ function renderEdit({
 type Rendered = ReturnType<typeof renderEdit>;
 
 const field = (label: string) => screen.findByLabelText(new RegExp(`^${label}`));
-const save = () => screen.getByRole('button', { name: new RegExp(`^${text.form.save}`) });
+const save = () => screen.getByRole('button', { name: new RegExp(`^${messages.common.save}`) });
 
 async function replaceText(user: Rendered['user'], label: string, value: string) {
   const input = await field(label);

@@ -9,6 +9,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router';
 
 import { messages } from '@/shared/messages/es';
+import { FormFrame } from '@/shared/ui/FormFrame';
 import { useNotify } from '@/shared/ui/Notifications';
 import { useFocusOnMount } from '@/shared/ui/useFocusOnMount';
 
@@ -19,7 +20,6 @@ import { parseUserDetailState } from '../schemas/userDetailState';
 import { createUserFormSchema, type CreateUserFormValues } from '../schemas/userForm';
 import { PasswordField } from './PasswordField';
 import { RolesField } from './RolesField';
-import { UserForm } from './UserForm';
 import { UserNameFields } from './UserNameFields';
 
 /** The inputs a refusal of the service can name, in the order in which they appear on screen. */
@@ -147,7 +147,7 @@ export function UserCreatePage() {
       <Typography variant="h4" component="h1" ref={headingRef} tabIndex={-1}>
         {messages.users.form.createTitle}
       </Typography>
-      <UserForm
+      <FormFrame
         onSubmit={(event) => {
           void save(event);
         }}
@@ -208,7 +208,7 @@ export function UserCreatePage() {
             />
           )}
         />
-      </UserForm>
+      </FormFrame>
     </Stack>
   );
 }

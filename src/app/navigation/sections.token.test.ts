@@ -9,14 +9,14 @@ function accessWith(...permissions: string[]) {
 }
 
 describe('the Token entry of the navigation (feature 005)', () => {
-  it('is registered behind Usuarios, with its route and its resource (contracts/app-routes.md)', () => {
+  it('is registered behind the sections, with its route and its resource (contracts/app-routes.md)', () => {
     expect(sections).toContainEqual({
       id: 'token',
       path: '/tools/postman-token',
       labelKey: 'token',
       resource: 'token',
     });
-    expect(sections.map((section) => section.id)).toEqual(['users', 'token']);
+    expect(sections.map((section) => section.id)).toEqual(['users', 'subscriptions', 'token']);
   });
 
   it('is called Token', () => {

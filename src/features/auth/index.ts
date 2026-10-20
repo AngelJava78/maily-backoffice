@@ -16,6 +16,7 @@ export type { OperatorIdentity } from './hooks/useOperatorIdentity';
 export { useReloadOnBfcacheRestore } from './hooks/useReloadOnBfcacheRestore';
 export { useSessionExpiry } from './hooks/useSessionExpiry';
 export { can, hasAnySectionPermission, SECTION_RESOURCES } from './policy/permissions';
+export { getSubscriptionCapabilities } from './policy/subscriptionCapabilities';
 export { getUserCapabilities } from './policy/userCapabilities';
 export type { PermissionAction, PermissionResource, SectionResource } from './policy/permissions';
 export { RequirePermission } from './policy/RequirePermission';

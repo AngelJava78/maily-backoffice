@@ -12,14 +12,15 @@ Toda la configuración viaja en variables `VITE_*` (públicas: nunca contienen s
 | `VITE_AUTH0_CLIENT_ID` | Sí | `AbCd...` | Texto no vacío. |
 | `VITE_AUTH0_AUDIENCE` | Sí | `https://api.mailysoft.com` | Texto no vacío (identificador de la API de Auth0). |
 | `VITE_USERS_API_URL` | Sí | `/proxy/users` | Ruta que empieza con `/` o URL `http(s)`; en builds de producción una URL absoluta DEBE ser `https`. Sin `/` final. |
+| `VITE_SUBSCRIPTIONS_API_URL` | Sí (feature 003) | `/proxy/subscriptions` | Igual que la anterior. |
 | `VITE_CLINICS_API_URL` | No (feature 004) | `http://127.0.0.1:8001` | Igual que la anterior. |
-| `VITE_SUBSCRIPTIONS_API_URL` | No (feature 003) | `http://127.0.0.1:8002` | Igual que la anterior. |
 
-Variable solo de desarrollo, leída por `vite.config.ts` (sin prefijo `VITE_`, no llega al navegador):
+Variables solo de desarrollo, leídas por `vite.config.ts` (sin prefijo `VITE_`, no llegan al navegador):
 
 | Variable | Por defecto | Uso |
 |---|---|---|
 | `USERS_API_PROXY_TARGET` | `http://127.0.0.1:8000` | Destino del proxy `/proxy/users` en `npm run dev`. |
+| `SUBSCRIPTIONS_API_PROXY_TARGET` | `http://127.0.0.1:8010` | Destino del proxy `/proxy/subscriptions` en `npm run dev` (feature 003; el puerto que documenta la API). |
 
 ## `.env.example` (contenido previsto)
 
@@ -28,16 +29,18 @@ VITE_AUTH0_DOMAIN=your-tenant.us.auth0.com
 VITE_AUTH0_CLIENT_ID=your-spa-client-id
 VITE_AUTH0_AUDIENCE=https://api.mailysoft.example
 VITE_USERS_API_URL=/proxy/users
+VITE_SUBSCRIPTIONS_API_URL=/proxy/subscriptions
 # VITE_CLINICS_API_URL=
-# VITE_SUBSCRIPTIONS_API_URL=
-# Solo desarrollo (vite.config.ts):
+# Solo desarrollo (las lee vite.config.ts):
 # USERS_API_PROXY_TARGET=http://127.0.0.1:8000
+# SUBSCRIPTIONS_API_PROXY_TARGET=http://127.0.0.1:8010
 ```
 
 ## Servidor de desarrollo
 
 - Puerto fijo `5173` con `strictPort`, para que las URL registradas en Auth0 sigan siendo válidas.
 - Proxy `/proxy/users` → `USERS_API_PROXY_TARGET`, quitando el prefijo `/proxy/users`. Evita CORS (el servicio de usuarios solo lo habilita si se configura `CORS_ALLOWED_ORIGINS`) y el *preflight* de la cabecera `Authorization`.
+- Proxy `/proxy/subscriptions` → `SUBSCRIPTIONS_API_PROXY_TARGET`, quitando el prefijo, por la misma razón: la API de suscripciones también tiene `CORS_ALLOWED_ORIGINS` vacía por defecto (feature 003).
 
 ## Entornos desplegados
 

@@ -2,6 +2,7 @@ import type { z } from 'zod';
 
 import type { OperatorAccess } from '@/features/auth/policy/types';
 import type { accessRoleSchema, myAccessSchema } from '@/features/auth/schemas/myAccess';
+import type { subscriptionSchema } from '@/features/subscriptions/schemas/subscription';
 import { platformUserSchema } from '@/features/users';
 import type { roleSchema } from '@/features/users/schemas/role';
 import type { userPageSchema } from '@/features/users/schemas/userPage';
@@ -14,6 +15,8 @@ export type RoleDto = z.input<typeof accessRoleSchema>;
 export type MyAccessDto = z.input<typeof myAccessSchema>;
 export type RoleRecordDto = z.input<typeof roleSchema>;
 export type UserPageDto = z.input<typeof userPageSchema>;
+/** The subscriptions API speaks snake_case too; this is the type of a subscription in its answers. */
+export type SubscriptionDto = z.input<typeof subscriptionSchema>;
 
 /** A user as the users service returns it: active, with the id `uuidOf(121)` and a maternal last name. */
 export function userDto(overrides: Partial<UserDto> = {}): UserDto {
@@ -92,6 +95,22 @@ export function operatorAccess(overrides: Partial<OperatorAccess> = {}): Operato
     roles: [administrator],
     authorizedRoles: [administrator],
     permissions: new Set(permissions),
+    ...overrides,
+  };
+}
+
+/** A subscription as the subscriptions API returns it: Pro, active, without clinics (id 2). */
+export function subscriptionDto(overrides: Partial<SubscriptionDto> = {}): SubscriptionDto {
+  return {
+    id: 2,
+    name: 'Pro',
+    description: 'Para clínicas en crecimiento.',
+    monthly_price: '4500.00',
+    features: ['Hasta 5 consultorios', 'Usuarios ilimitados'],
+    status: { id: 1, name: 'Activa' },
+    clinics_count: 0,
+    created_at: '2026-10-17T15:00:00Z',
+    updated_at: '2026-10-17T15:00:00Z',
     ...overrides,
   };
 }

@@ -1,7 +1,7 @@
 import { getUserCapabilities, useGrantedAccess } from '@/features/auth';
 import { UserCreatePage } from '@/features/users';
 
-import { RequireCapability } from './RequireCapability';
+import { RequireCapability } from '../RequireCapability';
 
 /**
  * Creating a user needs three permissions, not only the reading of the section (FR-025). Without

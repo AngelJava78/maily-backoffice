@@ -1,9 +1,9 @@
 import { HttpResponse, type PathParams } from 'msw';
 
+import type { RequestLog } from '../shared/requestLog';
 import { authenticate, requirePermission } from './authorize';
 import type { Behaviors } from './behaviors';
 import { DirectoryError, type DirectoryModel } from './model';
-import type { RequestLog } from './requestLog';
 
 /** What the operation receives once the request has been recorded, identified and authorized. */
 export interface RequestContext {

@@ -1,5 +1,7 @@
 import { auth0User } from '../../auth0Double';
 import { server } from '../../server';
+import { createRequestLog } from '../shared/requestLog';
+import { USERS_API_BASE_URL } from '../usersService';
 import { assignRoleHandlers } from './assignRole';
 import { createBehaviors } from './behaviors';
 import { blockHandlers } from './block';
@@ -10,7 +12,6 @@ import { meHandlers } from './me';
 import { createDirectoryModel, type DirectoryInitial } from './model';
 import { readHandlers } from './reads';
 import { removeHandlers } from './remove';
-import { createRequestLog } from './requestLog';
 import { ADMIN_SUB, defaultDirectory } from './seed';
 import { unassignRoleHandlers } from './unassignRole';
 import { updateHandlers } from './update';
@@ -35,7 +36,7 @@ export type { DirectoryInitial, DirectoryRole, DirectoryUser } from './model';
 export function createUsersDirectoryMock(initial: DirectoryInitial = defaultDirectory()) {
   const model = createDirectoryModel(initial);
   const behaviors = createBehaviors();
-  const log = createRequestLog();
+  const log = createRequestLog(USERS_API_BASE_URL);
   const handle = createHandle(model, behaviors, log);
 
   server.use(

@@ -11,12 +11,12 @@ import { messages } from '@/shared/messages/es';
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog';
 import { ErrorState } from '@/shared/ui/ErrorState';
 import { afterDialogClosed, focusIfLost } from '@/shared/ui/focusIfLost';
+import { RefreshFailedAlert } from '@/shared/ui/RefreshFailedAlert';
 
 import { useRoleActions } from '../hooks/useRoleActions';
 import { useUserRoles } from '../hooks/useUserRoles';
 import { isActiveStatus } from '../schemas/userStatus';
 import { AddRoleDialog } from './AddRoleDialog';
-import { RefreshFailedAlert } from './RefreshFailedAlert';
 
 interface UserRolesPanelProps {
   readonly userId: string;

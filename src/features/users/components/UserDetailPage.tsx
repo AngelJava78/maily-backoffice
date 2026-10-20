@@ -11,6 +11,7 @@ import { Link as RouterLink, useLocation, useNavigate } from 'react-router';
 import { messages } from '@/shared/messages/es';
 import { ErrorState } from '@/shared/ui/ErrorState';
 import { useNotify } from '@/shared/ui/Notifications';
+import { RefreshFailedAlert } from '@/shared/ui/RefreshFailedAlert';
 import { useFocusOnMount } from '@/shared/ui/useFocusOnMount';
 
 import type { ApiError } from '@/shared/api/ApiError';
@@ -24,7 +25,6 @@ import { getFullName } from '../schemas/user';
 import { parseUserDetailState } from '../schemas/userDetailState';
 import { isActiveStatus } from '../schemas/userStatus';
 import { PendingRolesAlert } from './PendingRolesAlert';
-import { RefreshFailedAlert } from './RefreshFailedAlert';
 import { UserDetailFields } from './UserDetailFields';
 import { UserRolesPanel } from './UserRolesPanel';
 import { UserStatusActions } from './UserStatusActions';

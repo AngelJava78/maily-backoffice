@@ -32,16 +32,29 @@ export function HttpClientsProvider({
       }
     };
 
+    const onSessionExpired = () => {
+      void expireSession();
+    };
+
+    // The same token for every API: one session, with the audience of the MailySoft APIs.
     return {
       users: createHttpClient({
         baseUrl: env.VITE_USERS_API_URL,
         getAccessToken,
-        onSessionExpired: () => {
-          void expireSession();
-        },
+        onSessionExpired,
+      }),
+      subscriptions: createHttpClient({
+        baseUrl: env.VITE_SUBSCRIPTIONS_API_URL,
+        getAccessToken,
+        onSessionExpired,
       }),
     };
-  }, [env.VITE_USERS_API_URL, getAccessTokenSilently, expireSession]);
+  }, [
+    env.VITE_USERS_API_URL,
+    env.VITE_SUBSCRIPTIONS_API_URL,
+    getAccessTokenSilently,
+    expireSession,
+  ]);
 
   return <HttpClientsContext.Provider value={clients}>{children}</HttpClientsContext.Provider>;
 }

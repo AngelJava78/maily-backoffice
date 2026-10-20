@@ -13,6 +13,7 @@ import { Link as RouterLink, useLocation, useNavigate } from 'react-router';
 
 import { messages } from '@/shared/messages/es';
 import { ErrorState } from '@/shared/ui/ErrorState';
+import { FormFrame } from '@/shared/ui/FormFrame';
 import { useNotify } from '@/shared/ui/Notifications';
 import { useFocusOnMount } from '@/shared/ui/useFocusOnMount';
 
@@ -24,7 +25,6 @@ import type { PlatformUser } from '../schemas/user';
 import { parseUserDetailState } from '../schemas/userDetailState';
 import { editUserFormSchema, type EditUserFormValues } from '../schemas/userForm';
 import { isActiveStatus } from '../schemas/userStatus';
-import { UserForm } from './UserForm';
 import { UserNameFields } from './UserNameFields';
 
 /** The inputs a refusal of the service can name, in the order in which they appear on screen. */
@@ -130,7 +130,7 @@ function EditUserForm({
   });
 
   return (
-    <UserForm
+    <FormFrame
       onSubmit={(event) => {
         void save(event);
       }}
@@ -150,7 +150,7 @@ function EditUserForm({
           maternalLastName: errors.maternalLastName?.message,
         }}
       />
-    </UserForm>
+    </FormFrame>
   );
 }
 

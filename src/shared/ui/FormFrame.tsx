@@ -8,9 +8,9 @@ import { Link as RouterLink } from 'react-router';
 
 import { messages } from '@/shared/messages/es';
 
-interface UserFormProps {
+interface FormFrameProps {
   readonly onSubmit: SubmitEventHandler<HTMLFormElement>;
-  /** The form is being saved: it cannot be saved again meanwhile (FR-007). */
+  /** The form is being saved: it cannot be saved again meanwhile. */
   readonly pending: boolean;
   /** Keeps the form from being saved for another reason, such as a catalog that did not load. */
   readonly saveDisabled?: boolean;
@@ -24,11 +24,11 @@ interface UserFormProps {
 }
 
 /**
- * The frame that the creation and the edition of a user share (constitution VI): the fields, the
- * general error, "Guardar" and "Cancelar". The browser does not validate (`noValidate`): React
+ * The frame that the creation and the edition of a resource share (constitution VI): the fields,
+ * the general error, "Guardar" and "Cancelar". The browser does not validate (`noValidate`): React
  * Hook Form does, with the schemas, so every error looks the same.
  */
-export function UserForm({
+export function FormFrame({
   onSubmit,
   pending,
   saveDisabled = false,
@@ -36,7 +36,7 @@ export function UserForm({
   cancelTo,
   cancelState,
   children,
-}: UserFormProps) {
+}: FormFrameProps) {
   const errorRef = useRef<HTMLDivElement>(null);
 
   // The error is at the top of the form and the person is at the bottom, on "Guardar": at a narrow
@@ -61,7 +61,7 @@ export function UserForm({
           {children}
           <Stack direction="row" spacing={1}>
             <Button type="submit" variant="contained" loading={pending} disabled={saveDisabled}>
-              {messages.users.form.save}
+              {messages.common.save}
             </Button>
             {/* Leaving does not stop a save that already left, and its result would take the person back. */}
             <Button component={RouterLink} to={cancelTo} state={cancelState} disabled={pending}>
