@@ -16,9 +16,9 @@ Sync Impact Report (borrador para revisar la enmienda; se elimina antes del comm
 - Artefactos dependientes:
   - ✅ specs 001, 002, 004 y 005, README y texto de navegación: ya dicen «suscripciones» o
     «Suscripciones» (alineados el 2026-10-20).
-  - ⚠ `specs/003-manage-subscription-types/spec.md` (Key Entities y el supuesto «Terminología») y
-    su `checklists/requirements.md` (nota de alineación del nombre) aún dicen que la constitución
-    usa «tipos de suscripción». La cita literal del Input se conserva.
+  - ✅ `specs/003-manage-subscription-types/spec.md` (Key Entities y los supuestos «Terminología»,
+    «Desviación de la constitución» y «Restricciones», que ahora cita la 1.2.1) y su
+    `checklists/requirements.md`: alineados el 2026-10-20. La cita literal del Input se conserva.
 - Fuera de esta enmienda: los ejemplos de ruta del backend conservan `/suscriptions` (principio IV
   y ejemplos de desarrollo local), que no es la ruta real (`/api/v1/subscriptions`); corregirlos
   sería otro PATCH.
