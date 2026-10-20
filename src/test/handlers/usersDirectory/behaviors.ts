@@ -32,7 +32,7 @@ export interface IdentityFailures {
   /** Emails that already have an access account. */
   readonly existingAccounts: Set<string>;
   /** Users whose access account does not exist. */
-  readonly missingAccounts: Set<number>;
+  readonly missingAccounts: Set<string>;
   /** Auth0 finds the password too weak: 422 `password_rejected`. */
   passwordRejected: boolean;
 }
@@ -137,7 +137,7 @@ export function createBehaviors() {
         accountExists(email: string): void {
           identity.existingAccounts.add(email.trim().toLowerCase());
         },
-        accountMissing(userId: number): void {
+        accountMissing(userId: string): void {
           identity.missingAccounts.add(userId);
         },
         recover(): void {

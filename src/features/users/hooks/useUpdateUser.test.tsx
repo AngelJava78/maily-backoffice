@@ -12,6 +12,7 @@ import { createWrapper } from '@/test/renderWithProviders';
 
 import { userKeys } from './userKeys';
 import { useUpdateUser } from './useUpdateUser';
+import { uuidOf } from '@/test/ids';
 
 function setup(statusId = 1) {
   const base = defaultDirectory();
@@ -20,7 +21,7 @@ function setup(statusId = 1) {
     users: [
       ...base.users,
       directoryUser({
-        id: 121,
+        id: uuidOf(121),
         statusId,
         firstName: 'Ana',
         paternalLastName: 'Pérez',
@@ -30,7 +31,7 @@ function setup(statusId = 1) {
   });
   const queryClient = createQueryClient();
   const { wrapper } = createWrapper({ auth0: ADMIN_AUTH0, queryClient });
-  const hook = renderHook(() => useUpdateUser(121), { wrapper });
+  const hook = renderHook(() => useUpdateUser(uuidOf(121)), { wrapper });
   return { mock, queryClient, ...hook };
 }
 
@@ -47,7 +48,7 @@ describe('useUpdateUser', () => {
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
     });
-    expect(mock.requestsTo('PATCH', '/api/v1/users/121')[0]?.body).toEqual({
+    expect(mock.requestsTo('PATCH', `/api/v1/users/${uuidOf(121)}`)[0]?.body).toEqual({
       first_name: 'Anita',
       paternal_last_name: 'Pérez',
       maternal_last_name: null,
@@ -71,14 +72,16 @@ describe('useUpdateUser', () => {
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
     });
-    expect(queryClient.getQueryData(userKeys.detail(121))).toMatchObject({ firstName: 'Anita' });
+    expect(queryClient.getQueryData(userKeys.detail(uuidOf(121)))).toMatchObject({
+      firstName: 'Anita',
+    });
     expect(queryClient.getQueryState(list)?.isInvalidated).toBe(true);
     expect(queryClient.getQueryState(search)?.isInvalidated).toBe(true);
   });
 
   it('fails, without retrying, when the status of the user does not admit the change', async () => {
     const { mock, queryClient, result } = setup(2);
-    queryClient.setQueryData(userKeys.detail(121), 'the user as it was believed to be');
+    queryClient.setQueryData(userKeys.detail(uuidOf(121)), 'the user as it was believed to be');
 
     act(() => {
       result.current.mutate({
@@ -90,14 +93,14 @@ describe('useUpdateUser', () => {
       expect(result.current.isError).toBe(true);
     });
     expect(result.current.error).toMatchObject({ status: 409, code: 'user_blocked' });
-    expect(mock.requestsTo('PATCH', '/api/v1/users/121')).toHaveLength(1);
+    expect(mock.requestsTo('PATCH', `/api/v1/users/${uuidOf(121)}`)).toHaveLength(1);
     // What the screen believed about the user is out of date: it has to ask for it again.
-    expect(queryClient.getQueryState(userKeys.detail(121))?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(userKeys.detail(uuidOf(121)))?.isInvalidated).toBe(true);
   });
 
   it('leaves what is cached as it is when the service refuses the values', async () => {
     const { queryClient, result } = setup();
-    queryClient.setQueryData(userKeys.detail(121), 'the user');
+    queryClient.setQueryData(userKeys.detail(uuidOf(121)), 'the user');
 
     act(() => {
       result.current.mutate({
@@ -109,6 +112,6 @@ describe('useUpdateUser', () => {
       expect(result.current.isError).toBe(true);
     });
     expect(result.current.error).toMatchObject({ status: 422, code: 'validation_error' });
-    expect(queryClient.getQueryState(userKeys.detail(121))?.isInvalidated).toBe(false);
+    expect(queryClient.getQueryState(userKeys.detail(uuidOf(121)))?.isInvalidated).toBe(false);
   });
 });

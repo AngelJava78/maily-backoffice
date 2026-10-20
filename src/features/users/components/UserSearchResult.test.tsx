@@ -9,6 +9,7 @@ import { renderWithProviders } from '@/test/renderWithProviders';
 
 import { platformUserSchema } from '../schemas/user';
 import { UserSearchResult } from './UserSearchResult';
+import { uuidOf } from '@/test/ids';
 
 function renderResult(statusId = 1, statusName = 'Activo') {
   const user = platformUserSchema.parse(userDto({ status: { id: statusId, name: statusName } }));
@@ -39,11 +40,11 @@ describe('UserSearchResult', () => {
   it('links to the detail, carrying the search to come back to it', async () => {
     const { user, router } = renderResult();
     const link = screen.getByRole('link', { name: new RegExp(messages.users.search.viewDetail) });
-    expect(link).toHaveAttribute('href', '/users/121');
+    expect(link).toHaveAttribute('href', `/users/${uuidOf(121)}`);
 
     await user.click(link);
 
-    expect(router.state.location.pathname).toBe('/users/121');
+    expect(router.state.location.pathname).toBe(`/users/${uuidOf(121)}`);
     expect(router.state.location.state).toEqual({ listSearch: '?email=ana%40clinica.com' });
   });
 

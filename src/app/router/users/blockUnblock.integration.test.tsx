@@ -9,6 +9,7 @@ import {
   directoryUser,
 } from '@/test/handlers/usersDirectory';
 import { renderApp } from '@/test/renderApp';
+import { uuidOf } from '@/test/ids';
 
 beforeAll(async () => {
   configure({ asyncUtilTimeout: 10_000 });
@@ -32,7 +33,7 @@ function start(statusId = ACTIVE) {
     users: [
       ...base.users,
       directoryUser({
-        id: 2,
+        id: uuidOf(2),
         statusId,
         email: 'ana@clinica.com',
         firstName: 'Ana',
@@ -41,7 +42,7 @@ function start(statusId = ACTIVE) {
       }),
     ],
   });
-  mock.assign(2, 4);
+  mock.assign(uuidOf(2), 4);
   return mock;
 }
 
@@ -91,13 +92,13 @@ describe(
       await waitFor(() => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       });
-      expect(mock.state.findUser(2)?.statusId).toBe(ACTIVE);
+      expect(mock.state.findUser(uuidOf(2))?.statusId).toBe(ACTIVE);
 
       await confirmBlock(user);
 
       expect(await screen.findByText(text.statusNotices.blocked)).toBeInTheDocument();
       expect(await screen.findByText(text.status.blocked)).toBeInTheDocument();
-      expect(mock.state.findUser(2)?.statusId).toBe(BLOCKED);
+      expect(mock.state.findUser(uuidOf(2))?.statusId).toBe(BLOCKED);
       expect(await screen.findByText(text.roles.unavailable)).toBeInTheDocument();
 
       // It is not in the list any more, nor in its total, but the email finds it.
@@ -113,7 +114,7 @@ describe(
       await user.click(screen.getByRole('link', { name: text.search.viewDetail }));
       await confirmUnblock(user);
       expect(await screen.findByText(text.statusNotices.unblocked)).toBeInTheDocument();
-      expect(mock.state.findUser(2)?.statusId).toBe(ACTIVE);
+      expect(mock.state.findUser(uuidOf(2))?.statusId).toBe(ACTIVE);
       // Back to the search it came from, which now finds it active, and then to the whole list.
       await user.click(screen.getByRole('link', { name: text.detail.backToList }));
       expect(await screen.findByText(text.status.active)).toBeInTheDocument();
@@ -124,7 +125,7 @@ describe(
 
     it('offers only to unblock a blocked user, without editing or actions on the roles (V19)', async () => {
       start(BLOCKED);
-      open('/users/2');
+      open(`/users/${uuidOf(2)}`);
 
       expect(await unblockButton()).toBeInTheDocument();
       expect(await screen.findByText(text.roles.unavailable)).toBeInTheDocument();
@@ -135,7 +136,7 @@ describe(
 
     it('does not offer to block the own user of the operator (US4-8)', async () => {
       start();
-      open('/users/1');
+      open(`/users/${uuidOf(1)}`);
 
       expect(await screen.findByText(text.detail.selfNote)).toBeInTheDocument();
       expect(screen.getByRole('link', { name: text.actions.edit })).toBeInTheDocument();
@@ -145,13 +146,13 @@ describe(
     it('does not offer to block or unblock to someone without users:update (US4-9)', async () => {
       const mock = start();
       mock.revoke('Administrator', 'users:update');
-      const { unmount } = open('/users/2');
+      const { unmount } = open(`/users/${uuidOf(2)}`);
       await screen.findByText('ana@clinica.com');
       expect(screen.queryByRole('button', { name: text.actions.block })).not.toBeInTheDocument();
       unmount();
 
-      mock.setUserStatus(2, BLOCKED);
-      open('/users/2');
+      mock.setUserStatus(uuidOf(2), BLOCKED);
+      open(`/users/${uuidOf(2)}`);
       await screen.findByText(text.roles.unavailable);
       expect(screen.queryByRole('button', { name: text.actions.unblock })).not.toBeInTheDocument();
     });
@@ -159,26 +160,26 @@ describe(
     it('keeps the status and explains it when the access account cannot be updated, and works once it can (US4-6)', async () => {
       const mock = start();
       mock.identity.unavailable();
-      const { user } = open('/users/2');
+      const { user } = open(`/users/${uuidOf(2)}`);
 
       await confirmBlock(user);
 
       expect(await screen.findByText(text.errors.identityUnavailable)).toBeInTheDocument();
-      expect(mock.state.findUser(2)?.statusId).toBe(ACTIVE);
+      expect(mock.state.findUser(uuidOf(2))?.statusId).toBe(ACTIVE);
       expect(await screen.findByText(text.status.active)).toBeInTheDocument();
 
       mock.identity.recover();
       await confirmBlock(user);
       expect(await screen.findByText(text.statusNotices.blocked)).toBeInTheDocument();
-      expect(mock.state.findUser(2)?.statusId).toBe(BLOCKED);
+      expect(mock.state.findUser(uuidOf(2))?.statusId).toBe(BLOCKED);
     });
 
     it('warns in the second tab that the user already has another status, and updates it (V21)', async () => {
       const mock = start();
-      const { user } = open('/users/2');
+      const { user } = open(`/users/${uuidOf(2)}`);
       await blockButton();
       // The first tab blocked the same user.
-      mock.setUserStatus(2, BLOCKED);
+      mock.setUserStatus(uuidOf(2), BLOCKED);
 
       await confirmBlock(user);
 
@@ -190,13 +191,13 @@ describe(
 
     it('warns that the person has no access account when unblocking, and the user stays blocked (V23)', async () => {
       const mock = start(BLOCKED);
-      mock.identity.accountMissing(2);
-      const { user } = open('/users/2');
+      mock.identity.accountMissing(uuidOf(2));
+      const { user } = open(`/users/${uuidOf(2)}`);
 
       await confirmUnblock(user);
 
       expect(await screen.findByText(text.errors.accountMissingUnblock)).toBeInTheDocument();
-      expect(mock.state.findUser(2)?.statusId).toBe(BLOCKED);
+      expect(mock.state.findUser(uuidOf(2))?.statusId).toBe(BLOCKED);
       expect(await unblockButton()).toBeInTheDocument();
     });
   },

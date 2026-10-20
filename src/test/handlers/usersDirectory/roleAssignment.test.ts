@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { callService } from '@/test/usersClient';
 
 import { createUsersDirectoryMock, defaultDirectory, directoryRole, directoryUser } from './index';
+import { uuidOf } from '@/test/ids';
 
 const BLOCKED = 2;
 const DELETED = 3;
@@ -10,7 +11,7 @@ const DELETED = 3;
 function start(userStatusId = 1) {
   const base = defaultDirectory();
   return createUsersDirectoryMock({
-    users: [...base.users, directoryUser({ id: 121, statusId: userStatusId })],
+    users: [...base.users, directoryUser({ id: uuidOf(121), statusId: userStatusId })],
     roles: [
       ...base.roles,
       directoryRole({ id: 8, name: 'Auditor' }),
@@ -58,19 +59,21 @@ describe('POST /api/v1/users/{id}/roles', () => {
   it('gives the role to the user and answers 201 with the assignment', async () => {
     const mock = start();
 
-    const answer = await assign('/api/v1/users/121/roles', { role_id: 4 });
+    const answer = await assign(`/api/v1/users/${uuidOf(121)}/roles`, { role_id: 4 });
 
     expect(answer.status).toBe(201);
-    expect(answer.body).toEqual({ user_id: 121, role: { id: 4, name: 'Marketing' } });
-    expect(mock.state.rolesOf(121).map((role) => role.name)).toEqual(['Marketing']);
+    expect(answer.body).toEqual({ user_id: uuidOf(121), role: { id: 4, name: 'Marketing' } });
+    expect(mock.state.rolesOf(uuidOf(121)).map((role) => role.name)).toEqual(['Marketing']);
   });
 
   it('checks the user first: it must exist and be active', async () => {
     start();
 
-    expect((await assign('/api/v1/users/999/roles', { role_id: 4 })).body).toMatchObject({
-      code: 'user_not_found',
-    });
+    expect((await assign(`/api/v1/users/${uuidOf(999)}/roles`, { role_id: 4 })).body).toMatchObject(
+      {
+        code: 'user_not_found',
+      },
+    );
   });
 
   it.each([
@@ -82,7 +85,7 @@ describe('POST /api/v1/users/{id}/roles', () => {
     async (statusId, code) => {
       start(statusId);
 
-      const answer = await assign('/api/v1/users/121/roles', { role_id: 999 });
+      const answer = await assign(`/api/v1/users/${uuidOf(121)}/roles`, { role_id: 999 });
 
       expect(answer.status).toBe(409);
       expect(answer.body).toMatchObject({ code });
@@ -96,7 +99,7 @@ describe('POST /api/v1/users/{id}/roles', () => {
   ])('answers 404 role_not_found for a role that %s', async (_label, roleId) => {
     start();
 
-    const answer = await assign('/api/v1/users/121/roles', { role_id: roleId });
+    const answer = await assign(`/api/v1/users/${uuidOf(121)}/roles`, { role_id: roleId });
 
     expect(answer.status).toBe(404);
     expect(answer.body).toMatchObject({ code: 'role_not_found' });
@@ -104,9 +107,9 @@ describe('POST /api/v1/users/{id}/roles', () => {
 
   it('refuses a role the user already has with 409 user_role_already_associated', async () => {
     start();
-    await assign('/api/v1/users/121/roles', { role_id: 4 });
+    await assign(`/api/v1/users/${uuidOf(121)}/roles`, { role_id: 4 });
 
-    const answer = await assign('/api/v1/users/121/roles', { role_id: 4 });
+    const answer = await assign(`/api/v1/users/${uuidOf(121)}/roles`, { role_id: 4 });
 
     expect(answer.status).toBe(409);
     expect(answer.body).toMatchObject({ code: 'user_role_already_associated' });
@@ -122,7 +125,7 @@ describe('POST /api/v1/users/{id}/roles', () => {
   ])('answers 422 naming role_id for %s', async (_label, body) => {
     start();
 
-    const answer = await assign('/api/v1/users/121/roles', body);
+    const answer = await assign(`/api/v1/users/${uuidOf(121)}/roles`, body);
 
     expect(answer.status).toBe(422);
     expect(answer.body).toMatchObject({

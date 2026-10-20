@@ -7,9 +7,10 @@ import { server } from '@/test/server';
 import { createUsersClient, errorBody, usersUrl } from '@/test/usersClient';
 
 import { deleteUser, reactivateUser } from './usersApi';
+import { uuidOf } from '@/test/ids';
 
-const USER_URL = usersUrl('/api/v1/users/121');
-const REACTIVATE_URL = usersUrl('/api/v1/users/121/reactivate');
+const USER_URL = usersUrl(`/api/v1/users/${uuidOf(121)}`);
+const REACTIVATE_URL = usersUrl(`/api/v1/users/${uuidOf(121)}/reactivate`);
 
 describe('deleteUser', () => {
   it('sends a DELETE to the user, accepts the 204 without a body and gives nothing back', async () => {
@@ -26,7 +27,7 @@ describe('deleteUser', () => {
     );
     const { client, authorization } = createUsersClient();
 
-    await expect(deleteUser(client, 121)).resolves.toBeUndefined();
+    await expect(deleteUser(client, uuidOf(121))).resolves.toBeUndefined();
 
     expect(seen).toEqual([{ method: 'DELETE', hasBody: false, authorization }]);
   });
@@ -42,7 +43,7 @@ describe('deleteUser', () => {
     server.use(http.delete(USER_URL, () => HttpResponse.json(errorBody(code), { status })));
     const { client } = createUsersClient();
 
-    const failure: unknown = await deleteUser(client, 121).catch((error: unknown) => error);
+    const failure: unknown = await deleteUser(client, uuidOf(121)).catch((error: unknown) => error);
 
     expect(failure).toBeInstanceOf(ApiError);
     expect(failure).toMatchObject({ status, code });
@@ -53,7 +54,7 @@ describe('deleteUser', () => {
     const { client } = createUsersClient();
     const controller = new AbortController();
     const assertion = expect(
-      deleteUser(client, 121, { signal: controller.signal }),
+      deleteUser(client, uuidOf(121), { signal: controller.signal }),
     ).rejects.toMatchObject({ name: 'AbortError' });
 
     controller.abort();
@@ -73,10 +74,10 @@ describe('reactivateUser', () => {
     );
     const { client } = createUsersClient();
 
-    const user = await reactivateUser(client, 121);
+    const user = await reactivateUser(client, uuidOf(121));
 
     expect(seen).toEqual([{ method: 'POST', hasBody: false }]);
-    expect(user).toMatchObject({ id: 121, status: { id: 1, name: 'Activo' } });
+    expect(user).toMatchObject({ id: uuidOf(121), status: { id: 1, name: 'Activo' } });
   });
 
   it.each([
@@ -90,7 +91,9 @@ describe('reactivateUser', () => {
     server.use(http.post(REACTIVATE_URL, () => HttpResponse.json(errorBody(code), { status })));
     const { client } = createUsersClient();
 
-    const failure: unknown = await reactivateUser(client, 121).catch((error: unknown) => error);
+    const failure: unknown = await reactivateUser(client, uuidOf(121)).catch(
+      (error: unknown) => error,
+    );
 
     expect(failure).toBeInstanceOf(ApiError);
     expect(failure).toMatchObject({ status, code });

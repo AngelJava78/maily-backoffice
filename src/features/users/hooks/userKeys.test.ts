@@ -2,6 +2,7 @@ import { partialMatchKey } from '@tanstack/react-query';
 import { describe, expect, it } from 'vitest';
 
 import { roleKeys, userKeys } from './userKeys';
+import { uuidOf } from '@/test/ids';
 
 describe('userKeys', () => {
   it('keys a list by its page and its size', () => {
@@ -18,8 +19,8 @@ describe('userKeys', () => {
   });
 
   it('keys the detail of a user, and its roles under it', () => {
-    expect(userKeys.detail(121)).toEqual(['users', 'detail', 121]);
-    expect(userKeys.roles(121)).toEqual(['users', 'detail', 121, 'roles']);
+    expect(userKeys.detail(uuidOf(121))).toEqual(['users', 'detail', uuidOf(121)]);
+    expect(userKeys.roles(uuidOf(121))).toEqual(['users', 'detail', uuidOf(121), 'roles']);
   });
 
   it('keys the catalog of roles apart from the users', () => {
@@ -32,7 +33,7 @@ describe('userKeys', () => {
         true,
       );
       expect(partialMatchKey(userKeys.search('ana@clinica.com'), userKeys.lists())).toBe(false);
-      expect(partialMatchKey(userKeys.detail(121), userKeys.lists())).toBe(false);
+      expect(partialMatchKey(userKeys.detail(uuidOf(121)), userKeys.lists())).toBe(false);
     });
 
     it('lets every search be reached through `searches`', () => {
@@ -43,8 +44,10 @@ describe('userKeys', () => {
     });
 
     it('hangs the roles of a user from its detail, but not the ones of another user', () => {
-      expect(partialMatchKey(userKeys.roles(121), userKeys.detail(121))).toBe(true);
-      expect(partialMatchKey(userKeys.roles(122), userKeys.detail(121))).toBe(false);
+      expect(partialMatchKey(userKeys.roles(uuidOf(121)), userKeys.detail(uuidOf(121)))).toBe(true);
+      expect(partialMatchKey(userKeys.roles(uuidOf(122)), userKeys.detail(uuidOf(121)))).toBe(
+        false,
+      );
     });
 
     it('keeps the roles apart from the users', () => {

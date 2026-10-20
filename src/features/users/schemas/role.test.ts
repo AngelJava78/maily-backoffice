@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { uuidOf } from '@/test/ids';
 
 import { roleRecordDto } from '@/test/factories';
 
@@ -65,18 +66,19 @@ describe('rolesSchema', () => {
 describe('userRoleAssignmentSchema', () => {
   it('turns the answer of assigning a role into the domain model', () => {
     const assignment = userRoleAssignmentSchema.parse({
-      user_id: 121,
+      user_id: uuidOf(121),
       role: { id: 4, name: 'Marketing' },
     });
 
-    expect(assignment).toEqual({ userId: 121, role: { id: 4, name: 'Marketing' } });
+    expect(assignment).toEqual({ userId: uuidOf(121), role: { id: 4, name: 'Marketing' } });
   });
 
   it.each([
-    ['a user id of 0', { user_id: 0, role: { id: 4, name: 'Marketing' } }],
-    ['a role id of 0', { user_id: 121, role: { id: 0, name: 'Marketing' } }],
-    ['a role without name', { user_id: 121, role: { id: 4 } }],
-    ['no role', { user_id: 121 }],
+    ['a user id that is a whole number', { user_id: 121, role: { id: 4, name: 'Marketing' } }],
+    ['a user id that is not a UUID', { user_id: 'abc', role: { id: 4, name: 'Marketing' } }],
+    ['a role id of 0', { user_id: uuidOf(121), role: { id: 0, name: 'Marketing' } }],
+    ['a role without name', { user_id: uuidOf(121), role: { id: 4 } }],
+    ['no role', { user_id: uuidOf(121) }],
   ])('rejects %s', (_label, dto) => {
     expect(userRoleAssignmentSchema.safeParse(dto).success).toBe(false);
   });

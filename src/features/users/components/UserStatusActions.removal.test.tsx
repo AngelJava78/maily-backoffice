@@ -15,6 +15,7 @@ import { renderWithProviders } from '@/test/renderWithProviders';
 import { useUser } from '../hooks/useUser';
 import { getAvailableActions, type UserCapabilities } from '../policy/availableActions';
 import { UserStatusActions } from './UserStatusActions';
+import { uuidOf } from '@/test/ids';
 
 const text = messages.users;
 const ACTIVE = 1;
@@ -27,7 +28,7 @@ function start(statusId = ACTIVE) {
     users: [
       ...base.users,
       directoryUser({
-        id: 121,
+        id: uuidOf(121),
         statusId,
         firstName: 'Ana',
         paternalLastName: 'Pérez',
@@ -35,7 +36,7 @@ function start(statusId = ACTIVE) {
       }),
     ],
   });
-  mock.assign(121, 4);
+  mock.assign(uuidOf(121), 4);
   return mock;
 }
 
@@ -47,7 +48,7 @@ function Harness({
   readonly userCapabilities: UserCapabilities;
   readonly isSelf: boolean;
 }) {
-  const query = useUser(121);
+  const query = useUser(uuidOf(121));
   if (query.data === undefined) {
     return null;
   }
@@ -179,8 +180,8 @@ describe('UserStatusActions: deleting', () => {
     await waitFor(() => {
       expect(statusText()).toBe(text.status.deleted);
     });
-    expect(mock.requestsTo('DELETE', '/api/v1/users/121')).toHaveLength(1);
-    expect(mock.state.findUser(121)?.statusId).toBe(DELETED);
+    expect(mock.requestsTo('DELETE', `/api/v1/users/${uuidOf(121)}`)).toHaveLength(1);
+    expect(mock.state.findUser(uuidOf(121))?.statusId).toBe(DELETED);
     expect(
       await screen.findByRole('button', { name: text.actions.reactivate }),
     ).toBeInTheDocument();
@@ -242,7 +243,7 @@ describe('UserStatusActions: deleting', () => {
     await ready();
     const dialog = await open(user, text.actions.delete);
     // Another operator deletes the same user while this dialog is open.
-    mock.setUserStatus(121, DELETED);
+    mock.setUserStatus(uuidOf(121), DELETED);
 
     await user.click(within(dialog).getByRole('button', { name: text.dialogs.delete.confirm }));
 
@@ -250,7 +251,7 @@ describe('UserStatusActions: deleting', () => {
     await waitFor(() => {
       expect(statusText()).toBe(text.status.deleted);
     });
-    expect(mock.requestsTo('GET', '/api/v1/users/121')).toHaveLength(2);
+    expect(mock.requestsTo('GET', `/api/v1/users/${uuidOf(121)}`)).toHaveLength(2);
   });
 
   it('tells that a blocked user has to be unblocked before it can be deleted', async () => {
@@ -258,7 +259,7 @@ describe('UserStatusActions: deleting', () => {
     const { user } = renderActions();
     await ready();
     const dialog = await open(user, text.actions.delete);
-    mock.setUserStatus(121, 2);
+    mock.setUserStatus(uuidOf(121), 2);
 
     await user.click(within(dialog).getByRole('button', { name: text.dialogs.delete.confirm }));
 
@@ -301,14 +302,14 @@ describe('UserStatusActions: reactivating', () => {
     await waitFor(() => {
       expect(statusText()).toBe(text.status.active);
     });
-    expect(mock.state.findUser(121)?.statusId).toBe(ACTIVE);
+    expect(mock.state.findUser(uuidOf(121))?.statusId).toBe(ACTIVE);
     expect(await screen.findByRole('button', { name: text.actions.delete })).toBeInTheDocument();
     expect(button(text.actions.block)).toBeInTheDocument();
   });
 
   it('tells that the person has no access account, and the user stays deleted', async () => {
     const mock = start(DELETED);
-    mock.identity.accountMissing(121);
+    mock.identity.accountMissing(uuidOf(121));
     const { user } = renderActions();
     await ready();
     const dialog = await open(user, text.actions.reactivate);

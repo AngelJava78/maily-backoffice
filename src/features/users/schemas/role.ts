@@ -29,7 +29,7 @@ export const rolesSchema = z.array(roleSchema);
 /** The answer of assigning a role to a user (operation U11). */
 export const userRoleAssignmentSchema = z
   .object({
-    user_id: z.number().int().min(1),
+    user_id: z.uuid(),
     role: z.object({ id: z.number().int().min(1), name: z.string() }),
   })
   .transform((dto) => ({ userId: dto.user_id, role: dto.role }));

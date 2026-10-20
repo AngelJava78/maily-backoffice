@@ -14,6 +14,7 @@ import {
 import { renderWithProviders } from '@/test/renderWithProviders';
 
 import { UsersListPage } from './UsersListPage';
+import { uuidOf } from '@/test/ids';
 
 /** The operator and 25 more active users, so the list has 26 and three pages of 10. */
 function start() {
@@ -23,8 +24,13 @@ function start() {
     users: [
       ...base.users,
       ...makeUsers(25),
-      directoryUser({ id: 200, email: 'beto@clinica.com', firstName: 'Beto', statusId: 2 }),
-      directoryUser({ id: 201, email: 'carla@clinica.com', firstName: 'Carla', statusId: 3 }),
+      directoryUser({ id: uuidOf(200), email: 'beto@clinica.com', firstName: 'Beto', statusId: 2 }),
+      directoryUser({
+        id: uuidOf(201),
+        email: 'carla@clinica.com',
+        firstName: 'Carla',
+        statusId: 3,
+      }),
     ],
   });
 }
@@ -183,7 +189,7 @@ describe('UsersListPage: the search by email', () => {
     expect(screen.getByText('Beto Prueba 200')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: new RegExp(messages.users.search.viewDetail) }),
-    ).toHaveAttribute('href', '/users/200');
+    ).toHaveAttribute('href', `/users/${uuidOf(200)}`);
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
 

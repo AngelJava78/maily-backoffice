@@ -5,6 +5,7 @@ import { ApiError } from '@/shared/api/ApiError';
 
 import { atMost, isUserOutOfDate, refreshAfterRoleChange } from './refreshUser';
 import { roleKeys, userKeys } from './userKeys';
+import { uuidOf } from '@/test/ids';
 
 const refusal = (status: number, code: string) =>
   ApiError.fromResponse(status, { code, message: 'Un mensaje del servicio' });
@@ -76,9 +77,9 @@ describe('refreshAfterRoleChange', () => {
   function cached() {
     const queryClient = createQueryClient();
     const keys = {
-      detail: userKeys.detail(7),
-      roles: userKeys.roles(7),
-      otherDetail: userKeys.detail(8),
+      detail: userKeys.detail(uuidOf(7)),
+      roles: userKeys.roles(uuidOf(7)),
+      otherDetail: userKeys.detail(uuidOf(8)),
       list: userKeys.list({ page: 1, pageSize: 10 }),
       search: userKeys.search('a@b.co'),
       catalog: roleKeys.catalog(),
@@ -93,7 +94,7 @@ describe('refreshAfterRoleChange', () => {
   it('only marks the roles of the user as stale when the change worked', async () => {
     const { queryClient, stale } = cached();
 
-    await refreshAfterRoleChange(queryClient, 7, null, 'assignRole');
+    await refreshAfterRoleChange(queryClient, uuidOf(7), null, 'assignRole');
 
     expect(stale('roles')).toBe(true);
     expect(stale('detail')).toBe(false);
@@ -104,7 +105,12 @@ describe('refreshAfterRoleChange', () => {
   it('also marks the catalog as stale when the role is gone, so it is not offered again', async () => {
     const { queryClient, stale } = cached();
 
-    await refreshAfterRoleChange(queryClient, 7, refusal(404, 'role_not_found'), 'assignRole');
+    await refreshAfterRoleChange(
+      queryClient,
+      uuidOf(7),
+      refusal(404, 'role_not_found'),
+      'assignRole',
+    );
 
     expect(stale('catalog')).toBe(true);
     // The roles of the user may have lost that role too.
@@ -117,7 +123,7 @@ describe('refreshAfterRoleChange', () => {
 
     await refreshAfterRoleChange(
       queryClient,
-      7,
+      uuidOf(7),
       refusal(409, 'user_role_already_associated'),
       'assignRole',
     );
@@ -130,7 +136,12 @@ describe('refreshAfterRoleChange', () => {
   it('marks the user, the lists and the searches as stale, but not its roles, when the user changed', async () => {
     const { queryClient, stale } = cached();
 
-    await refreshAfterRoleChange(queryClient, 7, refusal(409, 'user_blocked'), 'unassignRole');
+    await refreshAfterRoleChange(
+      queryClient,
+      uuidOf(7),
+      refusal(409, 'user_blocked'),
+      'unassignRole',
+    );
 
     expect(stale('detail')).toBe(true);
     expect(stale('list')).toBe(true);

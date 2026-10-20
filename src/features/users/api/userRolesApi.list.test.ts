@@ -7,8 +7,9 @@ import { server } from '@/test/server';
 import { createUsersClient, errorBody, usersUrl } from '@/test/usersClient';
 
 import { listUserRoles } from './userRolesApi';
+import { uuidOf } from '@/test/ids';
 
-const ROLES_URL = usersUrl('/api/v1/users/121/roles');
+const ROLES_URL = usersUrl(`/api/v1/users/${uuidOf(121)}/roles`);
 
 describe('listUserRoles', () => {
   it('asks for the roles of the user and gives them in camelCase', async () => {
@@ -28,7 +29,7 @@ describe('listUserRoles', () => {
     );
     const { client, authorization } = createUsersClient();
 
-    const roles = await listUserRoles(client, 121);
+    const roles = await listUserRoles(client, uuidOf(121));
 
     expect(seen).toEqual([{ method: 'GET', search: '', authorization }]);
     expect(roles).toHaveLength(2);
@@ -40,7 +41,7 @@ describe('listUserRoles', () => {
     server.use(http.get(ROLES_URL, () => HttpResponse.json([])));
     const { client } = createUsersClient();
 
-    await expect(listUserRoles(client, 121)).resolves.toEqual([]);
+    await expect(listUserRoles(client, uuidOf(121))).resolves.toEqual([]);
   });
 
   it('passes a 409 user_blocked on as an ApiError with that code', async () => {
@@ -49,7 +50,9 @@ describe('listUserRoles', () => {
     );
     const { client } = createUsersClient();
 
-    const failure: unknown = await listUserRoles(client, 121).catch((error: unknown) => error);
+    const failure: unknown = await listUserRoles(client, uuidOf(121)).catch(
+      (error: unknown) => error,
+    );
 
     expect(failure).toBeInstanceOf(ApiError);
     expect(failure).toMatchObject({ status: 409, code: 'user_blocked' });
@@ -60,7 +63,7 @@ describe('listUserRoles', () => {
     const { client } = createUsersClient();
     const controller = new AbortController();
     const assertion = expect(
-      listUserRoles(client, 121, { signal: controller.signal }),
+      listUserRoles(client, uuidOf(121), { signal: controller.signal }),
     ).rejects.toMatchObject({ name: 'AbortError' });
 
     controller.abort();

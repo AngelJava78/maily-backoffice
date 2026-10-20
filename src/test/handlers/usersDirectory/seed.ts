@@ -1,7 +1,11 @@
+import { uuidOf } from '../../ids';
 import { directoryRole, directoryUser, type DirectoryInitial, type DirectoryUser } from './model';
 
 /** The Auth0 account of the operator that the tests use, who is an administrator. */
 export const ADMIN_SUB = 'auth0|admin';
+
+/** The id of that operator. */
+export const ADMIN_ID = uuidOf(1);
 
 const ALL_ACTIONS = ['read', 'write', 'update', 'delete'];
 
@@ -10,13 +14,13 @@ const permissionsOf = (resource: string): string[] =>
 
 /**
  * The platform as the tests find it: the roles of the catalog and one operator, an active
- * administrator with the id 1, who can do everything with the users and read the roles.
+ * administrator with the id `ADMIN_ID`, who can do everything with the users and read the roles.
  */
 export function defaultDirectory(): DirectoryInitial {
   return {
     users: [
       directoryUser({
-        id: 1,
+        id: ADMIN_ID,
         auth0Id: ADMIN_SUB,
         email: 'admin@mailysoft.test',
         firstName: 'Admin',
@@ -41,7 +45,7 @@ export function defaultDirectory(): DirectoryInitial {
       directoryRole({ id: 6, name: 'Doctor' }),
       directoryRole({ id: 7, name: 'Support' }),
     ],
-    associations: [{ userId: 1, roleId: 1 }],
+    associations: [{ userId: ADMIN_ID, roleId: 1 }],
   };
 }
 
@@ -53,7 +57,7 @@ export function makeUsers(count: number, firstId = 2): DirectoryUser[] {
   return Array.from({ length: count }, (_, index) => {
     const number = String(index + 1).padStart(2, '0');
     return directoryUser({
-      id: firstId + index,
+      id: uuidOf(firstId + index),
       auth0Id: `auth0|seed-${number}`,
       email: `seed${number}@ejemplo.com`,
       firstName: 'Usuario',

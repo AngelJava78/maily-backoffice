@@ -31,7 +31,7 @@ export interface AssignRolesResult<T extends AssignableRole = AssignableRole> {
  */
 export async function assignRoles<T extends AssignableRole>(
   client: HttpClient,
-  userId: number,
+  userId: string,
   roles: readonly T[],
   signal?: AbortSignal,
 ): Promise<AssignRolesResult<T>> {

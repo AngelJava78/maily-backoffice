@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { sanitizeReturnPathForStorage, toSafeInternalPath } from './safeReturnPath';
+import { uuidOf } from '@/test/ids';
 
 describe('toSafeInternalPath', () => {
-  it.each(['/', '/profile', '/users?page=2', '/users/12#details', '/a/b/c?x=1&y=2'])(
+  it.each(['/', '/profile', '/users?page=2', `/users/${uuidOf(12)}#details`, '/a/b/c?x=1&y=2'])(
     'accepts the internal path %s',
     (path) => {
       expect(toSafeInternalPath(path)).toBe(path);

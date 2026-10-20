@@ -45,7 +45,7 @@ describe('useCreateUser', () => {
     expect(result.current.data?.kind).toBe('created');
     const created = mock.state.findByEmail('nora@clinica.com');
     expect(created).toBeDefined();
-    expect(mock.state.rolesOf(created?.id ?? 0).map((role) => role.name)).toEqual([
+    expect(mock.state.rolesOf(created?.id ?? '').map((role) => role.name)).toEqual([
       'Marketing',
       'Doctor',
     ]);
@@ -65,7 +65,7 @@ describe('useCreateUser', () => {
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
     });
-    const id = result.current.data?.user.id ?? 0;
+    const id = result.current.data?.user.id ?? '';
     expect(queryClient.getQueryData(userKeys.detail(id))).toMatchObject({
       email: 'nora@clinica.com',
     });

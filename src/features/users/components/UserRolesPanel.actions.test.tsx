@@ -15,6 +15,7 @@ import { callService } from '@/test/usersClient';
 
 import { userKeys } from '../hooks/userKeys';
 import { UserRolesPanel } from './UserRolesPanel';
+import { uuidOf } from '@/test/ids';
 
 /**
  * The actions on the roles of the panel (US3): they are driven from here, with the simulator, which
@@ -30,7 +31,7 @@ function start(statusId = 1) {
     users: [
       ...base.users,
       directoryUser({
-        id: 121,
+        id: uuidOf(121),
         statusId,
         firstName: 'Ana',
         paternalLastName: 'Pérez',
@@ -38,15 +39,15 @@ function start(statusId = 1) {
       }),
     ],
   });
-  mock.assign(121, 4);
-  mock.assign(121, 6);
+  mock.assign(uuidOf(121), 4);
+  mock.assign(uuidOf(121), 6);
   return mock;
 }
 
 function renderPanel(props: Partial<ComponentProps<typeof UserRolesPanel>> = {}) {
   return renderWithProviders(
     <UserRolesPanel
-      userId={121}
+      userId={uuidOf(121)}
       userName={USER_NAME}
       statusId={1}
       canAddRoles
@@ -172,8 +173,8 @@ describe('UserRolesPanel: taking a role away', () => {
     await waitFor(() => {
       expect(roleNames()).toEqual(['Doctor']);
     });
-    expect(mock.requestsTo('DELETE', '/api/v1/users/121/roles/4')).toHaveLength(1);
-    expect(mock.state.rolesOf(121).map((role) => role.name)).toEqual(['Doctor']);
+    expect(mock.requestsTo('DELETE', `/api/v1/users/${uuidOf(121)}/roles/4`)).toHaveLength(1);
+    expect(mock.state.rolesOf(uuidOf(121)).map((role) => role.name)).toEqual(['Doctor']);
     await noDialog();
   });
 
@@ -213,7 +214,7 @@ describe('UserRolesPanel: taking a role away', () => {
     const { user } = renderPanel();
     const dialog = await askToRemove(user, 'Marketing');
     // Another operator took it away while this dialog was open.
-    await callService('/api/v1/users/121/roles/4', { method: 'DELETE' });
+    await callService(`/api/v1/users/${uuidOf(121)}/roles/4`, { method: 'DELETE' });
 
     await confirmRemoval(user, dialog);
 
@@ -227,22 +228,22 @@ describe('UserRolesPanel: taking a role away', () => {
   it('tells that the user has another status, asks for the user again and does not ask for its roles', async () => {
     const mock = start();
     const { user, queryClient } = renderPanel();
-    queryClient.setQueryData(userKeys.detail(121), 'the user as it was believed to be');
+    queryClient.setQueryData(userKeys.detail(uuidOf(121)), 'the user as it was believed to be');
     const dialog = await askToRemove(user, 'Marketing');
-    mock.setUserStatus(121, 2);
+    mock.setUserStatus(uuidOf(121), 2);
 
     await confirmRemoval(user, dialog);
 
     expect(await screen.findByText(text.errors.statusChanged)).toBeInTheDocument();
     await noDialog();
-    expect(queryClient.getQueryState(userKeys.detail(121))?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(userKeys.detail(uuidOf(121)))?.isInvalidated).toBe(true);
     expect(mock.requestsTo('GET', /\/roles$/)).toHaveLength(1);
   });
 
   it('tells that the user does not exist any more', async () => {
     const mock = start();
     const { user, queryClient } = renderPanel();
-    queryClient.setQueryData(userKeys.detail(121), 'the user as it was believed to be');
+    queryClient.setQueryData(userKeys.detail(uuidOf(121)), 'the user as it was believed to be');
     const dialog = await askToRemove(user, 'Marketing');
     mock.failNext({ method: 'DELETE', status: 404, code: 'user_not_found' });
 
@@ -250,7 +251,7 @@ describe('UserRolesPanel: taking a role away', () => {
 
     expect(await screen.findByText(text.errors.notFound)).toBeInTheDocument();
     await noDialog();
-    expect(queryClient.getQueryState(userKeys.detail(121))?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(userKeys.detail(uuidOf(121)))?.isInvalidated).toBe(true);
   });
 
   it('tells that it could not be done when the service fails, and keeps the roles as they were', async () => {
@@ -264,7 +265,7 @@ describe('UserRolesPanel: taking a role away', () => {
     expect(await screen.findByText(text.errors.retryable)).toBeInTheDocument();
     await noDialog();
     expect(roleNames()).toEqual(['Doctor', 'Marketing']);
-    expect(mock.state.rolesOf(121)).toHaveLength(2);
+    expect(mock.state.rolesOf(uuidOf(121))).toHaveLength(2);
   });
 
   it('does not repeat the notice of a lack of permission, which the application already shows', async () => {
@@ -277,7 +278,7 @@ describe('UserRolesPanel: taking a role away', () => {
 
     await noDialog();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(mock.state.rolesOf(121)).toHaveLength(2);
+    expect(mock.state.rolesOf(uuidOf(121))).toHaveLength(2);
   });
 });
 
@@ -295,8 +296,10 @@ describe('UserRolesPanel: adding a role', () => {
     await waitFor(() => {
       expect(roleNames()).toEqual(['Billing', 'Doctor', 'Marketing']);
     });
-    expect(mock.requestsTo('POST', '/api/v1/users/121/roles')).toHaveLength(1);
-    expect(mock.requestsTo('POST', '/api/v1/users/121/roles')[0]?.body).toEqual({ role_id: 5 });
+    expect(mock.requestsTo('POST', `/api/v1/users/${uuidOf(121)}/roles`)).toHaveLength(1);
+    expect(mock.requestsTo('POST', `/api/v1/users/${uuidOf(121)}/roles`)[0]?.body).toEqual({
+      role_id: 5,
+    });
     await noDialog();
   });
 
@@ -332,7 +335,10 @@ describe('UserRolesPanel: adding a role', () => {
     const { user } = renderPanel();
     const dialog = await chooseToAdd(user, 'Billing');
     // Another operator gave it while this dialog was open.
-    await callService('/api/v1/users/121/roles', { method: 'POST', body: { role_id: 5 } });
+    await callService(`/api/v1/users/${uuidOf(121)}/roles`, {
+      method: 'POST',
+      body: { role_id: 5 },
+    });
 
     await confirmAddition(user, dialog);
 
@@ -367,15 +373,15 @@ describe('UserRolesPanel: adding a role', () => {
   it('tells that the user has another status', async () => {
     const mock = start();
     const { user, queryClient } = renderPanel();
-    queryClient.setQueryData(userKeys.detail(121), 'the user as it was believed to be');
+    queryClient.setQueryData(userKeys.detail(uuidOf(121)), 'the user as it was believed to be');
     const dialog = await chooseToAdd(user, 'Billing');
-    mock.setUserStatus(121, 3);
+    mock.setUserStatus(uuidOf(121), 3);
 
     await confirmAddition(user, dialog);
 
     expect(await screen.findByText(text.errors.statusChanged)).toBeInTheDocument();
     await noDialog();
-    expect(queryClient.getQueryState(userKeys.detail(121))?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(userKeys.detail(uuidOf(121)))?.isInvalidated).toBe(true);
   });
 
   it('tells that it could not be done when the service fails', async () => {
@@ -388,7 +394,7 @@ describe('UserRolesPanel: adding a role', () => {
 
     expect(await screen.findByText(text.errors.retryable)).toBeInTheDocument();
     await noDialog();
-    expect(mock.state.rolesOf(121)).toHaveLength(2);
+    expect(mock.state.rolesOf(uuidOf(121))).toHaveLength(2);
   });
 });
 
@@ -429,7 +435,7 @@ describe('UserRolesPanel: how the result is told, and where the focus goes', () 
     const { user } = renderPanel();
     const dialog = await askToRemove(user, 'Marketing');
     // Another operator took it away first: the answer is "already done", and the button is gone.
-    await callService('/api/v1/users/121/roles/4', { method: 'DELETE' });
+    await callService(`/api/v1/users/${uuidOf(121)}/roles/4`, { method: 'DELETE' });
 
     await confirmRemoval(user, dialog);
 
@@ -502,11 +508,11 @@ describe('UserRolesPanel: when asking for the roles again fails', () => {
 
     mock.failNext({
       method: 'GET',
-      path: '/api/v1/users/121/roles',
+      path: `/api/v1/users/${uuidOf(121)}/roles`,
       status: 400,
       code: 'bad_request',
     });
-    await queryClient.invalidateQueries({ queryKey: userKeys.roles(121) });
+    await queryClient.invalidateQueries({ queryKey: userKeys.roles(uuidOf(121)) });
 
     expect(await screen.findByText(text.roles.refreshError)).toBeInTheDocument();
     expect(roleNames()).toEqual(['Doctor', 'Marketing']);

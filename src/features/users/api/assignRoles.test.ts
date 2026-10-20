@@ -10,8 +10,9 @@ import { createUsersClient, errorBody, usersUrl } from '@/test/usersClient';
 
 import { roleSchema } from '../schemas/role';
 import { assignRoles } from './assignRoles';
+import { uuidOf } from '@/test/ids';
 
-const ROLES_URL = usersUrl('/api/v1/users/121/roles');
+const ROLES_URL = usersUrl(`/api/v1/users/${uuidOf(121)}/roles`);
 
 const role = (id: number, name: string) => roleSchema.parse(roleRecordDto({ id, name }));
 const MARKETING = role(4, 'Marketing');
@@ -23,7 +24,7 @@ type Answer = (roleId: number) => Response | Promise<Response>;
 /** Answers every assignment with `answer` and keeps, in order, the events that it saw. */
 function serve(
   answer: Answer = () =>
-    HttpResponse.json({ user_id: 121, role: { id: 0, name: 'x' } }, { status: 201 }),
+    HttpResponse.json({ user_id: uuidOf(121), role: { id: 0, name: 'x' } }, { status: 201 }),
 ) {
   const events: string[] = [];
   server.use(
@@ -47,14 +48,14 @@ function serve(
 }
 
 const created = (roleId: number, name = 'x') =>
-  HttpResponse.json({ user_id: 121, role: { id: roleId, name } }, { status: 201 });
+  HttpResponse.json({ user_id: uuidOf(121), role: { id: roleId, name } }, { status: 201 });
 
 describe('assignRoles', () => {
   it('assigns the roles one by one, in the order of their ids, never at the same time', async () => {
     const events = serve((roleId) => created(roleId));
     const { client } = createUsersClient();
 
-    const result = await assignRoles(client, 121, [SUPPORT, MARKETING, DOCTOR]);
+    const result = await assignRoles(client, uuidOf(121), [SUPPORT, MARKETING, DOCTOR]);
 
     expect(events).toEqual(['start:4', 'end:4', 'start:6', 'end:6', 'start:9', 'end:9']);
     expect(result.assigned.map((assigned) => assigned.id)).toEqual([4, 6, 9]);
@@ -65,7 +66,10 @@ describe('assignRoles', () => {
     const events = serve();
     const { client } = createUsersClient();
 
-    await expect(assignRoles(client, 121, [])).resolves.toEqual({ assigned: [], failed: [] });
+    await expect(assignRoles(client, uuidOf(121), [])).resolves.toEqual({
+      assigned: [],
+      failed: [],
+    });
     expect(events).toEqual([]);
   });
 
@@ -77,7 +81,7 @@ describe('assignRoles', () => {
     );
     const { client } = createUsersClient();
 
-    const result = await assignRoles(client, 121, [MARKETING, DOCTOR, SUPPORT]);
+    const result = await assignRoles(client, uuidOf(121), [MARKETING, DOCTOR, SUPPORT]);
 
     expect(events.filter((event) => event.startsWith('start'))).toEqual([
       'start:4',
@@ -98,7 +102,7 @@ describe('assignRoles', () => {
     );
     const { client } = createUsersClient();
 
-    const result = await assignRoles(client, 121, [MARKETING, DOCTOR, SUPPORT]);
+    const result = await assignRoles(client, uuidOf(121), [MARKETING, DOCTOR, SUPPORT]);
 
     expect(events.filter((event) => event.startsWith('start'))).toEqual(['start:4', 'start:6']);
     expect(result.assigned.map((assigned) => assigned.id)).toEqual([4]);
@@ -112,7 +116,7 @@ describe('assignRoles', () => {
     server.use(http.post(ROLES_URL, () => HttpResponse.error()));
     const { client } = createUsersClient();
 
-    const result = await assignRoles(client, 121, [MARKETING, DOCTOR]);
+    const result = await assignRoles(client, uuidOf(121), [MARKETING, DOCTOR]);
 
     expect(result.assigned).toEqual([]);
     expect(result.failed.map((failure) => failure.role.id)).toEqual([4, 6]);
@@ -128,7 +132,7 @@ describe('assignRoles', () => {
       timeoutMs: 40,
     });
 
-    const result = await assignRoles(client, 121, [MARKETING, DOCTOR]);
+    const result = await assignRoles(client, uuidOf(121), [MARKETING, DOCTOR]);
 
     expect(result.failed.map((failure) => failure.role.id)).toEqual([4, 6]);
     expect(result.failed[0]?.error).toMatchObject({ kind: 'timeout' });
@@ -142,7 +146,7 @@ describe('assignRoles', () => {
     );
     const { client } = createUsersClient();
 
-    const result = await assignRoles(client, 121, [MARKETING, DOCTOR]);
+    const result = await assignRoles(client, uuidOf(121), [MARKETING, DOCTOR]);
 
     expect(result.assigned.map((assigned) => assigned.id)).toEqual([4, 6]);
     expect(result.failed).toEqual([]);
@@ -154,7 +158,7 @@ describe('assignRoles', () => {
     );
     const { client } = createUsersClient();
 
-    const failure: unknown = await assignRoles(client, 121, [MARKETING, DOCTOR]).catch(
+    const failure: unknown = await assignRoles(client, uuidOf(121), [MARKETING, DOCTOR]).catch(
       (error: unknown) => error,
     );
 
@@ -167,9 +171,12 @@ describe('assignRoles', () => {
     const controller = new AbortController();
     controller.abort();
 
-    const failure: unknown = await assignRoles(client, 121, [MARKETING], controller.signal).catch(
-      (error: unknown) => error,
-    );
+    const failure: unknown = await assignRoles(
+      client,
+      uuidOf(121),
+      [MARKETING],
+      controller.signal,
+    ).catch((error: unknown) => error);
 
     expect(failure).not.toBeInstanceOf(ApiError);
     expect(failure).toMatchObject({ name: 'AbortError' });

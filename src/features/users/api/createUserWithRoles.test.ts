@@ -9,9 +9,10 @@ import { createUsersClient, errorBody, usersUrl } from '@/test/usersClient';
 import { roleSchema } from '../schemas/role';
 import type { CreateUserFormValues } from '../schemas/userForm';
 import { createUserWithRoles } from './createUserWithRoles';
+import { uuidOf } from '@/test/ids';
 
 const USERS_URL = usersUrl('/api/v1/users');
-const NEW_ROLES_URL = usersUrl('/api/v1/users/300/roles');
+const NEW_ROLES_URL = usersUrl(`/api/v1/users/${uuidOf(300)}/roles`);
 
 const MARKETING = roleSchema.parse(roleRecordDto({ id: 4, name: 'Marketing' }));
 const DOCTOR = roleSchema.parse(roleRecordDto({ id: 6, name: 'Doctor' }));
@@ -37,9 +38,12 @@ function serve(options: { createStatus?: number; failRole?: number } = {}) {
     http.post(USERS_URL, async ({ request }) => {
       await record(request);
       return options.createStatus === undefined
-        ? HttpResponse.json(userDto({ id: 300, email: 'nora@clinica.com', first_name: 'Nora' }), {
-            status: 201,
-          })
+        ? HttpResponse.json(
+            userDto({ id: uuidOf(300), email: 'nora@clinica.com', first_name: 'Nora' }),
+            {
+              status: 201,
+            },
+          )
         : HttpResponse.json(errorBody('user_email_already_registered'), {
             status: options.createStatus,
           });
@@ -56,7 +60,10 @@ function serve(options: { createStatus?: number; failRole?: number } = {}) {
           : -1;
       return roleId === options.failRole
         ? HttpResponse.json(errorBody('role_not_found'), { status: 404 })
-        : HttpResponse.json({ user_id: 300, role: { id: roleId, name: 'x' } }, { status: 201 });
+        : HttpResponse.json(
+            { user_id: uuidOf(300), role: { id: roleId, name: 'x' } },
+            { status: 201 },
+          );
     }),
     http.delete(usersUrl('/api/v1/users/:userId'), async ({ request }) => {
       await record(request);
@@ -89,8 +96,8 @@ describe('createUserWithRoles', () => {
 
     expect(calls.map((call) => `${call.method} ${call.path}`)).toEqual([
       'POST /proxy/users/api/v1/users',
-      'POST /proxy/users/api/v1/users/300/roles',
-      'POST /proxy/users/api/v1/users/300/roles',
+      `POST /proxy/users/api/v1/users/${uuidOf(300)}/roles`,
+      `POST /proxy/users/api/v1/users/${uuidOf(300)}/roles`,
     ]);
     expect(calls.slice(1).map((call) => call.body)).toEqual([{ role_id: 4 }, { role_id: 6 }]);
     expect(outcome.kind).toBe('created');
@@ -116,7 +123,10 @@ describe('createUserWithRoles', () => {
 
     const outcome = await createUserWithRoles(client, VALUES, [MARKETING, DOCTOR]);
 
-    expect(outcome).toMatchObject({ kind: 'created', user: { id: 300, firstName: 'Nora' } });
+    expect(outcome).toMatchObject({
+      kind: 'created',
+      user: { id: uuidOf(300), firstName: 'Nora' },
+    });
     expect(outcome.assigned.map((role) => role.name)).toEqual(['Marketing', 'Doctor']);
   });
 
@@ -143,7 +153,7 @@ describe('createUserWithRoles', () => {
     if (outcome.kind !== 'partial') {
       throw new Error('Expected a partial outcome');
     }
-    expect(outcome.user).toMatchObject({ id: 300 });
+    expect(outcome.user).toMatchObject({ id: uuidOf(300) });
     expect(outcome.assigned.map((role) => role.name)).toEqual(['Marketing']);
     expect(outcome.failed.map((failure) => failure.role.name)).toEqual(['Doctor']);
     expect(calls.some((call) => call.method === 'DELETE')).toBe(false);

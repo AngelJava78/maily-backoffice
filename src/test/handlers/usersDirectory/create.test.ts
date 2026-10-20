@@ -8,6 +8,7 @@ import {
   directoryUser,
   type DirectoryUser,
 } from './index';
+import { uuidOf } from '@/test/ids';
 
 const VALID = {
   email: 'nora@clinica.com',
@@ -45,9 +46,9 @@ describe('POST /api/v1/users', () => {
     });
 
     expect(answer.status).toBe(201);
-    expect(answer.headers.get('location')).toMatch(/\/api\/v1\/users\/2$/);
+    expect(answer.headers.get('location')).toMatch(new RegExp(`/api/v1/users/${uuidOf(2)}$`));
     expect(answer.body).toMatchObject({
-      id: 2,
+      id: uuidOf(2),
       email: 'nora@clinica.com',
       first_name: 'Nora',
       paternal_last_name: 'Díaz',
@@ -56,7 +57,7 @@ describe('POST /api/v1/users', () => {
     });
     expect(answer.body).toHaveProperty('auth0_id', 'auth0|sim-2');
     expect(JSON.stringify(answer.body)).not.toContain('Segura-123');
-    expect(mock.state.findUser(2)?.email).toBe('nora@clinica.com');
+    expect(mock.state.findUser(uuidOf(2))?.email).toBe('nora@clinica.com');
   });
 
   it('keeps the maternal last name when it is given', async () => {
@@ -72,7 +73,7 @@ describe('POST /api/v1/users', () => {
     ['blocked', 2],
     ['deleted', 3],
   ])('refuses an email that belongs to a %s user, whatever its case', async (_label, statusId) => {
-    const mock = start([directoryUser({ id: 2, email: 'nora@clinica.com', statusId })]);
+    const mock = start([directoryUser({ id: uuidOf(2), email: 'nora@clinica.com', statusId })]);
 
     const answer = await create({ ...VALID, email: 'NORA@clinica.com' });
 
@@ -219,7 +220,7 @@ describe('POST /api/v1/users', () => {
     });
 
     it('is checked after the validation and after the duplicates', async () => {
-      const mock = start([directoryUser({ id: 2, email: 'nora@clinica.com' })]);
+      const mock = start([directoryUser({ id: uuidOf(2), email: 'nora@clinica.com' })]);
       mock.identity.unavailable();
 
       expect((await create({ ...VALID, email: 'no-es-correo' })).status).toBe(422);

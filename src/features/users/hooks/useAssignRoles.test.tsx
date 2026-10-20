@@ -14,6 +14,7 @@ import { createWrapper } from '@/test/renderWithProviders';
 import { roleSchema } from '../schemas/role';
 import { roleKeys, userKeys } from './userKeys';
 import { useAssignRoles } from './useAssignRoles';
+import { uuidOf } from '@/test/ids';
 
 const MARKETING = roleSchema.parse(roleRecordDto({ id: 4, name: 'Marketing' }));
 const DOCTOR = roleSchema.parse(roleRecordDto({ id: 6, name: 'Doctor' }));
@@ -22,11 +23,11 @@ function setup() {
   const base = defaultDirectory();
   const mock = createUsersDirectoryMock({
     ...base,
-    users: [...base.users, directoryUser({ id: 121 })],
+    users: [...base.users, directoryUser({ id: uuidOf(121) })],
   });
   const queryClient = createQueryClient();
   const { wrapper } = createWrapper({ auth0: ADMIN_AUTH0, queryClient });
-  const hook = renderHook(() => useAssignRoles(121), { wrapper });
+  const hook = renderHook(() => useAssignRoles(uuidOf(121)), { wrapper });
   return { mock, queryClient, ...hook };
 }
 
@@ -43,12 +44,15 @@ describe('useAssignRoles', () => {
     });
     expect(result.current.data?.assigned.map((role) => role.name)).toEqual(['Marketing', 'Doctor']);
     expect(result.current.data?.failed).toEqual([]);
-    expect(mock.state.rolesOf(121).map((role) => role.name)).toEqual(['Marketing', 'Doctor']);
+    expect(mock.state.rolesOf(uuidOf(121)).map((role) => role.name)).toEqual([
+      'Marketing',
+      'Doctor',
+    ]);
   });
 
   it('marks the roles of the user as stale so the detail shows the current ones', async () => {
     const { queryClient, result } = setup();
-    queryClient.setQueryData(userKeys.roles(121), []);
+    queryClient.setQueryData(userKeys.roles(uuidOf(121)), []);
 
     act(() => {
       result.current.mutate({ roles: [MARKETING] });
@@ -57,7 +61,7 @@ describe('useAssignRoles', () => {
     await waitFor(() => {
       expect(result.current.isSuccess).toBe(true);
     });
-    expect(queryClient.getQueryState(userKeys.roles(121))?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(userKeys.roles(uuidOf(121)))?.isInvalidated).toBe(true);
   });
 
   it('says which role could not be assigned instead of failing', async () => {
@@ -79,7 +83,7 @@ describe('useAssignRoles', () => {
     const { mock, queryClient, result } = setup();
     mock.setRoleStatus(6, 2);
     queryClient.setQueryData(roleKeys.catalog(), []);
-    queryClient.setQueryData(userKeys.roles(121), []);
+    queryClient.setQueryData(userKeys.roles(uuidOf(121)), []);
 
     act(() => {
       result.current.mutate({ roles: [DOCTOR] });
@@ -89,14 +93,14 @@ describe('useAssignRoles', () => {
       expect(result.current.isSuccess).toBe(true);
     });
     expect(queryClient.getQueryState(roleKeys.catalog())?.isInvalidated).toBe(true);
-    expect(queryClient.getQueryState(userKeys.roles(121))?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(userKeys.roles(uuidOf(121)))?.isInvalidated).toBe(true);
   });
 
   it('refreshes the user instead of its roles when the first refusal says that its status changed', async () => {
     const { mock, queryClient, result } = setup();
-    mock.setUserStatus(121, 2);
-    queryClient.setQueryData(userKeys.detail(121), 'the user as it was believed to be');
-    queryClient.setQueryData(userKeys.roles(121), []);
+    mock.setUserStatus(uuidOf(121), 2);
+    queryClient.setQueryData(userKeys.detail(uuidOf(121)), 'the user as it was believed to be');
+    queryClient.setQueryData(userKeys.roles(uuidOf(121)), []);
 
     act(() => {
       result.current.mutate({ roles: [MARKETING] });
@@ -106,8 +110,8 @@ describe('useAssignRoles', () => {
       expect(result.current.isSuccess).toBe(true);
     });
     expect(result.current.data?.failed[0]?.error).toMatchObject({ status: 409 });
-    expect(queryClient.getQueryState(userKeys.detail(121))?.isInvalidated).toBe(true);
+    expect(queryClient.getQueryState(userKeys.detail(uuidOf(121)))?.isInvalidated).toBe(true);
     // The roles of a user that cannot have them are not asked for.
-    expect(queryClient.getQueryState(userKeys.roles(121))?.isInvalidated).toBe(false);
+    expect(queryClient.getQueryState(userKeys.roles(uuidOf(121)))?.isInvalidated).toBe(false);
   });
 });

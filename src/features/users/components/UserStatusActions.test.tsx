@@ -15,6 +15,7 @@ import { renderWithProviders } from '@/test/renderWithProviders';
 import { useUser } from '../hooks/useUser';
 import { getAvailableActions, type UserCapabilities } from '../policy/availableActions';
 import { UserStatusActions } from './UserStatusActions';
+import { uuidOf } from '@/test/ids';
 
 const text = messages.users;
 const ACTIVE = 1;
@@ -27,7 +28,7 @@ function start(statusId = ACTIVE) {
     users: [
       ...base.users,
       directoryUser({
-        id: 121,
+        id: uuidOf(121),
         statusId,
         firstName: 'Ana',
         paternalLastName: 'Pérez',
@@ -45,7 +46,7 @@ function Harness({
   readonly userCapabilities: UserCapabilities;
   readonly isSelf: boolean;
 }) {
-  const query = useUser(121);
+  const query = useUser(uuidOf(121));
   if (query.data === undefined) {
     return null;
   }
@@ -170,8 +171,8 @@ describe('UserStatusActions: blocking', () => {
     await waitFor(() => {
       expect(statusText()).toBe(text.status.blocked);
     });
-    expect(mock.requestsTo('POST', '/api/v1/users/121/block')).toHaveLength(1);
-    expect(mock.state.findUser(121)?.statusId).toBe(BLOCKED);
+    expect(mock.requestsTo('POST', `/api/v1/users/${uuidOf(121)}/block`)).toHaveLength(1);
+    expect(mock.state.findUser(uuidOf(121))?.statusId).toBe(BLOCKED);
     expect(await screen.findByRole('button', { name: text.actions.unblock })).toBeInTheDocument();
     expect(blockButton()).not.toBeInTheDocument();
     await noDialog();
@@ -227,13 +228,13 @@ describe('UserStatusActions: unblocking', () => {
     await waitFor(() => {
       expect(statusText()).toBe(text.status.active);
     });
-    expect(mock.state.findUser(121)?.statusId).toBe(ACTIVE);
+    expect(mock.state.findUser(uuidOf(121))?.statusId).toBe(ACTIVE);
     expect(await screen.findByRole('button', { name: text.actions.block })).toBeInTheDocument();
   });
 
   it('tells that the person has no access account, and the user stays blocked', async () => {
     const mock = start(BLOCKED);
-    mock.identity.accountMissing(121);
+    mock.identity.accountMissing(uuidOf(121));
     const { user } = renderActions();
     await ready();
     const dialog = await open(user, text.actions.unblock);
@@ -260,7 +261,7 @@ describe('UserStatusActions: when it cannot be done', () => {
     expect(await screen.findByText(text.errors.identityUnavailable)).toBeInTheDocument();
     await noDialog();
     expect(statusText()).toBe(text.status.active);
-    expect(mock.state.findUser(121)?.statusId).toBe(ACTIVE);
+    expect(mock.state.findUser(uuidOf(121))?.statusId).toBe(ACTIVE);
     expect(blockButton()).toBeEnabled();
 
     mock.identity.recover();
@@ -283,7 +284,7 @@ describe('UserStatusActions: when it cannot be done', () => {
     await user.click(within(dialog).getByRole('button', { name: text.dialogs.block.confirm }));
 
     expect(await screen.findByText(text.errors.identityRejected)).toBeInTheDocument();
-    expect(mock.state.findUser(121)?.statusId).toBe(ACTIVE);
+    expect(mock.state.findUser(uuidOf(121))?.statusId).toBe(ACTIVE);
   });
 
   it('tells that the user has another status, and asks for the user again (US4-7)', async () => {
@@ -292,7 +293,7 @@ describe('UserStatusActions: when it cannot be done', () => {
     await ready();
     const dialog = await open(user, text.actions.block);
     // Another operator blocks the same user while this dialog is open.
-    mock.setUserStatus(121, BLOCKED);
+    mock.setUserStatus(uuidOf(121), BLOCKED);
 
     await user.click(within(dialog).getByRole('button', { name: text.dialogs.block.confirm }));
 
@@ -300,7 +301,7 @@ describe('UserStatusActions: when it cannot be done', () => {
     await waitFor(() => {
       expect(statusText()).toBe(text.status.blocked);
     });
-    expect(mock.requestsTo('GET', '/api/v1/users/121')).toHaveLength(2);
+    expect(mock.requestsTo('GET', `/api/v1/users/${uuidOf(121)}`)).toHaveLength(2);
     expect(await screen.findByRole('button', { name: text.actions.unblock })).toBeInTheDocument();
   });
 
@@ -359,7 +360,7 @@ describe('UserStatusActions: accessibility', () => {
     view.unmount();
 
     const mock = start(BLOCKED);
-    expect(mock.state.findUser(121)?.statusId).toBe(BLOCKED);
+    expect(mock.state.findUser(uuidOf(121))?.statusId).toBe(BLOCKED);
     const blocked = renderActions();
     await ready();
     expect(await axe(blocked.container)).toHaveNoViolations();

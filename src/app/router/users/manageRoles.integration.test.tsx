@@ -10,6 +10,7 @@ import {
 } from '@/test/handlers/usersDirectory';
 import { renderApp } from '@/test/renderApp';
 import { callService } from '@/test/usersClient';
+import { uuidOf } from '@/test/ids';
 
 beforeAll(async () => {
   configure({ asyncUtilTimeout: 10_000 });
@@ -31,7 +32,7 @@ function start() {
     users: [
       ...base.users,
       directoryUser({
-        id: 2,
+        id: uuidOf(2),
         email: 'ana@clinica.com',
         firstName: 'Ana',
         paternalLastName: 'Pérez',
@@ -39,7 +40,7 @@ function start() {
       }),
     ],
   });
-  mock.assign(2, 4);
+  mock.assign(uuidOf(2), 4);
   return mock;
 }
 
@@ -62,7 +63,7 @@ async function confirmInDialog(user: App['user'], title: string, confirm: string
 describe('the users section: roles (feature 002, user story 3)', { timeout: 30_000 }, () => {
   it('adds a role and takes another away, each with its confirmation, without reloading the page (V15)', async () => {
     const mock = start();
-    const { user } = open('/users/2');
+    const { user } = open(`/users/${uuidOf(2)}`);
     const section = await rolesSection();
     await within(section).findByText('Marketing');
 
@@ -89,18 +90,18 @@ describe('the users section: roles (feature 002, user story 3)', { timeout: 30_0
     await waitFor(async () => {
       expect(await roleNames()).toEqual(['Billing']);
     });
-    expect(mock.state.rolesOf(2).map((role) => role.name)).toEqual(['Billing']);
+    expect(mock.state.rolesOf(uuidOf(2)).map((role) => role.name)).toEqual(['Billing']);
     // Only the roles were asked for again: the page was not loaded anew.
-    expect(mock.requestsTo('GET', '/api/v1/users/2')).toHaveLength(1);
+    expect(mock.requestsTo('GET', `/api/v1/users/${uuidOf(2)}`)).toHaveLength(1);
   });
 
   it('warns that it was already done, and shows the roles that the user has, when another tab took the same role away (V16)', async () => {
     start();
-    const { user } = open('/users/2');
+    const { user } = open(`/users/${uuidOf(2)}`);
     const section = await rolesSection();
     await within(section).findByText('Marketing');
     // The other tab takes Marketing away first.
-    await callService('/api/v1/users/2/roles/4', { method: 'DELETE' });
+    await callService(`/api/v1/users/${uuidOf(2)}/roles/4`, { method: 'DELETE' });
 
     await user.click(within(section).getByRole('button', { name: text.roles.remove('Marketing') }));
     await confirmInDialog(user, text.removeRole.title, text.removeRole.confirm);
@@ -128,7 +129,7 @@ describe('the users section: roles (feature 002, user story 3)', { timeout: 30_0
   it('lets someone with users:update but without roles:read take roles away, but not add them (V24)', async () => {
     const mock = start();
     mock.revoke('Administrator', 'roles:read');
-    open('/users/2');
+    open(`/users/${uuidOf(2)}`);
     const section = await rolesSection();
     await within(section).findByText('Marketing');
 
@@ -142,7 +143,7 @@ describe('the users section: roles (feature 002, user story 3)', { timeout: 30_0
   it('offers no action on the roles to someone who can only read', async () => {
     const mock = start();
     mock.revoke('Administrator', 'users:update');
-    open('/users/2');
+    open(`/users/${uuidOf(2)}`);
     const section = await rolesSection();
     await within(section).findByText('Marketing');
 

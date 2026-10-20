@@ -9,6 +9,7 @@ import {
   directoryUser,
 } from '@/test/handlers/usersDirectory';
 import { renderApp } from '@/test/renderApp';
+import { uuidOf } from '@/test/ids';
 
 beforeAll(async () => {
   configure({ asyncUtilTimeout: 10_000 });
@@ -30,7 +31,7 @@ function start(statusId: number) {
     users: [
       ...base.users,
       directoryUser({
-        id: 2,
+        id: uuidOf(2),
         statusId,
         email: 'ana@clinica.com',
         firstName: 'Ana',
@@ -39,7 +40,7 @@ function start(statusId: number) {
       }),
     ],
   });
-  mock.assign(2, 4);
+  mock.assign(uuidOf(2), 4);
   return mock;
 }
 
@@ -79,7 +80,7 @@ const SCENARIOS: readonly Scenario[] = [
       text.dialogs.block.body(FULL_NAME),
     ),
     confirm: text.dialogs.block.confirm,
-    sends: { method: 'POST', path: '/api/v1/users/2/block' },
+    sends: { method: 'POST', path: `/api/v1/users/${uuidOf(2)}/block` },
   },
   {
     action: 'unblock',
@@ -90,7 +91,7 @@ const SCENARIOS: readonly Scenario[] = [
       text.dialogs.unblock.body(FULL_NAME),
     ),
     confirm: text.dialogs.unblock.confirm,
-    sends: { method: 'POST', path: '/api/v1/users/2/unblock' },
+    sends: { method: 'POST', path: `/api/v1/users/${uuidOf(2)}/unblock` },
   },
   {
     action: 'delete',
@@ -101,7 +102,7 @@ const SCENARIOS: readonly Scenario[] = [
       text.dialogs.delete.body(FULL_NAME),
     ),
     confirm: text.dialogs.delete.confirm,
-    sends: { method: 'DELETE', path: '/api/v1/users/2' },
+    sends: { method: 'DELETE', path: `/api/v1/users/${uuidOf(2)}` },
   },
   {
     action: 'reactivate',
@@ -112,7 +113,7 @@ const SCENARIOS: readonly Scenario[] = [
       text.dialogs.reactivate.body(FULL_NAME),
     ),
     confirm: text.dialogs.reactivate.confirm,
-    sends: { method: 'POST', path: '/api/v1/users/2/reactivate' },
+    sends: { method: 'POST', path: `/api/v1/users/${uuidOf(2)}/reactivate` },
   },
   {
     action: 'remove a role',
@@ -123,7 +124,7 @@ const SCENARIOS: readonly Scenario[] = [
       text.removeRole.body('Marketing', FULL_NAME),
     ),
     confirm: text.removeRole.confirm,
-    sends: { method: 'DELETE', path: '/api/v1/users/2/roles/4' },
+    sends: { method: 'DELETE', path: `/api/v1/users/${uuidOf(2)}/roles/4` },
   },
   {
     action: 'add a role',
@@ -136,7 +137,7 @@ const SCENARIOS: readonly Scenario[] = [
       return { dialog, says: text.addRole.summary('Billing', FULL_NAME) };
     },
     confirm: text.addRole.confirm,
-    sends: { method: 'POST', path: '/api/v1/users/2/roles' },
+    sends: { method: 'POST', path: `/api/v1/users/${uuidOf(2)}/roles` },
   },
 ];
 
@@ -145,7 +146,7 @@ describe('the users section: confirmations (SC-003, FR-009, FR-010)', { timeout:
     'asks for confirmation naming the user before it can $action, and cancelling changes nothing',
     async ({ statusId, begin, confirm, sends }) => {
       const mock = start(statusId);
-      const { user } = renderApp({ url: '/users/2', sub: ADMIN_SUB, signedIn: true });
+      const { user } = renderApp({ url: `/users/${uuidOf(2)}`, sub: ADMIN_SUB, signedIn: true });
 
       const { dialog, says } = await begin(user);
 
@@ -157,8 +158,8 @@ describe('the users section: confirmations (SC-003, FR-009, FR-010)', { timeout:
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       });
       expect(changes(mock)).toHaveLength(0);
-      expect(mock.state.findUser(2)?.statusId).toBe(statusId);
-      expect(mock.state.rolesOf(2).map((role) => role.name)).toEqual(['Marketing']);
+      expect(mock.state.findUser(uuidOf(2))?.statusId).toBe(statusId);
+      expect(mock.state.rolesOf(uuidOf(2)).map((role) => role.name)).toEqual(['Marketing']);
 
       // Only the confirmation sends the change, once.
       const again = await begin(user);

@@ -6,12 +6,13 @@ import { createHttpClient } from '@/shared/api/httpClient';
 import { server } from '@/test/server';
 
 import { getMyAccess } from './authorizationApi';
+import { uuidOf } from '@/test/ids';
 
 const BASE_URL = 'http://localhost:5173/proxy/users';
 const ME_URL = `${BASE_URL}/api/v1/authorization/me`;
 
 const userDto = {
-  id: 121,
+  id: uuidOf(121),
   auth0_id: 'auth0|abc123',
   email: 'ana@clinica.com',
   first_name: 'Ana',
@@ -59,7 +60,11 @@ describe('getMyAccess', () => {
     expect(requests).toEqual([
       { method: 'GET', search: '', authorization: 'Bearer test-token:auth0|abc123' },
     ]);
-    expect(access.user).toMatchObject({ id: 121, firstName: 'Ana', paternalLastName: 'Pérez' });
+    expect(access.user).toMatchObject({
+      id: uuidOf(121),
+      firstName: 'Ana',
+      paternalLastName: 'Pérez',
+    });
     expect(access.roles).toEqual([{ id: 4, name: 'Marketing', permissions: ['tenants:read'] }]);
   });
 

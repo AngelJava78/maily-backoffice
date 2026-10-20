@@ -25,7 +25,11 @@ const pageSizeSchema = positiveIntegerText
   .pipe(z.literal(PAGE_SIZE_OPTIONS))
   .catch(DEFAULT_PAGE_SIZE);
 const searchEmailSchema = z.string().trim().min(1);
-const userIdSchema = positiveIntegerText;
+// 8-4-4-4-12 hexadecimal digits, like the users service accepts it; lower case, as the service returns it.
+const userIdSchema = z
+  .string()
+  .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+  .transform((value) => value.toLowerCase());
 
 /** The state of the list written in `search`; the page of the URL starts at 1. Never throws. */
 export function parseUsersSearchParams(params: URLSearchParams): UsersLocation {
@@ -57,7 +61,7 @@ export function toUsersSearchParams(location: UsersLocation): URLSearchParams {
 }
 
 /** The id of a user in the address (`/users/:userId`), or `null` when it is not one. */
-export function parseUserId(value: string | undefined): number | null {
+export function parseUserId(value: string | undefined): string | null {
   const parsed = userIdSchema.safeParse(value);
   return parsed.success ? parsed.data : null;
 }

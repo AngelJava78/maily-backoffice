@@ -16,9 +16,10 @@ import { renderWithProviders } from '@/test/renderWithProviders';
 
 import { userKeys } from '../hooks/userKeys';
 import { UserDetailPage } from './UserDetailPage';
+import { uuidOf } from '@/test/ids';
 
 const ANA = directoryUser({
-  id: 121,
+  id: uuidOf(121),
   email: 'ana@clinica.com',
   firstName: 'Ana',
   paternalLastName: 'Pérez',
@@ -30,7 +31,7 @@ const ANA = directoryUser({
 function start(extra: DirectoryUser[] = []) {
   const base = defaultDirectory();
   const mock = createUsersDirectoryMock({ ...base, users: [...base.users, ANA, ...extra] });
-  mock.assign(121, 4);
+  mock.assign(uuidOf(121), 4);
   return mock;
 }
 
@@ -39,14 +40,18 @@ function valueOf(label: string): string | null {
   return screen.getByText(label).nextElementSibling?.textContent ?? null;
 }
 
-function renderDetail(userId = 121, state?: unknown) {
+function renderDetail(userId = uuidOf(121), state?: unknown) {
   const route = state === undefined ? `/users/${userId}` : { pathname: `/users/${userId}`, state };
   return renderWithProviders(
     [
       {
         path: '/users/:userId',
         element: (
-          <UserDetailPage userId={userId} operatorUserId={1} capabilities={ALL_CAPABILITIES} />
+          <UserDetailPage
+            userId={userId}
+            operatorUserId={uuidOf(1)}
+            capabilities={ALL_CAPABILITIES}
+          />
         ),
       },
     ],
@@ -83,8 +88,8 @@ describe('UserDetailPage', () => {
   });
 
   it('shows a dash where the user has no maternal last name', async () => {
-    start([directoryUser({ id: 130, maternalLastName: null })]);
-    renderDetail(130);
+    start([directoryUser({ id: uuidOf(130), maternalLastName: null })]);
+    renderDetail(uuidOf(130));
 
     await screen.findByText('user130@ejemplo.com');
 
@@ -109,18 +114,18 @@ describe('UserDetailPage', () => {
   ])(
     'shows the status of a user in the status %i and tells that the roles are not shown',
     async (statusId, text) => {
-      const mock = start([directoryUser({ id: 140, statusId })]);
-      renderDetail(140);
+      const mock = start([directoryUser({ id: uuidOf(140), statusId })]);
+      renderDetail(uuidOf(140));
 
       expect(await screen.findByText(text)).toBeInTheDocument();
       expect(await screen.findByText(messages.users.roles.unavailable)).toBeInTheDocument();
-      expect(mock.requestsTo('GET', '/api/v1/users/140/roles')).toHaveLength(0);
+      expect(mock.requestsTo('GET', `/api/v1/users/${uuidOf(140)}/roles`)).toHaveLength(0);
     },
   );
 
   it('says that the user was not found, with a way back to the list (US1-7)', async () => {
     start();
-    renderDetail(999);
+    renderDetail(uuidOf(999));
 
     expect(await screen.findByText(messages.users.detail.notFound.title)).toBeInTheDocument();
     expect(
@@ -132,7 +137,7 @@ describe('UserDetailPage', () => {
     const mock = start();
     mock.failNext({
       method: 'GET',
-      path: '/api/v1/users/121',
+      path: `/api/v1/users/${uuidOf(121)}`,
       status: 500,
       code: 'internal_error',
     });
@@ -147,7 +152,7 @@ describe('UserDetailPage', () => {
   describe('going back to the list (FR-003)', () => {
     it('returns to the page that the person came from', async () => {
       start();
-      renderDetail(121, { listSearch: '?page=3&page_size=25' });
+      renderDetail(uuidOf(121), { listSearch: '?page=3&page_size=25' });
 
       expect(
         await screen.findByRole('link', { name: messages.users.detail.backToList }),
@@ -156,7 +161,7 @@ describe('UserDetailPage', () => {
 
     it('returns to the search that the person came from', async () => {
       start();
-      renderDetail(121, { listSearch: '?email=ana%40clinica.com' });
+      renderDetail(uuidOf(121), { listSearch: '?email=ana%40clinica.com' });
 
       expect(
         await screen.findByRole('link', { name: messages.users.detail.backToList }),
@@ -174,7 +179,7 @@ describe('UserDetailPage', () => {
 
     it('ignores a search that the list could not have written', async () => {
       start();
-      renderDetail(121, { listSearch: '?next=https://evil.example' });
+      renderDetail(uuidOf(121), { listSearch: '?next=https://evil.example' });
 
       expect(
         await screen.findByRole('link', { name: messages.users.detail.backToList }),
@@ -199,7 +204,7 @@ describe('UserDetailPage', () => {
 
     it('warns which roles are missing', async () => {
       startWithPending();
-      renderDetail(121, PENDING);
+      renderDetail(uuidOf(121), PENDING);
 
       expect(await screen.findByRole('alert')).toHaveTextContent(
         messages.users.pendingRoles.message('Doctor, Zeta'),
@@ -208,7 +213,7 @@ describe('UserDetailPage', () => {
 
     it('retries them, says so, and the warning goes away while the roles appear', async () => {
       const mock = startWithPending();
-      const { user, router } = renderDetail(121, PENDING);
+      const { user, router } = renderDetail(uuidOf(121), PENDING);
       await user.click(
         await screen.findByRole('button', { name: messages.users.pendingRoles.retry }),
       );
@@ -217,7 +222,7 @@ describe('UserDetailPage', () => {
       await waitFor(() => {
         expect(screen.queryByText(messages.users.pendingRoles.title)).not.toBeInTheDocument();
       });
-      expect(mock.state.rolesOf(121).map((role) => role.name)).toEqual([
+      expect(mock.state.rolesOf(uuidOf(121)).map((role) => role.name)).toEqual([
         'Marketing',
         'Doctor',
         'Zeta',
@@ -230,7 +235,7 @@ describe('UserDetailPage', () => {
     it('keeps in the warning only the roles that still fail', async () => {
       const mock = startWithPending();
       mock.setRoleStatus(9, 2);
-      const { user, router } = renderDetail(121, PENDING);
+      const { user, router } = renderDetail(uuidOf(121), PENDING);
       await user.click(
         await screen.findByRole('button', { name: messages.users.pendingRoles.retry }),
       );
@@ -242,7 +247,7 @@ describe('UserDetailPage', () => {
         ).toHaveTextContent(messages.users.pendingRoles.message('Zeta'));
       });
       expect(await screen.findByText(messages.users.errors.roleUnavailable)).toBeInTheDocument();
-      expect(mock.state.rolesOf(121).map((role) => role.name)).toContain('Doctor');
+      expect(mock.state.rolesOf(uuidOf(121)).map((role) => role.name)).toContain('Doctor');
       expect(router.state.location.state).toEqual({
         listSearch: '?page=2',
         rolesNotAssigned: [{ id: 9, name: 'Zeta' }],
@@ -251,7 +256,7 @@ describe('UserDetailPage', () => {
 
     describe('when the retry fails again, it says why (FR-011)', () => {
       async function retry(mock: ReturnType<typeof startWithPending>) {
-        const view = renderDetail(121, PENDING);
+        const view = renderDetail(uuidOf(121), PENDING);
         await view.user.click(
           await screen.findByRole('button', { name: messages.users.pendingRoles.retry }),
         );
@@ -299,12 +304,12 @@ describe('UserDetailPage', () => {
 
       it('says that the user has another status, shows it, and no longer offers to assign roles to it', async () => {
         const mock = startWithPending();
-        const { user } = renderDetail(121, PENDING);
+        const { user } = renderDetail(uuidOf(121), PENDING);
         const retryButton = await screen.findByRole('button', {
           name: messages.users.pendingRoles.retry,
         });
         // Another operator blocks the user while the warning is on screen.
-        mock.setUserStatus(121, 2);
+        mock.setUserStatus(uuidOf(121), 2);
 
         await user.click(retryButton);
 
@@ -313,13 +318,13 @@ describe('UserDetailPage', () => {
         await waitFor(() => {
           expect(screen.queryByText(messages.users.pendingRoles.title)).not.toBeInTheDocument();
         });
-        expect(mock.requestsTo('GET', '/api/v1/users/121')).toHaveLength(2);
+        expect(mock.requestsTo('GET', `/api/v1/users/${uuidOf(121)}`)).toHaveLength(2);
       });
     });
 
     it('can be dismissed without asking anything', async () => {
       const mock = startWithPending();
-      const { user } = renderDetail(121, PENDING);
+      const { user } = renderDetail(uuidOf(121), PENDING);
 
       await user.click(
         await screen.findByRole('button', { name: messages.users.pendingRoles.dismiss }),
@@ -336,7 +341,7 @@ describe('UserDetailPage', () => {
       ['is not valid', { rolesNotAssigned: [{ id: 0, name: '' }] }],
     ])('shows no warning when the state %s', async (_label, state) => {
       start();
-      renderDetail(121, state);
+      renderDetail(uuidOf(121), state);
 
       await screen.findByText('ana@clinica.com');
       expect(screen.queryByText(messages.users.pendingRoles.title)).not.toBeInTheDocument();
@@ -349,8 +354,13 @@ describe('UserDetailPage', () => {
       const { user, queryClient } = renderDetail();
       await screen.findByText('ana@clinica.com');
 
-      mock.failNext({ method: 'GET', path: '/api/v1/users/121', status: 400, code: 'bad_request' });
-      await queryClient.invalidateQueries({ queryKey: userKeys.detail(121), exact: true });
+      mock.failNext({
+        method: 'GET',
+        path: `/api/v1/users/${uuidOf(121)}`,
+        status: 400,
+        code: 'bad_request',
+      });
+      await queryClient.invalidateQueries({ queryKey: userKeys.detail(uuidOf(121)), exact: true });
 
       expect(await screen.findByText(messages.users.detail.refreshError)).toBeInTheDocument();
       expect(screen.getByText('ana@clinica.com')).toBeInTheDocument();
@@ -376,24 +386,24 @@ describe('UserDetailPage', () => {
 
       mock.failNext({
         method: 'GET',
-        path: '/api/v1/users/121',
+        path: `/api/v1/users/${uuidOf(121)}`,
         status: 404,
         code: 'user_not_found',
       });
-      await queryClient.invalidateQueries({ queryKey: userKeys.detail(121), exact: true });
+      await queryClient.invalidateQueries({ queryKey: userKeys.detail(uuidOf(121)), exact: true });
 
       expect(await screen.findByText(messages.users.detail.notFound.title)).toBeInTheDocument();
     });
   });
 
   it('has no accessibility violations for an active user and for a blocked one', async () => {
-    start([directoryUser({ id: 140, statusId: 2 })]);
+    start([directoryUser({ id: uuidOf(140), statusId: 2 })]);
     const active = renderDetail();
     await screen.findByText('Marketing');
     expect(await axe(active.container)).toHaveNoViolations();
     active.unmount();
 
-    const blocked = renderDetail(140);
+    const blocked = renderDetail(uuidOf(140));
     await screen.findByText(messages.users.roles.unavailable);
     expect(await axe(blocked.container)).toHaveNoViolations();
   });

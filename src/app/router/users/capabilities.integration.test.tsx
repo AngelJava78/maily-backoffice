@@ -10,6 +10,7 @@ import {
   directoryUser,
 } from '@/test/handlers/usersDirectory';
 import { renderApp } from '@/test/renderApp';
+import { uuidOf } from '@/test/ids';
 
 beforeAll(async () => {
   configure({ asyncUtilTimeout: 10_000 });
@@ -32,16 +33,16 @@ function start(...permissions: string[]) {
     users: [
       ...base.users,
       directoryUser({
-        id: 2,
+        id: uuidOf(2),
         email: 'ana@clinica.com',
         firstName: 'Ana',
         paternalLastName: 'Pérez',
         maternalLastName: 'Gómez',
       }),
     ],
-    associations: [{ userId: 1, roleId: 2 }],
+    associations: [{ userId: uuidOf(1), roleId: 2 }],
   });
-  mock.assign(2, 4);
+  mock.assign(uuidOf(2), 4);
   for (const permission of permissions) {
     mock.grant('Developer', permission);
   }
@@ -99,7 +100,7 @@ describe(
 
     it('adds editing, taking roles away and the changes of status with users:update, but not adding roles, creating or deleting', async () => {
       start('users:read', 'users:update');
-      open('/users/2');
+      open(`/users/${uuidOf(2)}`);
 
       expect(await offeredInDetail()).toEqual({
         edit: true,
@@ -112,7 +113,7 @@ describe(
 
     it('adds "Agregar role" with roles:read', async () => {
       start('users:read', 'users:update', 'roles:read');
-      open('/users/2');
+      open(`/users/${uuidOf(2)}`);
 
       expect(await offeredInDetail()).toMatchObject({ addRole: true, delete: false });
     });
@@ -132,14 +133,14 @@ describe(
 
     it('adds "Eliminar" with users:delete', async () => {
       start('users:read', 'users:update', 'users:delete');
-      open('/users/2');
+      open(`/users/${uuidOf(2)}`);
 
       expect(await offeredInDetail()).toMatchObject({ delete: true });
     });
 
     it('hides the action when the permission is taken away while the person is on the screen', async () => {
       const mock = start('users:read', 'users:update', 'roles:read');
-      open('/users/2');
+      open(`/users/${uuidOf(2)}`);
       expect(await offeredInDetail()).toMatchObject({
         edit: true,
         addRole: true,

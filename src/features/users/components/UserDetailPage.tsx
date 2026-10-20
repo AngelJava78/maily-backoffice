@@ -30,9 +30,9 @@ import { UserRolesPanel } from './UserRolesPanel';
 import { UserStatusActions } from './UserStatusActions';
 
 interface UserDetailPageProps {
-  readonly userId: number;
+  readonly userId: string;
   /** The id of the operator, to protect their own user (FR-012; used by the actions). */
-  readonly operatorUserId: number;
+  readonly operatorUserId: string;
   /** What the operator may do with the user (decided in `app` with the policies of `auth`). */
   readonly capabilities: UserCapabilities;
 }

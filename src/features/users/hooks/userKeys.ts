@@ -16,8 +16,8 @@ export const userKeys = {
   searches: () => [...userKeys.all, 'search'] as const,
   /** The email is trimmed and lower-cased: the service ignores both, so variants share the entry. */
   search: (email: string) => [...userKeys.searches(), email.trim().toLowerCase()] as const,
-  detail: (userId: number) => [...userKeys.all, 'detail', userId] as const,
-  roles: (userId: number) => [...userKeys.detail(userId), 'roles'] as const,
+  detail: (userId: string) => [...userKeys.all, 'detail', userId] as const,
+  roles: (userId: string) => [...userKeys.detail(userId), 'roles'] as const,
 };
 
 /** The catalog of roles that can be assigned; it does not depend on any user. */

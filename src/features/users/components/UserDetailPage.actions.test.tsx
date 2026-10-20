@@ -15,6 +15,7 @@ import { renderWithProviders } from '@/test/renderWithProviders';
 
 import type { UserCapabilities } from '../policy/availableActions';
 import { UserDetailPage } from './UserDetailPage';
+import { uuidOf } from '@/test/ids';
 
 const text = messages.users;
 
@@ -25,7 +26,7 @@ function start(statusId = 1) {
     users: [
       ...base.users,
       directoryUser({
-        id: 121,
+        id: uuidOf(121),
         statusId,
         firstName: 'Ana',
         paternalLastName: 'Pérez',
@@ -33,7 +34,7 @@ function start(statusId = 1) {
       }),
     ],
   });
-  mock.assign(121, 4);
+  mock.assign(uuidOf(121), 4);
   return mock;
 }
 
@@ -44,13 +45,13 @@ function EditProbe() {
 }
 
 function renderDetail({
-  userId = 121,
-  operatorUserId = 1,
+  userId = uuidOf(121),
+  operatorUserId = uuidOf(1),
   userCapabilities = ALL_CAPABILITIES,
-  entry = '/users/121',
+  entry = `/users/${uuidOf(121)}`,
 }: {
-  readonly userId?: number;
-  readonly operatorUserId?: number;
+  readonly userId?: string;
+  readonly operatorUserId?: string;
   readonly userCapabilities?: UserCapabilities;
   readonly entry?: string | { readonly pathname: string; readonly state: unknown };
 } = {}) {
@@ -83,20 +84,20 @@ describe('UserDetailPage: the actions it offers', () => {
 
     await screen.findByText('Marketing');
 
-    expect(editLink()).toHaveAttribute('href', '/users/121/edit');
+    expect(editLink()).toHaveAttribute('href', `/users/${uuidOf(121)}/edit`);
   });
 
   it('carries the search of the list to the edit page, to come back to the same page', async () => {
     start();
     const { user } = renderDetail({
-      entry: { pathname: '/users/121', state: { listSearch: '?page=3&page_size=25' } },
+      entry: { pathname: `/users/${uuidOf(121)}`, state: { listSearch: '?page=3&page_size=25' } },
     });
     await screen.findByText('Marketing');
 
     await user.click(screen.getByRole('link', { name: text.actions.edit }));
 
     expect(await screen.findByTestId('edit-page')).toHaveTextContent(
-      '/users/121/edit {"listSearch":"?page=3&page_size=25"}',
+      `/users/${uuidOf(121)}/edit {"listSearch":"?page=3&page_size=25"}`,
     );
   });
 
@@ -159,7 +160,7 @@ describe('UserDetailPage: the actions it offers', () => {
   describe("on the operator's own user", () => {
     it('tells why, still offers to edit and offers no action on the roles', async () => {
       start();
-      renderDetail({ userId: 1, operatorUserId: 1, entry: '/users/1' });
+      renderDetail({ userId: uuidOf(1), operatorUserId: uuidOf(1), entry: `/users/${uuidOf(1)}` });
 
       expect(await screen.findByText(text.detail.selfNote)).toBeInTheDocument();
       await screen.findByText('Administrator');
@@ -199,7 +200,11 @@ describe('UserDetailPage: the actions it offers', () => {
     expect(await axe(others.container)).toHaveNoViolations();
     others.unmount();
 
-    const own = renderDetail({ userId: 1, operatorUserId: 1, entry: '/users/1' });
+    const own = renderDetail({
+      userId: uuidOf(1),
+      operatorUserId: uuidOf(1),
+      entry: `/users/${uuidOf(1)}`,
+    });
     await screen.findByText(text.detail.selfNote);
     await within(own.container).findByText('Administrator');
     expect(await axe(own.container)).toHaveNoViolations();

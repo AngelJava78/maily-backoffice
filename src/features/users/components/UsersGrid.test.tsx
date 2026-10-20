@@ -9,12 +9,13 @@ import { renderWithProviders } from '@/test/renderWithProviders';
 
 import { platformUserSchema, type PlatformUser } from '../schemas/user';
 import { UsersGrid } from './UsersGrid';
+import { uuidOf } from '@/test/ids';
 
 function tenUsers(): PlatformUser[] {
   return Array.from({ length: 10 }, (_, index) =>
     platformUserSchema.parse(
       userDto({
-        id: 121 + index,
+        id: uuidOf(121 + index),
         email: `usuario${index}@clinica.com`,
         first_name: `Usuario${index}`,
         paternal_last_name: 'Pérez',
@@ -75,11 +76,11 @@ describe('UsersGrid', () => {
   it('links the name to the detail, carrying the search of the list to come back to it (US1-4)', async () => {
     const { user, router } = renderGrid();
     const link = screen.getByRole('link', { name: 'Usuario0 Pérez Gómez' });
-    expect(link).toHaveAttribute('href', '/users/121');
+    expect(link).toHaveAttribute('href', `/users/${uuidOf(121)}`);
 
     await user.click(link);
 
-    expect(router.state.location.pathname).toBe('/users/121');
+    expect(router.state.location.pathname).toBe(`/users/${uuidOf(121)}`);
     expect(router.state.location.state).toEqual({ listSearch: '?page=3&page_size=25' });
   });
 

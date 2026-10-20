@@ -12,15 +12,16 @@ import {
 import { createWrapper } from '@/test/renderWithProviders';
 
 import { useUserRoles } from './useUserRoles';
+import { uuidOf } from '@/test/ids';
 
 function start(statusId = 1) {
   const base = defaultDirectory();
   const mock = createUsersDirectoryMock({
     ...base,
-    users: [...base.users, directoryUser({ id: 121, statusId })],
+    users: [...base.users, directoryUser({ id: uuidOf(121), statusId })],
   });
-  mock.assign(121, 4);
-  mock.assign(121, 6);
+  mock.assign(uuidOf(121), 4);
+  mock.assign(uuidOf(121), 6);
   return mock;
 }
 
@@ -29,7 +30,7 @@ describe('useUserRoles', () => {
     start();
     const { wrapper } = createWrapper({ auth0: ADMIN_AUTH0 });
 
-    const { result } = renderHook(() => useUserRoles(121, { enabled: true }), { wrapper });
+    const { result } = renderHook(() => useUserRoles(uuidOf(121), { enabled: true }), { wrapper });
 
     await waitFor(() => {
       expect(result.current.data).toBeDefined();
@@ -41,7 +42,7 @@ describe('useUserRoles', () => {
     const mock = start();
     const { wrapper } = createWrapper({ auth0: ADMIN_AUTH0 });
 
-    const { result } = renderHook(() => useUserRoles(121, { enabled: false }), { wrapper });
+    const { result } = renderHook(() => useUserRoles(uuidOf(121), { enabled: false }), { wrapper });
 
     expect(result.current.fetchStatus).toBe('idle');
     await new Promise((resolve) => setTimeout(resolve, 50));
@@ -55,7 +56,7 @@ describe('useUserRoles', () => {
     });
     const { wrapper } = createWrapper({ auth0: ADMIN_AUTH0, queryClient });
 
-    const { result } = renderHook(() => useUserRoles(121, { enabled: true }), { wrapper });
+    const { result } = renderHook(() => useUserRoles(uuidOf(121), { enabled: true }), { wrapper });
 
     await waitFor(() => {
       expect(result.current.isError).toBe(true);
