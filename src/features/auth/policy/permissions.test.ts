@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   can,
-  hasAnySectionPermission,
+  hasAnythingToSee,
   PERMISSION_RESOURCES,
   SECTION_RESOURCES,
   type PermissionAction,
@@ -79,31 +79,38 @@ describe('can', () => {
   });
 });
 
-describe('hasAnySectionPermission', () => {
-  it.each(RESOURCES)('is true with the read permission of %s', (resource) => {
-    expect(hasAnySectionPermission(accessWith(`${resource}:read`))).toBe(true);
-  });
+describe('hasAnythingToSee', () => {
+  it.each(['users:read', 'subscriptions:read', 'tenants:read', 'token:read', 'dashboard:read'])(
+    'is true with %s alone',
+    (permission) => {
+      expect(hasAnythingToSee(accessWith(permission))).toBe(true);
+    },
+  );
 
   it('is false without permissions', () => {
-    expect(hasAnySectionPermission(accessWith())).toBe(false);
+    expect(hasAnythingToSee(accessWith())).toBe(false);
+  });
+
+  it('is false when the only permissions are users:write and roles:read', () => {
+    expect(hasAnythingToSee(accessWith('users:write', 'roles:read'))).toBe(false);
   });
 
   it('is false when the only permissions are not read permissions', () => {
-    expect(hasAnySectionPermission(accessWith('users:write', 'tenants:delete'))).toBe(false);
+    expect(hasAnythingToSee(accessWith('users:write', 'tenants:delete'))).toBe(false);
   });
 
   it('is false when the only read permissions belong to resources without a section', () => {
-    expect(hasAnySectionPermission(accessWith('roles:read', 'clinics:read'))).toBe(false);
+    expect(hasAnythingToSee(accessWith('roles:read', 'clinics:read'))).toBe(false);
   });
 
   it('is false with only roles:read: the roles are read to assign them, they have no section', () => {
-    expect(hasAnySectionPermission(accessWith('roles:read'))).toBe(false);
+    expect(hasAnythingToSee(accessWith('roles:read'))).toBe(false);
   });
 });
 
 describe('the roles resource (feature 002)', () => {
   it('is a permission resource without a section of its own', () => {
-    expect([...PERMISSION_RESOURCES]).toEqual([...RESOURCES, 'token', 'roles']);
+    expect([...PERMISSION_RESOURCES]).toEqual([...RESOURCES, 'token', 'roles', 'dashboard']);
     expect([...SECTION_RESOURCES]).toEqual([...RESOURCES, 'token']);
   });
 
@@ -146,7 +153,29 @@ describe('the token resource (feature 005)', () => {
   });
 
   it('counts for the notice of "no permissions assigned": who only has the tool is not told they have nothing', () => {
-    expect(hasAnySectionPermission(accessWith('token:read'))).toBe(true);
-    expect(hasAnySectionPermission(accessWith('token:write'))).toBe(false);
+    expect(hasAnythingToSee(accessWith('token:read'))).toBe(true);
+    expect(hasAnythingToSee(accessWith('token:write'))).toBe(false);
+  });
+});
+
+describe('the dashboard resource (feature 007)', () => {
+  it('is a permission resource without a section: the Panel is always in the navigation', () => {
+    expect(PERMISSION_RESOURCES).toContain('dashboard');
+    expect(SECTION_RESOURCES).not.toContain('dashboard');
+    expect([...SECTION_RESOURCES]).toEqual(['users', 'subscriptions', 'tenants', 'token']);
+  });
+
+  it('lets read the indicators if and only if dashboard:read is there', () => {
+    const read = { resource: 'dashboard', action: 'read' } as const;
+
+    expect(can(accessWith('dashboard:read'), read)).toBe(true);
+    expect(can(accessWith('dashboard:read', 'users:read'), read)).toBe(true);
+    expect(can(accessWith(), read)).toBe(false);
+    expect(can(accessWith('users:read', 'subscriptions:read', 'token:read'), read)).toBe(false);
+    expect(can(accessWith('dashboard:write'), read)).toBe(false);
+  });
+
+  it('counts for the notice of "no permissions assigned": who only sees the indicators is not told they have nothing (FR-012)', () => {
+    expect(hasAnythingToSee(accessWith('dashboard:read'))).toBe(true);
   });
 });

@@ -44,16 +44,17 @@ Dependencias que añade la feature 002 (versiones exactas): `@mui/x-data-grid` (
 
 Todas son públicas (`VITE_*`, nunca llevan secretos), se validan con Zod al arrancar y, si alguna es inválida, la aplicación muestra qué variable corregir. Los archivos `.env*` no se versionan; el modelo es [.env.example](.env.example). El detalle de cada regla está en [environment.md](specs/001-auth-session-profile/contracts/environment.md).
 
-| Variable                         | Obligatoria | Uso                                                                                                                       |
-| -------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `VITE_AUTH0_DOMAIN`              | Sí          | Dominio del tenant de Auth0, sin esquema.                                                                                 |
-| `VITE_AUTH0_CLIENT_ID`           | Sí          | Client id de la aplicación SPA.                                                                                           |
-| `VITE_AUTH0_AUDIENCE`            | Sí          | Identificador de la API de Auth0.                                                                                         |
-| `VITE_USERS_API_URL`             | Sí          | Base del servicio de usuarios: `/proxy/users` en desarrollo o una URL `https`.                                            |
-| `VITE_SUBSCRIPTIONS_API_URL`     | Sí          | Base de la API de suscripciones (feature 003): `/proxy/subscriptions` en desarrollo o una URL `https`.                    |
-| `VITE_CLINICS_API_URL`           | No          | Base de la API de clínicas (feature 004).                                                                                 |
-| `USERS_API_PROXY_TARGET`         | No          | Solo desarrollo: destino del proxy `/proxy/users` (por defecto `127.0.0.1:8000`).                                         |
-| `SUBSCRIPTIONS_API_PROXY_TARGET` | No          | Solo desarrollo: destino del proxy `/proxy/subscriptions` (por defecto `127.0.0.1:8010`, el puerto que documenta la API). |
+| Variable                         | Obligatoria | Uso                                                                                                                                  |
+| -------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `VITE_AUTH0_DOMAIN`              | Sí          | Dominio del tenant de Auth0, sin esquema.                                                                                            |
+| `VITE_AUTH0_CLIENT_ID`           | Sí          | Client id de la aplicación SPA.                                                                                                      |
+| `VITE_AUTH0_AUDIENCE`            | Sí          | Identificador de la API de Auth0.                                                                                                    |
+| `VITE_USERS_API_URL`             | Sí          | Base del servicio de usuarios: `/proxy/users` en desarrollo o una URL `https`.                                                       |
+| `VITE_SUBSCRIPTIONS_API_URL`     | Sí          | Base de la API de suscripciones (feature 003): `/proxy/subscriptions` en desarrollo o una URL `https`.                               |
+| `VITE_DASHBOARD_REFRESH_MINUTES` | No          | Minutos entre actualizaciones del Panel (1 a 60; 5 por defecto). Se fija al compilar: cambiarla exige volver a compilar y desplegar. |
+| `VITE_CLINICS_API_URL`           | No          | Base de la API de clínicas (feature 004).                                                                                            |
+| `USERS_API_PROXY_TARGET`         | No          | Solo desarrollo: destino del proxy `/proxy/users` (por defecto `127.0.0.1:8000`).                                                    |
+| `SUBSCRIPTIONS_API_PROXY_TARGET` | No          | Solo desarrollo: destino del proxy `/proxy/subscriptions` (por defecto `127.0.0.1:8010`, el puerto que documenta la API).            |
 
 ## Scripts
 

@@ -7,6 +7,7 @@ import { messages } from '@/shared/messages/es';
 import { AppLayout } from '../layouts/AppLayout';
 import { PublicLayout } from '../layouts/PublicLayout';
 import { NotFoundPage } from '../pages/LazyNotFoundPage';
+import { HomeRoute } from './HomeRoute';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
 import { SubscriptionCreateRoute } from './subscriptions/SubscriptionCreateRoute';
@@ -18,10 +19,8 @@ import { UserDetailRoute } from './users/UserDetailRoute';
 import { UserEditRoute } from './users/UserEditRoute';
 import { UsersListRoute } from './users/UsersListRoute';
 
-// Each page is a separate chunk, loaded when its route is first visited (constitution: Rendimiento y observabilidad).
-const HomePage = lazy(() =>
-  import('@/features/home').then((module) => ({ default: module.HomePage })),
-);
+// Each page is a separate chunk, loaded when its route is first visited (constitution: Rendimiento
+// y observabilidad); the one of the Panel is defined by `HomeRoute`.
 const ProfilePage = lazy(() =>
   import('@/features/profile').then((module) => ({ default: module.ProfilePage })),
 );
@@ -69,9 +68,11 @@ export const appRoutes: RouteObject[] = [
           {
             Component: AppLayout,
             children: [
+              // The Panel (feature 007): no permission of its own, `dashboard:read` only decides
+              // what it shows (contracts/app-routes.md).
               {
                 index: true,
-                Component: HomePage,
+                Component: HomeRoute,
                 handle: { titleKey: 'home' },
                 ErrorBoundary: RouteErrorBoundary,
               },

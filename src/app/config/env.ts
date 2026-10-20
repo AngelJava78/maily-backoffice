@@ -41,6 +41,29 @@ function emptyToUndefined(value: unknown): unknown {
   return value === '' ? undefined : value;
 }
 
+/** The minutes between two automatic refreshes of the Panel when the variable is not set. */
+const DEFAULT_DASHBOARD_REFRESH_MINUTES = 5;
+
+/**
+ * Whole minutes from 1 to 60, written with digits only (feature 007, contracts/environment.md):
+ * `05` is 5, while a sign, a decimal point, an exponent or a space is refused, not rounded.
+ */
+const dashboardRefreshMinutes = z.preprocess(
+  emptyToUndefined,
+  z
+    .string({ error: rules.refreshMinutes })
+    .regex(/^\d+$/, { error: rules.refreshMinutes })
+    .transform(Number)
+    .pipe(
+      z
+        .number()
+        .int({ error: rules.refreshMinutes })
+        .min(1, { error: rules.refreshMinutes })
+        .max(60, { error: rules.refreshMinutes }),
+    )
+    .default(DEFAULT_DASHBOARD_REFRESH_MINUTES),
+);
+
 function createEnvSchema(isProduction: boolean) {
   const nonEmpty = (message: string) =>
     z.string({ error: message }).trim().min(1, { error: message });
@@ -60,6 +83,8 @@ function createEnvSchema(isProduction: boolean) {
     VITE_CLINICS_API_URL: optionalApiBase,
     // Required since feature 003: the subscriptions section cannot work without its API.
     VITE_SUBSCRIPTIONS_API_URL: apiBase,
+    // Fixed when the application is built: changing it means building and deploying again.
+    VITE_DASHBOARD_REFRESH_MINUTES: dashboardRefreshMinutes,
   });
 }
 

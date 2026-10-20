@@ -53,7 +53,11 @@ for (const size of SIZES) {
       await page.goto('/');
       await signIn(page, account('A1'));
 
-      await expect(page.getByRole('heading', { level: 1, name: /^Hola, / })).toBeVisible();
+      // The home page is the Panel since feature 007: its heading names it, and the greeting follows.
+      await expect(
+        page.getByRole('heading', { level: 1, name: messages.home.title }),
+      ).toBeVisible();
+      await expect(page.getByText(/^Hola, /)).toBeVisible();
       await expectNoHorizontalScroll(page);
       await expectHeaderShortcuts(page);
 
@@ -71,6 +75,23 @@ for (const size of SIZES) {
       });
       await expect(
         page.getByRole('heading', { level: 1, name: messages.notFound.title }),
+      ).toBeVisible();
+      await expectNoHorizontalScroll(page);
+      await expectHeaderShortcuts(page);
+    });
+
+    test('the Panel with its data (A1) reflows, with the recent clinics in view (feature 007)', async ({
+      page,
+    }) => {
+      test.skip(!hasAccounts('A1'), 'Needs E2E_AUTH0_USER_A1 and E2E_AUTH0_PASSWORD_A1');
+      await page.goto('/');
+      await signIn(page, account('A1'));
+
+      await expect(
+        page.getByRole('table', { name: messages.dashboard.recentClinics.title }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole('heading', { level: 2, name: messages.dashboard.indicatorsTitle }),
       ).toBeVisible();
       await expectNoHorizontalScroll(page);
       await expectHeaderShortcuts(page);

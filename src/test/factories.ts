@@ -2,6 +2,10 @@ import type { z } from 'zod';
 
 import type { OperatorAccess } from '@/features/auth/policy/types';
 import type { accessRoleSchema, myAccessSchema } from '@/features/auth/schemas/myAccess';
+import type {
+  DashboardDto,
+  recentClinicSchema,
+} from '@/features/dashboard/schemas/dashboardSummary';
 import type { subscriptionSchema } from '@/features/subscriptions/schemas/subscription';
 import { platformUserSchema } from '@/features/users';
 import type { roleSchema } from '@/features/users/schemas/role';
@@ -17,6 +21,9 @@ export type RoleRecordDto = z.input<typeof roleSchema>;
 export type UserPageDto = z.input<typeof userPageSchema>;
 /** The subscriptions API speaks snake_case too; this is the type of a subscription in its answers. */
 export type SubscriptionDto = z.input<typeof subscriptionSchema>;
+/** The same API answers the summary of the Panel (feature 007); this is one of its recent clinics. */
+export type RecentClinicDto = z.input<typeof recentClinicSchema>;
+export type { DashboardDto };
 
 /** A user as the users service returns it: active, with the id `uuidOf(121)` and a maternal last name. */
 export function userDto(overrides: Partial<UserDto> = {}): UserDto {
@@ -111,6 +118,61 @@ export function subscriptionDto(overrides: Partial<SubscriptionDto> = {}): Subsc
     clinics_count: 0,
     created_at: '2026-10-17T15:00:00Z',
     updated_at: '2026-10-17T15:00:00Z',
+    ...overrides,
+  };
+}
+
+/** A recent clinic as the summary of the Panel sends it: Clínica Santa Aurora, in trial. */
+export function recentClinicDto(overrides: Partial<RecentClinicDto> = {}): RecentClinicDto {
+  return {
+    id: '5457da22-336d-49d8-8876-4d7edb5586ae',
+    name: 'Clínica Santa Aurora',
+    created_at: '2026-10-15T16:20:00Z',
+    status: { id: 2, name: 'En prueba' },
+    ...overrides,
+  };
+}
+
+const ACTIVE_CLINIC = { id: 1, name: 'Activa' };
+
+/**
+ * The summary of the Panel as the service sends it in its phase 1 (contracts/dashboard-service.md,
+ * D1): 12 clinics (8 active and 3 in trial), 37 doctors, 1,284 patients, 52 users and the five
+ * newest clinics, newest first (the two of the same instant, by id).
+ */
+export function dashboardDto(overrides: Partial<DashboardDto> = {}): DashboardDto {
+  return {
+    total_clinics: 12,
+    active_clinics: 8,
+    trial_clinics: 3,
+    total_doctors: 37,
+    total_patients: 1284,
+    total_users: 52,
+    recent_clinics: [
+      recentClinicDto(),
+      recentClinicDto({
+        id: '7513bda5-dd0f-48a0-9053-383ac7ec2c92',
+        name: 'Consultorio Del Valle',
+        created_at: '2026-10-12T09:05:00Z',
+      }),
+      recentClinicDto({
+        id: 'ca8b4382-8b86-4916-b3cb-002680986de3',
+        name: 'Centro Médico Horizonte',
+        created_at: '2026-10-09T18:40:00Z',
+        status: ACTIVE_CLINIC,
+      }),
+      recentClinicDto({
+        id: '41902d77-45cb-451e-9e11-65c60e56ecf8',
+        name: 'Dental Sonríe',
+        created_at: '2026-10-08T15:00:00Z',
+      }),
+      recentClinicDto({
+        id: 'e042d32c-3886-4777-953c-68db1d969e0e',
+        name: 'Clínica San Rafael',
+        created_at: '2026-10-08T15:00:00Z',
+        status: ACTIVE_CLINIC,
+      }),
+    ],
     ...overrides,
   };
 }

@@ -7,4 +7,5 @@ interface ImportMetaEnv {
   readonly VITE_USERS_API_URL: string | undefined;
   readonly VITE_CLINICS_API_URL: string | undefined;
   readonly VITE_SUBSCRIPTIONS_API_URL: string | undefined;
+  readonly VITE_DASHBOARD_REFRESH_MINUTES: string | undefined;
 }

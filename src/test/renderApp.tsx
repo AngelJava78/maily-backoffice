@@ -16,13 +16,14 @@ import { NotificationsProvider } from '@/shared/ui/Notifications';
 import { SUBSCRIPTIONS_API_BASE_URL } from './handlers/subscriptionsCatalog/baseUrl';
 import { USERS_API_BASE_URL } from './handlers/usersService';
 
-const env: AppEnv = {
+const defaultEnv: AppEnv = {
   VITE_AUTH0_DOMAIN: 'tenant.us.auth0.com',
   VITE_AUTH0_CLIENT_ID: 'client-id',
   VITE_AUTH0_AUDIENCE: 'https://mailysoft-apis',
   VITE_USERS_API_URL: USERS_API_BASE_URL,
   VITE_CLINICS_API_URL: undefined,
   VITE_SUBSCRIPTIONS_API_URL: SUBSCRIPTIONS_API_BASE_URL,
+  VITE_DASHBOARD_REFRESH_MINUTES: 5,
 };
 
 export interface RenderAppOptions {
@@ -41,6 +42,8 @@ export interface RenderAppOptions {
    * a `401`, which these tests do not provoke.
    */
   readonly freshAccessToken?: string;
+  /** Configuration that differs from the one of the tests, such as a refresh of the Panel each minute. */
+  readonly env?: Partial<AppEnv>;
 }
 
 /**
@@ -55,6 +58,7 @@ export function renderApp(options: RenderAppOptions = {}) {
     '',
     options.callback ? '/callback?code=abc&state=xyz' : (options.url ?? '/'),
   );
+  const env: AppEnv = { ...defaultEnv, ...options.env };
   const sub = options.sub ?? 'auth0|user1';
   const account: User = { sub, email: 'cuenta@ejemplo.com' };
   let signedIn = options.signedIn ?? false;

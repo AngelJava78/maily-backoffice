@@ -42,6 +42,7 @@ export const messages = {
     message: 'Ocurrió un problema al verificar tu cuenta. Puedes reintentar o cerrar sesión.',
   },
   home: {
+    title: 'Panel',
     greeting: (name: string) => `Hola, ${name}`,
     noPermissionsTitle: 'Sin permisos asignados',
     noPermissionsNotice:
@@ -49,10 +50,41 @@ export const messages = {
     permissionsChanged:
       'Tus permisos cambiaron y la sección en la que estabas ya no está disponible.',
   },
+  // The summary of the platform on the Panel, feature 007 (contracts/app-routes.md).
+  dashboard: {
+    indicatorsTitle: 'Indicadores de la plataforma',
+    indicators: {
+      totalClinics: 'Clínicas totales',
+      activeClinics: 'Clínicas activas',
+      trialClinics: 'Clínicas en periodo de prueba',
+      totalDoctors: 'Doctores',
+      totalPatients: 'Pacientes',
+      totalUsers: 'Usuarios',
+    },
+    notAvailable: 'No disponible',
+    recentClinics: {
+      title: 'Clínicas recientes',
+      columns: { name: 'Nombre', status: 'Estatus', createdAt: 'Fecha de alta' },
+      empty: 'Sin clínicas registradas',
+    },
+    lastUpdated: (when: string) => `Actualizado: ${when}`,
+    updating: 'Actualizando…',
+    loadError: {
+      title: 'No se pudieron cargar los indicadores',
+      message:
+        'Ocurrió un problema al consultar la plataforma. Se volverá a intentar automáticamente.',
+    },
+    refreshFailed:
+      'No se pudieron actualizar los indicadores. Se muestran los de la última actualización y se volverá a intentar automáticamente.',
+    noPermission: {
+      title: 'Sin acceso a los indicadores',
+      message: 'No tienes permiso para ver los indicadores de la plataforma.',
+    },
+  },
   nav: {
     label: 'Navegación principal',
     skipLink: 'Saltar al contenido',
-    home: 'Inicio',
+    home: 'Panel',
     profile: 'Perfil',
     sections: {
       users: 'Usuarios',
@@ -489,11 +521,12 @@ export const messages = {
       audience: 'Texto no vacío (identificador de la API de Auth0).',
       apiUrl:
         'Ruta que empieza con `/` o URL `http(s)`; en builds de producción una URL absoluta debe ser `https`. Sin `/` final.',
+      refreshMinutes: 'Entero de 1 a 60 (minutos), escrito solo con dígitos; si no se define, 5.',
     },
   },
   titles: {
     access: 'Acceso',
-    home: 'Inicio',
+    home: 'Panel',
     profile: 'Mi perfil',
     notFound: 'Página no encontrada',
     users: 'Usuarios',

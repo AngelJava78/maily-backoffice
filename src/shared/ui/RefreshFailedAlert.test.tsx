@@ -25,4 +25,15 @@ describe('RefreshFailedAlert', () => {
 
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  // A screen that refreshes itself tries again on its next cycle instead (feature 007, FR-026).
+  it('offers no action when it is not given a way to try again', async () => {
+    const { container } = render(
+      <RefreshFailedAlert message={messages.users.detail.refreshError} />,
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent(messages.users.detail.refreshError);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(await axe(container)).toHaveNoViolations();
+  });
 });
