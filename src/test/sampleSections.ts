@@ -7,9 +7,9 @@ import type { SectionDefinition } from '@/app/navigation/sections';
 export const sampleSections: readonly SectionDefinition[] = [
   { id: 'users', path: '/users', labelKey: 'users', resource: 'users' },
   {
-    id: 'subscription-types',
-    path: '/subscription-types',
-    labelKey: 'subscriptionTypes',
+    id: 'subscriptions',
+    path: '/subscriptions',
+    labelKey: 'subscriptions',
     resource: 'subscriptions',
   },
   { id: 'clinics', path: '/clinics', labelKey: 'clinics', resource: 'tenants' },

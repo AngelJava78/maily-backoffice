@@ -21,11 +21,7 @@ describe('getVisibleSections', () => {
       sampleSections,
     );
 
-    expect(visible.map((section) => section.id)).toEqual([
-      'users',
-      'subscription-types',
-      'clinics',
-    ]);
+    expect(visible.map((section) => section.id)).toEqual(['users', 'subscriptions', 'clinics']);
   });
 
   it('keeps the order of the registry', () => {
@@ -36,11 +32,7 @@ describe('getVisibleSections', () => {
       reversed,
     );
 
-    expect(visible.map((section) => section.id)).toEqual([
-      'clinics',
-      'subscription-types',
-      'users',
-    ]);
+    expect(visible.map((section) => section.id)).toEqual(['clinics', 'subscriptions', 'users']);
   });
 
   it('returns nothing to someone without permissions', () => {

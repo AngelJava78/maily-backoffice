@@ -50,7 +50,7 @@ export const messages = {
     profile: 'Perfil',
     sections: {
       users: 'Usuarios',
-      subscriptionTypes: 'Tipos de suscripción',
+      subscriptions: 'Suscripciones',
       clinics: 'Clínicas',
       token: 'Token',
     },

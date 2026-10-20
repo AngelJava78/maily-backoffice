@@ -1,8 +1,8 @@
 # MailySoft Backoffice
 
-Backoffice de MailySoft: una aplicación de una sola página (React) con la que el equipo de la plataforma administrará usuarios y sus roles de sistema, tipos de suscripción y clínicas. Consume las APIs REST de la plataforma y se identifica con Auth0.
+Backoffice de MailySoft: una aplicación de una sola página (React) con la que el equipo de la plataforma administrará usuarios y sus roles de sistema, suscripciones y clínicas. Consume las APIs REST de la plataforma y se identifica con Auth0.
 
-**Estado**: están implementadas la feature `001-auth-session-profile` (acceso, sesión y perfil), la `002-manage-users` (administración de usuarios y de sus roles de sistema) y la `005-postman-token-tool` (herramienta temporal Token para Postman). Los tipos de suscripción y las clínicas llegan con las features siguientes.
+**Estado**: están implementadas la feature `001-auth-session-profile` (acceso, sesión y perfil), la `002-manage-users` (administración de usuarios y de sus roles de sistema) y la `005-postman-token-tool` (herramienta temporal Token para Postman). Las suscripciones y las clínicas llegan con las features siguientes.
 
 ## Qué hace hoy
 

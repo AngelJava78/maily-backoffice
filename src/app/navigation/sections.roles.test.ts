@@ -63,7 +63,7 @@ describe('sections and actions per role (SC-007, FR-017)', () => {
 
     expect(getVisibleSections(access, sampleSections).map((section) => section.id)).toEqual([
       'users',
-      'subscription-types',
+      'subscriptions',
       'clinics',
     ]);
     expect(allowedActions(access.permissions)).toEqual(
@@ -81,11 +81,11 @@ describe('sections and actions per role (SC-007, FR-017)', () => {
     expect(allowedActions(access.permissions)).toEqual(['tenants:read']);
   });
 
-  it('Billing sees only Subscription types, with its four actions', () => {
+  it('Billing sees only Subscriptions, with its four actions', () => {
     const access = resolve(billing);
 
     expect(getVisibleSections(access, sampleSections).map((section) => section.id)).toEqual([
-      'subscription-types',
+      'subscriptions',
     ]);
     expect(allowedActions(access.permissions)).toEqual(allPermissions(['subscriptions']));
   });
