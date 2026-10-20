@@ -113,5 +113,30 @@ for (const size of SIZES) {
       await expectNoHorizontalScroll(page);
       await expectHeaderShortcuts(page);
     });
+
+    test('the Token tool (A1) reflows, empty and with a long token on view, with the shortcuts in the header', async ({
+      page,
+    }) => {
+      test.skip(!hasAccounts('A1'), 'Needs E2E_AUTH0_USER_A1 and E2E_AUTH0_PASSWORD_A1');
+      await page.goto('/tools/postman-token');
+      await signIn(page, account('A1'));
+
+      const text = messages.token;
+      const tokenField = page.getByRole('textbox', { name: text.fields.token });
+      await expect(page.getByRole('heading', { level: 1, name: text.title })).toBeVisible();
+      await expectNoHorizontalScroll(page);
+      await expectHeaderShortcuts(page);
+
+      await page.getByRole('button', { name: text.actions.generate }).click();
+      await page.getByRole('button', { name: text.actions.show }).click();
+      await expect(tokenField).not.toHaveValue(text.mask);
+      await expectNoHorizontalScroll(page);
+      await expectHeaderShortcuts(page);
+      // The long token wraps inside its field instead of making the page wider.
+      const overflowsItsField = await tokenField.evaluate(
+        (field) => field.scrollWidth > field.clientWidth,
+      );
+      expect(overflowsItsField).toBe(false);
+    });
   });
 }

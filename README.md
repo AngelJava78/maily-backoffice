@@ -2,16 +2,17 @@
 
 Backoffice de MailySoft: una aplicación de una sola página (React) con la que el equipo de la plataforma administrará usuarios y sus roles de sistema, tipos de suscripción y clínicas. Consume las APIs REST de la plataforma y se identifica con Auth0.
 
-**Estado**: están implementadas la feature `001-auth-session-profile` (acceso, sesión y perfil) y la `002-manage-users` (administración de usuarios y de sus roles de sistema). Los tipos de suscripción y las clínicas llegan con las features siguientes.
+**Estado**: están implementadas la feature `001-auth-session-profile` (acceso, sesión y perfil), la `002-manage-users` (administración de usuarios y de sus roles de sistema) y la `005-postman-token-tool` (herramienta temporal Token para Postman). Los tipos de suscripción y las clínicas llegan con las features siguientes.
 
 ## Qué hace hoy
 
 - **Acceso** con Auth0 (flujo de código con PKCE, tokens solo en memoria). Solo entra quien está registrado en la plataforma de usuarios, tiene el estatus activo y al menos un role autorizado (`Administrator`, `Developer`, `Marketing` o `Billing`); el resto ve un "acceso denegado" con el motivo.
-- **Permisos** `recurso:acción` (`users`, `subscriptions`, `tenants` con `read`, `write`, `update` y `delete`): el acceso se vuelve a comprobar cada 5 minutos y al volver a la pestaña, y la navegación solo ofrece las secciones que la persona puede leer.
+- **Permisos** `recurso:acción` (`users`, `subscriptions` y `tenants` con `read`, `write`, `update` y `delete`; `token` con `read`): el acceso se vuelve a comprobar cada 5 minutos y al volver a la pestaña, y la navegación solo ofrece las secciones que la persona puede leer.
 - **Cierre de sesión** completo (también en Auth0), sincronizado entre pestañas y sin datos al pulsar Atrás.
 - **Inactividad**: aviso a los 14 minutos y cierre a los 15; al volver a identificarse se regresa a la pantalla anterior. También se maneja la sesión vencida.
 - **Perfil** de solo lectura con los datos del usuario de la plataforma.
 - **Usuarios** (sección `/users`): listado paginado de los usuarios activos con detalle, búsqueda por correo (también encuentra bloqueados y eliminados), alta con sus roles, modificación de nombre y apellidos, agregar y quitar roles, bloquear y desbloquear, y eliminar y reactivar. Cada acción que cambia quién puede entrar o qué puede hacer una persona pide confirmación y nombra al usuario; lo que se ofrece depende de los permisos de quien opera y del estatus del usuario, y nadie puede bloquear, eliminar ni cambiar los roles de su propio usuario.
+- **Token** (herramienta temporal, `/tools/postman-token`): genera un access token nuevo de Auth0 para usarlo en Postman. Al abrirla no muestra ningún token; «Generar» lo obtiene oculto, con «Mostrar», «Ocultar» y «Copiar», su fecha y hora de expiración y si sigue vigente, y el botón pasa a «Refrescar». La ve solo quien tiene el permiso `token:read`, que se asigna o se quita en la API de usuarios (solo a `Administrator` y `Developer`): no depende del entorno ni de ninguna variable de configuración.
 - Interfaz en español, accesible (WCAG 2.1 AA) y adaptable de 1024 px a 320 px.
 
 ## Requisitos
@@ -31,7 +32,7 @@ Copy-Item .env.example .env.local   # completa el dominio, el client id y el aud
 npm run dev                         # http://localhost:5173 (puerto fijo: las URL de Auth0 dependen de él)
 ```
 
-La guía completa para levantar el servicio de usuarios, cargar cuentas de prueba y validar la feature está en [quickstart.md](specs/001-auth-session-profile/quickstart.md); la de la administración de usuarios, en [quickstart.md](specs/002-manage-users/quickstart.md).
+La guía completa para levantar el servicio de usuarios, cargar cuentas de prueba y validar la feature está en [quickstart.md](specs/001-auth-session-profile/quickstart.md); la de la administración de usuarios, en [quickstart.md](specs/002-manage-users/quickstart.md); la de la herramienta Token, en [quickstart.md](specs/005-postman-token-tool/quickstart.md).
 
 > **Crear un usuario desde el Backoffice crea una cuenta real en Auth0.** Para probar usa correos desechables que controles; eliminar un usuario desde el Backoffice deja su cuenta bloqueada y marcada en Auth0, no la borra.
 
@@ -48,7 +49,6 @@ Todas son públicas (`VITE_*`, nunca llevan secretos), se validan con Zod al arr
 | `VITE_AUTH0_AUDIENCE`                                | Sí          | Identificador de la API de Auth0.                                                 |
 | `VITE_USERS_API_URL`                                 | Sí          | Base del servicio de usuarios: `/proxy/users` en desarrollo o una URL `https`.    |
 | `VITE_CLINICS_API_URL`, `VITE_SUBSCRIPTIONS_API_URL` | No          | Bases de las APIs de clínicas y de suscripciones (features 003 y 004).            |
-| `VITE_FEATURE_POSTMAN_TOKEN`                         | No          | `true` o `false` (por defecto `false`); herramienta de token de la feature 005.   |
 | `USERS_API_PROXY_TARGET`                             | No          | Solo desarrollo: destino del proxy `/proxy/users` (por defecto `127.0.0.1:8000`). |
 
 ## Scripts
@@ -72,6 +72,7 @@ src/
   features/   una carpeta por capacidad; cada una expone solo su index.ts
     auth/     acceso, sesión, permisos, inactividad y cierre de sesión
     home/     página principal
+    postman-token/  herramienta Token: token de acceso para Postman
     profile/  perfil del operador
     users/    usuarios y roles de sistema: listado, búsqueda, detalle, formularios y acciones
   shared/     cliente HTTP, mensajes en español, utilidades y UI genérica
@@ -89,11 +90,12 @@ Las dependencias fluyen `app → features → shared`, y una feature solo import
 - **De punta a punta** (`e2e/`): necesitan un entorno de Auth0 de pruebas y se omiten si faltan las variables `E2E_AUTH0_USER_A1` a `A9` y `E2E_AUTH0_PASSWORD_A1` a `A9` (las cuentas del quickstart). Instala el navegador una vez con `npx playwright install chromium`.
   - Las lecturas de la sección de usuarios (`e2e/users.spec.ts`) solo necesitan la cuenta A1 y los usuarios de prueba del quickstart de la feature 002.
   - El recorrido que **crea** un usuario (crear, agregar y quitar un role, bloquear, desbloquear, eliminar y reactivar) además exige `E2E_ALLOW_USER_CREATION=true`, `E2E_NEW_USER_EMAIL_DOMAIN` (dominio de los correos desechables, `qa+002-<marca de tiempo>@<dominio>`) y `E2E_NEW_USER_PASSWORD` (la contraseña inicial de esos usuarios); sin ellas se omite, porque cada ejecución deja una cuenta real en Auth0.
+  - La herramienta Token (`e2e/token.spec.ts`) necesita la cuenta A1 y `token:read` asignado a `Administrator`, y la A2 para comprobar que quien no lo tiene no ve la opción (guía en [quickstart.md](specs/005-postman-token-tool/quickstart.md)).
   - Vitest limita los procesos de trabajo a 4 (`maxWorkers` en `vite.config.ts`): cada uno carga un jsdom con MUI y, con uno por procesador, un portátil con poca memoria los ve caer (`exit code 134`).
 
 ### Línea base de tamaño
 
-JS de la ruta de entrada tras la feature 002: **273,6 KB gzip** (límite de la constitución: 300 KB; fue 264,8 KB tras la 001), medido el 2026-10-18 con `npm run build && npm run size`. Las secciones nuevas deben cargarse por ruta con `React.lazy` para no consumir ese margen: la tabla de `/users` (Data Grid) es un fragmento aparte, y `npm run size` también falla si algún marcador del Data Grid aparece en la ruta de entrada o si esa comprobación quedó obsoleta.
+JS de la ruta de entrada tras la feature 005: **274,3 KB gzip** (límite de la constitución: 300 KB; fue 273,6 KB tras la 002 y 264,8 KB tras la 001), medido el 2026-10-20 con `npm run build && npm run size`. Las secciones nuevas deben cargarse por ruta con `React.lazy` para no consumir ese margen: la tabla de `/users` (Data Grid) y la herramienta Token (5,3 KB sin comprimir) son fragmentos aparte, y `npm run size` también falla si algún marcador del Data Grid o de la herramienta aparece en la ruta de entrada o si esas comprobaciones quedaron obsoletas.
 
 ## Despliegue
 
@@ -118,4 +120,5 @@ JS de la ruta de entrada tras la feature 002: **273,6 KB gzip** (límite de la c
 - [Constitución](.specify/memory/constitution.md): principios y puertas de calidad que rigen el desarrollo.
 - [Feature 001: acceso, sesión y perfil](specs/001-auth-session-profile/spec.md), con su [plan](specs/001-auth-session-profile/plan.md), [tareas](specs/001-auth-session-profile/tasks.md) y [guía de validación](specs/001-auth-session-profile/quickstart.md).
 - [Feature 002: administración de usuarios y roles de sistema](specs/002-manage-users/spec.md), con su [plan](specs/002-manage-users/plan.md), [tareas](specs/002-manage-users/tasks.md) y [guía de validación](specs/002-manage-users/quickstart.md).
+- [Feature 005: herramienta Token para Postman](specs/005-postman-token-tool/spec.md), con su [plan](specs/005-postman-token-tool/plan.md), [tareas](specs/005-postman-token-tool/tasks.md) y [guía de validación](specs/005-postman-token-tool/quickstart.md).
 - El desarrollo sigue Spec Kit (`/speckit-specify`, `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-implement`); los commits siguen Conventional Commits en inglés.

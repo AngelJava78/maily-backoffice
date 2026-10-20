@@ -24,7 +24,6 @@ const env: AppEnv = {
   VITE_USERS_API_URL: USERS_API_BASE_URL,
   VITE_CLINICS_API_URL: undefined,
   VITE_SUBSCRIPTIONS_API_URL: undefined,
-  VITE_FEATURE_POSTMAN_TOKEN: false,
 };
 
 const pingSchema = z.object({ ok: z.boolean() });

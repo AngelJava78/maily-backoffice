@@ -18,6 +18,14 @@ const routes: RouteObject[] = [
       </RequirePermission>
     ),
   },
+  {
+    path: '/tool',
+    element: (
+      <RequirePermission resource="token" deniedNotice={messages.token.noPermission}>
+        <p>Tool section</p>
+      </RequirePermission>
+    ),
+  },
 ];
 
 function accessWith(...permissions: string[]) {
@@ -66,6 +74,40 @@ describe('RequirePermission', () => {
     expect(await screen.findByText(messages.home.permissionsChanged)).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/');
     expect(screen.queryByText('Users section')).not.toBeInTheDocument();
+  });
+
+  it('shows the own notice of the section, and not the common one, when it has one (feature 005, FR-005)', async () => {
+    const { router } = renderWithProviders(routes, {
+      route: '/tool',
+      access: accessWith('users:read'),
+    });
+
+    expect(await screen.findByText(messages.token.noPermission)).toBeInTheDocument();
+    expect(screen.queryByText(messages.home.permissionsChanged)).not.toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/');
+    expect(screen.queryByText('Tool section')).not.toBeInTheDocument();
+  });
+
+  it('shows that own notice too when the permission is withdrawn with the section open (US2-8)', async () => {
+    const { router, updateAccess } = renderWithProviders(routes, {
+      route: '/tool',
+      access: accessWith('token:read'),
+    });
+    expect(screen.getByText('Tool section')).toBeInTheDocument();
+
+    await updateAccess(accessWith('users:read'));
+
+    expect(await screen.findByText(messages.token.noPermission)).toBeInTheDocument();
+    expect(screen.queryByText(messages.home.permissionsChanged)).not.toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/');
+  });
+
+  it('renders the section, with no notice at all, for who can read a resource that has its own notice', () => {
+    renderWithProviders(routes, { route: '/tool', access: accessWith('token:read') });
+
+    expect(screen.getByText('Tool section')).toBeInTheDocument();
+    expect(screen.queryByText(messages.token.noPermission)).not.toBeInTheDocument();
+    expect(screen.queryByText(messages.home.permissionsChanged)).not.toBeInTheDocument();
   });
 
   it('keeps the section when other permissions change but the read one stays', async () => {

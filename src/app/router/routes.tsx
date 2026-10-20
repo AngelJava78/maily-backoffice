@@ -2,6 +2,7 @@ import { lazy } from 'react';
 import { Outlet, type RouteObject } from 'react-router';
 
 import { AccessPage, CallbackPage, RequirePermission } from '@/features/auth';
+import { messages } from '@/shared/messages/es';
 
 import { AppLayout } from '../layouts/AppLayout';
 import { PublicLayout } from '../layouts/PublicLayout';
@@ -19,6 +20,11 @@ const HomePage = lazy(() =>
 );
 const ProfilePage = lazy(() =>
   import('@/features/profile').then((module) => ({ default: module.ProfilePage })),
+);
+// Nothing else imports the Token tool, and this chunk is only asked for once the permission guard
+// lets the person in (constitution V, "Herramienta temporal").
+const TokenPage = lazy(() =>
+  import('@/features/postman-token').then((module) => ({ default: module.TokenPage })),
 );
 
 /**
@@ -104,6 +110,25 @@ export const appRoutes: RouteObject[] = [
                     path: ':userId/edit',
                     Component: UserEditRoute,
                     handle: { titleKey: 'userEdit', userIdParam: 'userId' },
+                    ErrorBoundary: RouteErrorBoundary,
+                  },
+                ],
+              },
+              // The Token tool (feature 005, contracts/app-routes.md): seeing it needs `token:read`,
+              // and whoever lacks it is told so on the home page, in the words of the tool.
+              {
+                path: '/tools/postman-token',
+                element: (
+                  <RequirePermission resource="token" deniedNotice={messages.token.noPermission}>
+                    <Outlet />
+                  </RequirePermission>
+                ),
+                ErrorBoundary: RouteErrorBoundary,
+                children: [
+                  {
+                    index: true,
+                    Component: TokenPage,
+                    handle: { titleKey: 'token' },
                     ErrorBoundary: RouteErrorBoundary,
                   },
                 ],

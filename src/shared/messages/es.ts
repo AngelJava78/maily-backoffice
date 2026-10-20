@@ -52,6 +52,7 @@ export const messages = {
       users: 'Usuarios',
       subscriptionTypes: 'Tipos de suscripción',
       clinics: 'Clínicas',
+      token: 'Token',
     },
   },
   idleDialog: {
@@ -274,6 +275,49 @@ export const messages = {
       retryable: 'No pudimos completar la acción. Inténtalo de nuevo.',
     },
   },
+  // The Token tool of feature 005 (contracts/app-routes.md).
+  token: {
+    title: 'Token',
+    warning:
+      'Este token da acceso a MailySoft con tus permisos. No lo compartas ni lo guardes en lugares públicos.',
+    fields: { token: 'Token', expiresAt: 'Fecha y hora de expiración' },
+    emptyToken: 'Aún no has generado un token. Pulsa «Generar» para obtener uno.',
+    emptyExpiry: '—',
+    mask: '••••••••••••',
+    validity: { valid: 'Vigente', expired: 'Expirado' },
+    actions: {
+      generate: 'Generar',
+      refresh: 'Refrescar',
+      show: 'Mostrar',
+      hide: 'Ocultar',
+      copy: 'Copiar',
+      signInAgain: 'Iniciar sesión de nuevo',
+    },
+    copied: 'Token copiado al portapapeles.',
+    copyFailed: 'No se pudo copiar al portapapeles. Pulsa «Mostrar» y copia el token a mano.',
+    announce: {
+      generated: (expiresAt: string) => `Token generado. Expira el ${expiresAt}.`,
+      expired: 'El token expiró. Pulsa «Refrescar» para obtener uno nuevo.',
+    },
+    /** What the person reads when they open the tool without `token:read` (FR-005). */
+    noPermission: 'No tienes permiso para usar la herramienta Token.',
+    errors: {
+      sessionExpired: {
+        title: 'Tu sesión ya no es válida',
+        message:
+          'No se pudo obtener el token porque tu sesión terminó. Reintenta o inicia sesión de nuevo.',
+      },
+      unreadableToken: {
+        title: 'No se pudo leer el token',
+        message:
+          'El proveedor de acceso devolvió un token con un formato inesperado. Puedes reintentar.',
+      },
+      unknown: {
+        title: 'No se pudo obtener el token',
+        message: 'Ocurrió un problema al pedir el token. Puedes reintentar.',
+      },
+    },
+  },
   notFound: {
     title: 'Página no encontrada',
     message: 'La dirección que abriste no existe.',
@@ -298,7 +342,6 @@ export const messages = {
       audience: 'Texto no vacío (identificador de la API de Auth0).',
       apiUrl:
         'Ruta que empieza con `/` o URL `http(s)`; en builds de producción una URL absoluta debe ser `https`. Sin `/` final.',
-      flag: '`true` o `false`; por defecto `false`.',
     },
   },
   titles: {
@@ -310,5 +353,6 @@ export const messages = {
     userCreate: 'Crear usuario',
     userDetail: 'Detalle del usuario',
     userEdit: 'Editar usuario',
+    token: 'Token',
   },
 } as const;

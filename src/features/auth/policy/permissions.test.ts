@@ -17,8 +17,8 @@ function accessWith(...permissions: string[]) {
 }
 
 describe('SECTION_RESOURCES', () => {
-  it('lists the three resources that have a section', () => {
-    expect([...SECTION_RESOURCES]).toEqual(RESOURCES);
+  it('lists the three sections and the token tool (feature 005)', () => {
+    expect([...SECTION_RESOURCES]).toEqual([...RESOURCES, 'token']);
   });
 });
 
@@ -103,8 +103,8 @@ describe('hasAnySectionPermission', () => {
 
 describe('the roles resource (feature 002)', () => {
   it('is a permission resource without a section of its own', () => {
-    expect([...PERMISSION_RESOURCES]).toEqual([...RESOURCES, 'roles']);
-    expect([...SECTION_RESOURCES]).toEqual(RESOURCES);
+    expect([...PERMISSION_RESOURCES]).toEqual([...RESOURCES, 'token', 'roles']);
+    expect([...SECTION_RESOURCES]).toEqual([...RESOURCES, 'token']);
   });
 
   it('is read with roles:read alone, without needing users:read', () => {
@@ -125,5 +125,28 @@ describe('the roles resource (feature 002)', () => {
 
     expect(can(access, { resource: 'users', action: 'update' })).toBe(false);
     expect(can(access, { resource: 'users', action: 'read' })).toBe(false);
+  });
+});
+
+describe('the token resource (feature 005)', () => {
+  it('lets someone with token:read use the tool', () => {
+    expect(can(accessWith('token:read'), { resource: 'token', action: 'read' })).toBe(true);
+  });
+
+  it('denies the tool to someone without token:read, whatever else they can do (FR-001, FR-004)', () => {
+    expect(can(accessWith(), { resource: 'token', action: 'read' })).toBe(false);
+    expect(can(accessWith('users:read'), { resource: 'token', action: 'read' })).toBe(false);
+  });
+
+  it('follows the rule of every resource: another action needs the read permission first', () => {
+    expect(can(accessWith('token:write'), { resource: 'token', action: 'write' })).toBe(false);
+    expect(
+      can(accessWith('token:read', 'token:write'), { resource: 'token', action: 'write' }),
+    ).toBe(true);
+  });
+
+  it('counts for the notice of "no permissions assigned": who only has the tool is not told they have nothing', () => {
+    expect(hasAnySectionPermission(accessWith('token:read'))).toBe(true);
+    expect(hasAnySectionPermission(accessWith('token:write'))).toBe(false);
   });
 });

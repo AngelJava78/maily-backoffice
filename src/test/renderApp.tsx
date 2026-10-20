@@ -22,7 +22,6 @@ const env: AppEnv = {
   VITE_USERS_API_URL: USERS_API_BASE_URL,
   VITE_CLINICS_API_URL: undefined,
   VITE_SUBSCRIPTIONS_API_URL: undefined,
-  VITE_FEATURE_POSTMAN_TOKEN: false,
 };
 
 export interface RenderAppOptions {
@@ -34,6 +33,13 @@ export interface RenderAppOptions {
   readonly signedIn?: boolean;
   /** The page is the Auth0 callback: the sign in completes and gives back this `appState`. */
   readonly callback?: { readonly appState?: { readonly returnTo?: string } };
+  /**
+   * The token that Auth0 hands out when it is asked for a new one with `cacheMode: 'off'`, which is
+   * what the Token tool does (feature 005). Any other request still gets `test-token:<sub>`, the
+   * one the users service mock recognizes. The HTTP client also asks with `cacheMode: 'off'` after
+   * a `401`, which these tests do not provoke.
+   */
+  readonly freshAccessToken?: string;
 }
 
 /**
@@ -71,7 +77,13 @@ export function renderApp(options: RenderAppOptions = {}) {
   });
   const getTokenSilently = vi
     .spyOn(client, 'getTokenSilently')
-    .mockImplementation(() => Promise.resolve(`test-token:${sub}`));
+    .mockImplementation((tokenOptions) =>
+      Promise.resolve(
+        tokenOptions?.cacheMode === 'off' && options.freshAccessToken !== undefined
+          ? options.freshAccessToken
+          : `test-token:${sub}`,
+      ),
+    );
   const logout = vi.spyOn(client, 'logout').mockImplementation(() => {
     signedIn = false;
     return Promise.resolve();
