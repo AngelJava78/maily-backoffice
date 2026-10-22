@@ -46,14 +46,21 @@ describe('getVisibleSections', () => {
   // The registry lists only the sections that exist (FR-009): each feature adds its own.
   it('registers the users section (feature 002), the subscriptions section (feature 003) and then the Token tool (feature 005)', () => {
     expect(sections).toEqual([
-      { id: 'users', path: '/users', labelKey: 'users', resource: 'users' },
+      { id: 'users', path: '/users', labelKey: 'users', resource: 'users', icon: 'users' },
       {
         id: 'subscriptions',
         path: '/subscriptions',
         labelKey: 'subscriptions',
         resource: 'subscriptions',
+        icon: 'subscriptions',
       },
-      { id: 'token', path: '/tools/postman-token', labelKey: 'token', resource: 'token' },
+      {
+        id: 'token',
+        path: '/tools/postman-token',
+        labelKey: 'token',
+        resource: 'token',
+        icon: 'token',
+      },
     ]);
   });
 

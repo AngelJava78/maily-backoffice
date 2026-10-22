@@ -10,6 +10,7 @@ import { useId } from 'react';
 
 import { formatDateTime } from '@/shared/lib/formatDateTime';
 import { messages } from '@/shared/messages/es';
+import { colorTokens } from '@/shared/theme/tokens';
 
 import type { RecentClinic } from '../schemas/dashboardSummary';
 
@@ -32,7 +33,7 @@ function Clinics({
   return (
     <TableContainer>
       <Table size="small" aria-labelledby={headingId}>
-        <TableHead>
+        <TableHead sx={{ bgcolor: colorTokens.superficieSutil }}>
           <TableRow>
             <TableCell>{text.columns.name}</TableCell>
             <TableCell>{text.columns.status}</TableCell>

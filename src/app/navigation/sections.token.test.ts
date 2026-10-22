@@ -15,6 +15,7 @@ describe('the Token entry of the navigation (feature 005)', () => {
       path: '/tools/postman-token',
       labelKey: 'token',
       resource: 'token',
+      icon: 'token',
     });
     expect(sections.map((section) => section.id)).toEqual(['users', 'subscriptions', 'token']);
   });

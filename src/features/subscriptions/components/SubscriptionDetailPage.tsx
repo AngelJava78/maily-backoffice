@@ -1,5 +1,3 @@
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import EditIcon from '@mui/icons-material/Edit';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Stack from '@mui/material/Stack';
@@ -9,6 +7,7 @@ import { Link as RouterLink, useLocation } from 'react-router';
 
 import { messages } from '@/shared/messages/es';
 import { ErrorState } from '@/shared/ui/ErrorState';
+import { Icon } from '@/shared/ui/Icon';
 import { RefreshFailedAlert } from '@/shared/ui/RefreshFailedAlert';
 import { useFocusOnMount } from '@/shared/ui/useFocusOnMount';
 
@@ -57,7 +56,7 @@ export function SubscriptionDetailPage({
         <Button
           component={RouterLink}
           to={`/subscriptions${listSearch ?? ''}`}
-          startIcon={<ArrowBackIcon />}
+          startIcon={<Icon name="arrow-back" decorative />}
         >
           {text.backToList}
         </Button>
@@ -115,7 +114,7 @@ export function SubscriptionDetailPage({
                 to={`/subscriptions/${subscription.id}/edit`}
                 state={listSearch === undefined ? undefined : { listSearch }}
                 variant="contained"
-                startIcon={<EditIcon />}
+                startIcon={<Icon name="edit" decorative />}
               >
                 {messages.subscriptions.actions.edit}
               </Button>

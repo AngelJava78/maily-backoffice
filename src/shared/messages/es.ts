@@ -7,6 +7,8 @@ const PRICE_RULE =
 export const messages = {
   common: {
     appName: 'MailySoft Backoffice',
+    brandName: 'Maily',
+    brandNameLowercase: 'maily',
     retry: 'Reintentar',
     logout: 'Cerrar sesión',
     loading: 'Cargando',
@@ -86,9 +88,11 @@ export const messages = {
   },
   nav: {
     label: 'Navegación principal',
+    mobileLabel: 'Navegación móvil',
     skipLink: 'Saltar al contenido',
     home: 'Panel',
     profile: 'Perfil',
+    appLabel: 'Backoffice',
     sections: {
       users: 'Usuarios',
       subscriptions: 'Suscripciones',

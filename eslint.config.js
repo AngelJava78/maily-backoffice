@@ -229,6 +229,26 @@ export default defineConfig(
   // `auth` back: each would need the other to be loaded first, and the schemas that `auth` builds
   // from `users` at load time would fail in an order that depends on the import graph. What `users`
   // needs of the operator is handed to it by the application (research D2 of feature 002).
+  // Icons go only through Icon + iconRegistry.ts (FR-007/FR-008/SC-003 of feature 008).
+  {
+    files: SOURCE_FILES,
+    ignores: ['src/shared/ui/iconRegistry.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@mui/icons-material', '@mui/icons-material/*', 'lucide-react'],
+              message:
+                'Import icons through src/shared/ui/Icon.tsx, never directly (specs/008-design-system).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   forbidAuthImports('users', 'research D2 of 002'),
   // The same for `subscriptions`: `auth` reads the type of its capabilities, and the capabilities
   // reach the screens from the application (research D2 of feature 003).

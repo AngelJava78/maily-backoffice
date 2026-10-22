@@ -1,4 +1,3 @@
-import AddIcon from '@mui/icons-material/Add';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
@@ -11,6 +10,7 @@ import { messages } from '@/shared/messages/es';
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog';
 import { ErrorState } from '@/shared/ui/ErrorState';
 import { afterDialogClosed, focusIfLost } from '@/shared/ui/focusIfLost';
+import { Icon } from '@/shared/ui/Icon';
 import { RefreshFailedAlert } from '@/shared/ui/RefreshFailedAlert';
 
 import { useRoleActions } from '../hooks/useRoleActions';
@@ -133,7 +133,11 @@ export function UserRolesPanel({
           {messages.users.roles.title}
         </Typography>
         {canAddRoles && roles.data !== undefined && (
-          <Button variant="outlined" startIcon={<AddIcon />} onClick={actions.startAdding}>
+          <Button
+            variant="outlined"
+            startIcon={<Icon name="add" decorative />}
+            onClick={actions.startAdding}
+          >
             {messages.users.roles.add}
           </Button>
         )}

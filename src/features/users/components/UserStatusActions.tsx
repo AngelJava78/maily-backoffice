@@ -1,13 +1,10 @@
-import BlockIcon from '@mui/icons-material/Block';
-import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
-import LockOpenIcon from '@mui/icons-material/LockOpen';
-import RestoreIcon from '@mui/icons-material/Restore';
 import Button from '@mui/material/Button';
 import { useRef, useState, type ReactNode } from 'react';
 
 import { messages } from '@/shared/messages/es';
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog';
 import { afterDialogClosed, focusIfLost } from '@/shared/ui/focusIfLost';
+import { Icon } from '@/shared/ui/Icon';
 import { useDeferredNotice } from '@/shared/ui/useDeferredNotice';
 
 import { useChangeUserStatus, type StatusAction } from '../hooks/useChangeUserStatus';
@@ -35,9 +32,9 @@ const SUCCESS_NOTICE = {
 } satisfies Record<StatusAction, string>;
 
 const MAIN_ICON: Partial<Record<StatusAction, ReactNode>> = {
-  block: <BlockIcon />,
-  unblock: <LockOpenIcon />,
-  reactivate: <RestoreIcon />,
+  block: <Icon name="block" decorative />,
+  unblock: <Icon name="lock-open" decorative />,
+  reactivate: <Icon name="restore" decorative />,
 };
 
 /** Cutting the access or removing the user is serious; giving the access back is not. */
@@ -124,7 +121,7 @@ export function UserStatusActions({ user, available }: UserStatusActionsProps) {
         <Button
           variant="outlined"
           color="error"
-          startIcon={<DeleteOutlinedIcon />}
+          startIcon={<Icon name="delete" decorative />}
           onClick={() => {
             ask('delete');
           }}

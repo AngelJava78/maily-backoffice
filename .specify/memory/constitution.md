@@ -1,3 +1,22 @@
+<!--
+Sync Impact Report
+Version change: 1.3.0 → 1.4.0 (MINOR: ampliación material de guías dentro de principios existentes)
+Modified principles:
+  - I. Arquitectura por Features y React Idiomático — se agrega una excepción a la regla de
+    identificadores en inglés, limitada a los NOMBRES de los tokens de diseño que repliquen un
+    sistema de diseño de referencia externo (caso actual: tokens de web-soft para la feature
+    008-design-system).
+  - Stack obligatorio (sección "Alcance, Stack y Restricciones Técnicas") — se agrega la licencia
+    SIL Open Font License 1.1 (OFL-1.1) a las licencias permitidas, limitada a activos de fuente
+    tipográfica (p. ej. Inter autoalojada), sin cambiar el límite de licencias para dependencias
+    de código.
+Added sections: ninguna (ampliación dentro de secciones existentes).
+Removed sections: ninguna.
+Templates/comandos dependientes: no requieren cambios (las excepciones son acotadas y no alteran
+  la estructura de Technical Context / Constitution Check de plan.md ni de otros comandos).
+Follow-up TODOs: ninguno.
+-->
+
 # Constitución de MailySoft Backoffice
 
 Convención normativa (RFC 2119): DEBE = MUST, NO DEBE = MUST NOT, DEBERÍA = SHOULD, PUEDE = MAY.
@@ -29,9 +48,19 @@ Convención normativa (RFC 2119): DEBE = MUST, NO DEBE = MUST NOT, DEBERÍA = SH
   justifica en Complexity Tracking del plan (YAGNI).
 - Los componentes usan PascalCase (un componente principal por archivo); los identificadores,
   archivos y rutas de código van en inglés.
+- Excepción: los NOMBRES de los tokens de diseño (colores, tipografía, espaciado, radios, sombras,
+  breakpoints) PUEDEN estar en español cuando repliquen los nombres de un sistema de diseño de
+  referencia externo (p. ej. los tokens de MailySoft v2 / web-soft adoptados por la feature
+  008-design-system: `marca`, `accion`, `tinta`, `cuerpo`, `suave`, `tenue`, `fondo`, `superficie`,
+  `superficie-sutil`, `borde`, `borde-fuerte`, `exito`, `aviso`, `peligro`, con sus variantes
+  `-hover`, `-tinte`, `-borde`, `-oscuro`, `-icono`). La excepción se limita estrictamente a los
+  nombres de los tokens: el resto de identificadores, funciones, archivos y rutas de código sigue
+  en inglés sin excepción.
 
 **Razón**: el render predecible y las responsabilidades acotadas son lo que permite que una SPA con
-tres dominios escale sin volverse un monolito acoplado.
+tres dominios escale sin volverse un monolito acoplado. La excepción de los tokens existe porque
+sus nombres deben coincidir con los de un sistema de diseño de referencia (p. ej. web-soft) para
+que las aplicaciones se reconozcan como un mismo producto.
 
 ### II. TypeScript Estricto y Datos Validados en la Frontera
 
@@ -261,8 +290,12 @@ probar comportamiento y no implementación las mantiene útiles ante cambios de 
   (typescript-eslint, react-hooks, jsx-a11y y límites de importación) y Prettier.
 - Añadir o reemplazar una dependencia estructural (router, estado, UI, HTTP, auth) requiere
   justificación en Complexity Tracking. Solo se permiten licencias permisivas (MIT, Apache-2.0,
-  BSD, ISC); las funciones de pago de MUI X (Pro/Premium) requieren aprobación explícita. Las
-  dependencias DEBEN mantenerse al mínimo.
+  BSD, ISC) para dependencias de código; las funciones de pago de MUI X (Pro/Premium) requieren
+  aprobación explícita. Excepción: los activos de fuente tipográfica (no las dependencias de
+  código) PUEDEN usar también la licencia SIL Open Font License 1.1 (OFL-1.1) —p. ej. Inter,
+  autoalojada vía `@fontsource/inter` o un empaquetado equivalente servido desde el propio origen
+  de la aplicación, sin depender de un proveedor externo de fuentes. Las dependencias DEBEN
+  mantenerse al mínimo.
 
 ### Configuración y secretos
 
@@ -326,4 +359,4 @@ probar comportamiento y no implementación las mantiene útiles ante cambios de 
   trimestre o tras cada release mayor.
 - La guía operativa de desarrollo vive en `README.md` y en `specs/<feature>/quickstart.md`.
 
-**Version**: 1.3.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-20
+**Version**: 1.4.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-21

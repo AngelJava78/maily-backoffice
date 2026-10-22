@@ -1,5 +1,3 @@
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import TextField from '@mui/material/TextField';
@@ -7,6 +5,7 @@ import { useState } from 'react';
 import type { UseFormRegisterReturn } from 'react-hook-form';
 
 import { messages } from '@/shared/messages/es';
+import { Icon } from '@/shared/ui/Icon';
 
 /**
  * The initial password of the user. It is hidden by default and can be shown to check what was
@@ -50,7 +49,7 @@ export function PasswordField({
                   setVisible((current) => !current);
                 }}
               >
-                {visible ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                <Icon name={visible ? 'visibility-off' : 'visibility'} decorative />
               </IconButton>
             </InputAdornment>
           ),

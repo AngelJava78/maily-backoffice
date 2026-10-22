@@ -1,5 +1,6 @@
 import { can, type SectionResource } from '@/features/auth';
 import type { messages } from '@/shared/messages/es';
+import type { IconName } from '@/shared/ui/iconRegistry';
 
 /** A section of the backoffice, listed in the navigation when the person can read its resource. */
 export interface SectionDefinition {
@@ -9,6 +10,8 @@ export interface SectionDefinition {
   /** Key of the text in `messages.nav.sections`. */
   readonly labelKey: keyof typeof messages.nav.sections;
   readonly resource: SectionResource;
+  /** Icon shown next to the label in the navigation (FR-013), always decorative. */
+  readonly icon: IconName;
 }
 
 /**
@@ -16,17 +19,24 @@ export interface SectionDefinition {
  * inject example sections of their own.
  */
 export const sections: readonly SectionDefinition[] = [
-  { id: 'users', path: '/users', labelKey: 'users', resource: 'users' },
+  { id: 'users', path: '/users', labelKey: 'users', resource: 'users', icon: 'users' },
   // The subscriptions section of feature 003: listed for whoever has `subscriptions:read`.
   {
     id: 'subscriptions',
     path: '/subscriptions',
     labelKey: 'subscriptions',
     resource: 'subscriptions',
+    icon: 'subscriptions',
   },
   // The Token tool of feature 005 (specs/005-postman-token-tool/contracts/app-routes.md): listed
   // for whoever has `token:read`, and for nobody else.
-  { id: 'token', path: '/tools/postman-token', labelKey: 'token', resource: 'token' },
+  {
+    id: 'token',
+    path: '/tools/postman-token',
+    labelKey: 'token',
+    resource: 'token',
+    icon: 'token',
+  },
 ];
 
 /** The sections whose resource the person can read, in the order of the registry. */
