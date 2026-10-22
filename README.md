@@ -2,11 +2,11 @@
 
 Backoffice de MailySoft: una aplicación de una sola página (React) con la que el equipo de la plataforma administrará usuarios y sus roles de sistema, suscripciones y clínicas. Consume las APIs REST de la plataforma y se identifica con Auth0.
 
-**Estado**: están implementadas la feature `001-auth-session-profile` (acceso, sesión y perfil), la `002-manage-users` (administración de usuarios y de sus roles de sistema), la `003-manage-subscription-types` (administración de suscripciones) y la `005-postman-token-tool` (herramienta temporal Token para Postman). Las clínicas llegan con la feature siguiente.
+**Estado**: están implementadas la feature `001-auth-session-profile` (acceso, sesión y perfil), la `002-manage-users` (administración de usuarios y de sus roles de sistema), la `003-manage-subscription-types` (administración de suscripciones), la `005-postman-token-tool` (herramienta temporal Token para Postman), la `006-system-role-access` (acceso solo con rol de sistema) y la `007-dashboard` (el Panel). Las clínicas llegan con la feature siguiente.
 
 ## Qué hace hoy
 
-- **Acceso** con Auth0 (flujo de código con PKCE, tokens solo en memoria). Solo entra quien está registrado en la plataforma de usuarios, tiene el estatus activo y al menos un role autorizado (`Administrator`, `Developer`, `Marketing` o `Billing`); el resto ve un "acceso denegado" con el motivo.
+- **Acceso** con Auth0 (flujo de código con PKCE, tokens solo en memoria). Solo entra quien está registrado en la plataforma de usuarios, tiene el estatus activo y al menos un rol activo de **tipo Sistema** (el tipo, no el nombre, decide: feature 006); el resto ve la página «Sin acceso» (`/access-denied`), con el correo de su cuenta y la opción de cerrar sesión.
 - **Permisos** `recurso:acción` (`users`, `subscriptions` y `tenants` con `read`, `write`, `update` y `delete`; `token` con `read`): el acceso se vuelve a comprobar cada 5 minutos y al volver a la pestaña, y la navegación solo ofrece las secciones que la persona puede leer.
 - **Cierre de sesión** completo (también en Auth0), sincronizado entre pestañas y sin datos al pulsar Atrás.
 - **Inactividad**: aviso a los 14 minutos y cierre a los 15; al volver a identificarse se regresa a la pantalla anterior. También se maneja la sesión vencida.
@@ -34,7 +34,7 @@ Copy-Item .env.example .env.local   # completa el dominio, el client id y el aud
 npm run dev                         # http://localhost:5173 (puerto fijo: las URL de Auth0 dependen de él)
 ```
 
-La guía completa para levantar el servicio de usuarios, cargar cuentas de prueba y validar la feature está en [quickstart.md](specs/001-auth-session-profile/quickstart.md); la de la administración de usuarios, en [quickstart.md](specs/002-manage-users/quickstart.md); la de las suscripciones (la API, los permisos, el catálogo de prueba y la simulación de clínicas), en [quickstart.md](specs/003-manage-subscription-types/quickstart.md); la de la herramienta Token, en [quickstart.md](specs/005-postman-token-tool/quickstart.md).
+La guía completa para levantar el servicio de usuarios, cargar cuentas de prueba y validar la feature está en [quickstart.md](specs/001-auth-session-profile/quickstart.md); la de la administración de usuarios, en [quickstart.md](specs/002-manage-users/quickstart.md); la de las suscripciones (la API, los permisos, el catálogo de prueba y la simulación de clínicas), en [quickstart.md](specs/003-manage-subscription-types/quickstart.md); la de la herramienta Token, en [quickstart.md](specs/005-postman-token-tool/quickstart.md); la del acceso por tipo de rol y la página «Sin acceso», en [quickstart.md](specs/006-system-role-access/quickstart.md).
 
 > **Crear un usuario desde el Backoffice crea una cuenta real en Auth0.** Para probar usa correos desechables que controles; eliminar un usuario desde el Backoffice deja su cuenta bloqueada y marcada en Auth0, no la borra.
 
@@ -44,17 +44,18 @@ Dependencias que añade la feature 002 (versiones exactas): `@mui/x-data-grid` (
 
 Todas son públicas (`VITE_*`, nunca llevan secretos), se validan con Zod al arrancar y, si alguna es inválida, la aplicación muestra qué variable corregir. Los archivos `.env*` no se versionan; el modelo es [.env.example](.env.example). El detalle de cada regla está en [environment.md](specs/001-auth-session-profile/contracts/environment.md).
 
-| Variable                         | Obligatoria | Uso                                                                                                                                  |
-| -------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `VITE_AUTH0_DOMAIN`              | Sí          | Dominio del tenant de Auth0, sin esquema.                                                                                            |
-| `VITE_AUTH0_CLIENT_ID`           | Sí          | Client id de la aplicación SPA.                                                                                                      |
-| `VITE_AUTH0_AUDIENCE`            | Sí          | Identificador de la API de Auth0.                                                                                                    |
-| `VITE_USERS_API_URL`             | Sí          | Base del servicio de usuarios: `/proxy/users` en desarrollo o una URL `https`.                                                       |
-| `VITE_SUBSCRIPTIONS_API_URL`     | Sí          | Base de la API de suscripciones (feature 003): `/proxy/subscriptions` en desarrollo o una URL `https`.                               |
-| `VITE_DASHBOARD_REFRESH_MINUTES` | No          | Minutos entre actualizaciones del Panel (1 a 60; 5 por defecto). Se fija al compilar: cambiarla exige volver a compilar y desplegar. |
-| `VITE_CLINICS_API_URL`           | No          | Base de la API de clínicas (feature 004).                                                                                            |
-| `USERS_API_PROXY_TARGET`         | No          | Solo desarrollo: destino del proxy `/proxy/users` (por defecto `127.0.0.1:8000`).                                                    |
-| `SUBSCRIPTIONS_API_PROXY_TARGET` | No          | Solo desarrollo: destino del proxy `/proxy/subscriptions` (por defecto `127.0.0.1:8010`, el puerto que documenta la API).            |
+| Variable                         | Obligatoria | Uso                                                                                                                                    |
+| -------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `VITE_AUTH0_DOMAIN`              | Sí          | Dominio del tenant de Auth0, sin esquema.                                                                                              |
+| `VITE_AUTH0_CLIENT_ID`           | Sí          | Client id de la aplicación SPA.                                                                                                        |
+| `VITE_AUTH0_AUDIENCE`            | Sí          | Identificador de la API de Auth0.                                                                                                      |
+| `VITE_USERS_API_URL`             | Sí          | Base del servicio de usuarios: `/proxy/users` en desarrollo o una URL `https`.                                                         |
+| `VITE_SUBSCRIPTIONS_API_URL`     | Sí          | Base de la API de suscripciones (feature 003): `/proxy/subscriptions` en desarrollo o una URL `https`.                                 |
+| `VITE_DASHBOARD_REFRESH_MINUTES` | No          | Minutos entre actualizaciones del Panel (1 a 60; 5 por defecto). Se fija al compilar: cambiarla exige volver a compilar y desplegar.   |
+| `VITE_CLINICS_API_URL`           | No          | Base de la API de clínicas (feature 004).                                                                                              |
+| `VITE_MAILYSOFT_APP_URL`         | No          | URL de la aplicación de MailySoft para clínicas (feature 006). Sin ella, la página «Sin acceso» no muestra el enlace «Ir a MailySoft». |
+| `USERS_API_PROXY_TARGET`         | No          | Solo desarrollo: destino del proxy `/proxy/users` (por defecto `127.0.0.1:8000`).                                                      |
+| `SUBSCRIPTIONS_API_PROXY_TARGET` | No          | Solo desarrollo: destino del proxy `/proxy/subscriptions` (por defecto `127.0.0.1:8010`, el puerto que documenta la API).              |
 
 ## Scripts
 
@@ -129,4 +130,6 @@ JS de la ruta de entrada tras la feature 003: **276,8 KB gzip** (límite de la c
 - [Feature 002: administración de usuarios y roles de sistema](specs/002-manage-users/spec.md), con su [plan](specs/002-manage-users/plan.md), [tareas](specs/002-manage-users/tasks.md) y [guía de validación](specs/002-manage-users/quickstart.md).
 - [Feature 003: administración de suscripciones](specs/003-manage-subscription-types/spec.md), con su [plan](specs/003-manage-subscription-types/plan.md), [tareas](specs/003-manage-subscription-types/tasks.md) y [guía de validación](specs/003-manage-subscription-types/quickstart.md).
 - [Feature 005: herramienta Token para Postman](specs/005-postman-token-tool/spec.md), con su [plan](specs/005-postman-token-tool/plan.md), [tareas](specs/005-postman-token-tool/tasks.md) y [guía de validación](specs/005-postman-token-tool/quickstart.md).
+- [Feature 006: acceso al Backoffice solo con rol de sistema](specs/006-system-role-access/spec.md), con su [plan](specs/006-system-role-access/plan.md), [tareas](specs/006-system-role-access/tasks.md) y [guía de validación](specs/006-system-role-access/quickstart.md).
+- [Feature 007: el Panel](specs/007-dashboard/spec.md), con su [plan](specs/007-dashboard/plan.md), [tareas](specs/007-dashboard/tasks.md) y [guía de validación](specs/007-dashboard/quickstart.md).
 - El desarrollo sigue Spec Kit (`/speckit-specify`, `/speckit-clarify`, `/speckit-plan`, `/speckit-tasks`, `/speckit-implement`); los commits siguen Conventional Commits en inglés.

@@ -41,9 +41,19 @@ export function userDto(overrides: Partial<UserDto> = {}): UserDto {
   };
 }
 
-/** An active role with its active permissions; by default Marketing with `tenants:read`. */
+/**
+ * An active role with its type and its active permissions; by default Marketing, of type Sistema
+ * (feature 006, research D8), with `tenants:read`. A test that needs a role of type Clínica, or
+ * that stands for one that must not give access to the Backoffice, overrides `type` explicitly.
+ */
 export function roleDto(overrides: Partial<RoleDto> = {}): RoleDto {
-  return { id: 4, name: 'Marketing', permissions: ['tenants:read'], ...overrides };
+  return {
+    id: 4,
+    name: 'Marketing',
+    type: { id: 1, name: 'Sistema' },
+    permissions: ['tenants:read'],
+    ...overrides,
+  };
 }
 
 /**
@@ -96,7 +106,12 @@ export function operatorAccess(overrides: Partial<OperatorAccess> = {}): Operato
     ),
     'roles:read',
   ];
-  const administrator = { id: 1, name: 'Administrator', permissions };
+  const administrator = {
+    id: 1,
+    name: 'Administrator',
+    type: { id: 1, name: 'Sistema' },
+    permissions,
+  };
   return {
     user: platformUserSchema.parse(userDto()),
     roles: [administrator],

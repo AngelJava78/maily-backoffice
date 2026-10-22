@@ -5,7 +5,7 @@ import { z } from 'zod';
  * from `E2E_AUTH0_USER_<A1..A9>` and `E2E_AUTH0_PASSWORD_<A1..A9>`. They are never written down in
  * the repository; without them the end-to-end specs are skipped (constitution VII).
  *
- *   A1 Administrator          A6 Owner only (not authorized)
+ *   A1 Administrator          A6 only a role of type Clínica (Owner)
  *   A2 Marketing              A7 blocked user
  *   A3 Billing                A8 deleted user
  *   A4 Developer (no perms)   A9 Auth0 account without a MailySoft user

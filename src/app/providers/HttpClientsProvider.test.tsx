@@ -26,6 +26,7 @@ const env: AppEnv = {
   VITE_CLINICS_API_URL: undefined,
   VITE_SUBSCRIPTIONS_API_URL: '/proxy/subscriptions',
   VITE_DASHBOARD_REFRESH_MINUTES: 5,
+  VITE_MAILYSOFT_APP_URL: undefined,
 };
 
 const pingSchema = z.object({ ok: z.boolean() });

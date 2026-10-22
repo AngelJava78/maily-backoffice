@@ -20,9 +20,10 @@ const marketing: MockAccount = {
   user: userDto({ auth0_id: SUB }),
   roles: [roleDto({ name: 'Marketing', permissions: ['tenants:read'] })],
 };
+// Of type Clínica, explicitly (feature 006, research D8): `roleDto`'s default is now Sistema.
 const ownerOnly: MockAccount = {
   user: userDto({ auth0_id: SUB }),
-  roles: [roleDto({ id: 5, name: 'Owner', permissions: [] })],
+  roles: [roleDto({ id: 5, name: 'Owner', type: { id: 2, name: 'Clínica' }, permissions: [] })],
 };
 
 const toClose: { close: () => void }[] = [];
@@ -190,7 +191,8 @@ describe('the screens that the guard shows', () => {
     returnToTab();
 
     await screen.findByRole('heading', { level: 1, name: messages.denied.title });
-    expect(document.title).toBe(`${messages.denied.title} — ${messages.common.appName}`);
+    // "Sin acceso" (feature 006): the tab title is shorter than the h1 (research D5/I1).
+    expect(document.title).toBe(`${messages.denied.tabTitle} — ${messages.common.appName}`);
   });
 
   it('also close the session for inactivity', async () => {

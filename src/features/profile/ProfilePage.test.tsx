@@ -11,9 +11,14 @@ import { ProfilePage } from './ProfilePage';
 
 function renderProfile(
   user: Partial<UserDto> = {},
-  roles: { id: number; name: string; permissions: string[] }[] = [
-    { id: 4, name: 'Marketing', permissions: ['tenants:read'] },
-    { id: 5, name: 'Owner', permissions: [] },
+  roles: {
+    id: number;
+    name: string;
+    type: { id: number; name: string };
+    permissions: string[];
+  }[] = [
+    { id: 4, name: 'Marketing', type: { id: 1, name: 'Sistema' }, permissions: ['tenants:read'] },
+    { id: 5, name: 'Owner', type: { id: 2, name: 'Clínica' }, permissions: [] },
   ],
 ) {
   return renderWithProviders(<ProfilePage />, {

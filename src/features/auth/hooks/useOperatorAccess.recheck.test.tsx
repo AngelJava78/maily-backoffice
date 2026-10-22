@@ -86,7 +86,7 @@ describe('useOperatorAccess re-checks', () => {
     usersService.setStatus(SUB, { id: 2, name: 'Bloqueado' });
     returnToTab();
     await untilStatus(result, 'denied');
-    expect(result.current).toMatchObject({ status: 'denied', reason: 'inactive_account' });
+    expect(result.current).toMatchObject({ status: 'denied' });
 
     usersService.setStatus(SUB, { id: 1, name: 'Activo' });
     returnToTab();

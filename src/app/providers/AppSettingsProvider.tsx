@@ -6,6 +6,8 @@ import type { AppEnv } from '../config/env';
 export interface AppSettings {
   /** Milliseconds between two automatic refreshes of the Panel (feature 007, FR-016). */
   readonly dashboardRefreshMs: number;
+  /** FR-015 of feature 006: URL of MailySoft's clinic-facing app, or `undefined` unconfigured. */
+  readonly mailySoftAppUrl: string | undefined;
 }
 
 const MS_PER_MINUTE = 60_000;
@@ -21,12 +23,13 @@ export function AppSettingsProvider({
   env,
   children,
 }: {
-  readonly env: Pick<AppEnv, 'VITE_DASHBOARD_REFRESH_MINUTES'>;
+  readonly env: Pick<AppEnv, 'VITE_DASHBOARD_REFRESH_MINUTES' | 'VITE_MAILYSOFT_APP_URL'>;
   readonly children: ReactNode;
 }) {
   // Worked out once: the configuration of a build does not change while it runs.
   const [settings] = useState<AppSettings>(() => ({
     dashboardRefreshMs: env.VITE_DASHBOARD_REFRESH_MINUTES * MS_PER_MINUTE,
+    mailySoftAppUrl: env.VITE_MAILYSOFT_APP_URL,
   }));
 
   return <AppSettingsContext.Provider value={settings}>{children}</AppSettingsContext.Provider>;

@@ -49,7 +49,14 @@ describe('getMyAccess', () => {
         });
         return HttpResponse.json({
           user: userDto,
-          roles: [{ id: 4, name: 'Marketing', permissions: ['tenants:read'] }],
+          roles: [
+            {
+              id: 4,
+              name: 'Marketing',
+              type: { id: 1, name: 'Sistema' },
+              permissions: ['tenants:read'],
+            },
+          ],
         });
       }),
     );
@@ -65,7 +72,9 @@ describe('getMyAccess', () => {
       firstName: 'Ana',
       paternalLastName: 'Pérez',
     });
-    expect(access.roles).toEqual([{ id: 4, name: 'Marketing', permissions: ['tenants:read'] }]);
+    expect(access.roles).toEqual([
+      { id: 4, name: 'Marketing', type: { id: 1, name: 'Sistema' }, permissions: ['tenants:read'] },
+    ]);
   });
 
   it('accepts the answer for a person that is not registered', async () => {

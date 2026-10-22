@@ -7,6 +7,7 @@ import { messages } from '@/shared/messages/es';
 import { AppLayout } from '../layouts/AppLayout';
 import { PublicLayout } from '../layouts/PublicLayout';
 import { NotFoundPage } from '../pages/LazyNotFoundPage';
+import { AccessDeniedRoute } from './AccessDeniedRoute';
 import { HomeRoute } from './HomeRoute';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
@@ -61,6 +62,14 @@ export const appRoutes: RouteObject[] = [
             ErrorBoundary: RouteErrorBoundary,
           },
         ],
+      },
+      // "Sin acceso" (feature 006): its own address, with no shared layout (research D5) so it
+      // never nests inside PublicLayout's own <main>. Not a child of ProtectedRoute: it needs to
+      // show its content when access is *denied*, the opposite of what that guard's Outlet does.
+      {
+        path: '/access-denied',
+        Component: AccessDeniedRoute,
+        ErrorBoundary: RouteErrorBoundary,
       },
       {
         Component: ProtectedRoute,

@@ -119,8 +119,18 @@ describe('accessOf (the answer of `me`)', () => {
     });
 
     expect(model.accessOf('auth0|ana').roles).toEqual([
-      { id: 6, name: 'Doctor', permissions: ['tenants:read'] },
-      { id: 4, name: 'Marketing', permissions: ['tenants:read', 'tenants:update'] },
+      {
+        id: 6,
+        name: 'Doctor',
+        type: { id: 1, name: 'Sistema' },
+        permissions: ['tenants:read'],
+      },
+      {
+        id: 4,
+        name: 'Marketing',
+        type: { id: 1, name: 'Sistema' },
+        permissions: ['tenants:read', 'tenants:update'],
+      },
     ]);
   });
 });

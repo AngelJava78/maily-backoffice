@@ -8,7 +8,20 @@ import { AppSettingsProvider, useAppSettings } from './AppSettingsProvider';
 function refreshingEvery(minutes: number) {
   return function Wrapper({ children }: { readonly children: ReactNode }) {
     return (
-      <AppSettingsProvider env={{ VITE_DASHBOARD_REFRESH_MINUTES: minutes }}>
+      <AppSettingsProvider
+        env={{ VITE_DASHBOARD_REFRESH_MINUTES: minutes, VITE_MAILYSOFT_APP_URL: undefined }}
+      >
+        {children}
+      </AppSettingsProvider>
+    );
+  };
+}
+
+/** The provider with the configuration of an environment whose "Sin acceso" link is `url`. */
+function linkingTo(url: string | undefined) {
+  return function Wrapper({ children }: { readonly children: ReactNode }) {
+    return (
+      <AppSettingsProvider env={{ VITE_DASHBOARD_REFRESH_MINUTES: 5, VITE_MAILYSOFT_APP_URL: url }}>
         {children}
       </AppSettingsProvider>
     );
@@ -22,7 +35,21 @@ describe('useAppSettings', () => {
   ])('gives the interval of the Panel in milliseconds: %d minutes are %d ms', (minutes, ms) => {
     const { result } = renderHook(() => useAppSettings(), { wrapper: refreshingEvery(minutes) });
 
-    expect(result.current).toEqual({ dashboardRefreshMs: ms });
+    expect(result.current).toEqual({ dashboardRefreshMs: ms, mailySoftAppUrl: undefined });
+  });
+
+  it('gives the link to MailySoft exactly as the environment set it (feature 006, FR-015)', () => {
+    const { result } = renderHook(() => useAppSettings(), {
+      wrapper: linkingTo('https://clinicas.mailysoft.example'),
+    });
+
+    expect(result.current.mailySoftAppUrl).toBe('https://clinicas.mailysoft.example');
+  });
+
+  it('gives undefined when the environment has no link to MailySoft', () => {
+    const { result } = renderHook(() => useAppSettings(), { wrapper: linkingTo(undefined) });
+
+    expect(result.current.mailySoftAppUrl).toBeUndefined();
   });
 
   it('fails with a clear error outside the provider', () => {
