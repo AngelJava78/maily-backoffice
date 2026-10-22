@@ -1,7 +1,9 @@
 import { getContrastRatio } from '@mui/material/styles';
 import { describe, expect, it } from 'vitest';
 
-import { FIELD_BORDER_COLOR, theme } from './theme';
+import { colorTokens } from '@/shared/theme/tokens';
+
+import { theme } from './theme';
 
 /** WCAG 2.1 AA, success criterion 1.4.3: contrast of normal-size text. */
 const AA_NORMAL_TEXT = 4.5;
@@ -23,10 +25,10 @@ describe('theme', () => {
 
   it('draws the border of the fields with a contrast of 3:1 over the page (WCAG 1.4.11)', () => {
     expect(
-      getContrastRatio(FIELD_BORDER_COLOR, theme.palette.background.paper),
+      getContrastRatio(colorTokens.bordeFuerte, theme.palette.background.paper),
     ).toBeGreaterThanOrEqual(AA_COMPONENT);
     expect(
-      getContrastRatio(FIELD_BORDER_COLOR, theme.palette.background.default),
+      getContrastRatio(colorTokens.bordeFuerte, theme.palette.background.default),
     ).toBeGreaterThanOrEqual(AA_COMPONENT);
   });
 

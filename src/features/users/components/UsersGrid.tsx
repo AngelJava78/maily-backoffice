@@ -1,13 +1,12 @@
 import Link from '@mui/material/Link';
-import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
 import { DataGrid, GridOverlay, type GridColDef } from '@mui/x-data-grid';
 import type { ReactNode } from 'react';
 import { Link as RouterLink } from 'react-router';
 
 import { formatDateTime } from '@/shared/lib/formatDateTime';
 import { messages } from '@/shared/messages/es';
-import { GRID_PAGINATION_STYLES } from '@/shared/ui/dataGridStyles';
+import { GRID_APPEARANCE_STYLES, GRID_PAGINATION_STYLES } from '@/shared/ui/dataGridStyles';
+import { EmptyState } from '@/shared/ui/EmptyState';
 
 import { getFullName, type PlatformUser } from '../schemas/user';
 import { PAGE_SIZE_OPTIONS } from '../schemas/usersLocation';
@@ -30,10 +29,7 @@ interface UsersGridProps {
 function NoRowsOverlay({ action }: { readonly action?: ReactNode }) {
   return (
     <GridOverlay>
-      <Stack spacing={2} sx={{ alignItems: 'center', p: 3 }}>
-        <Typography>{messages.users.list.empty}</Typography>
-        {action}
-      </Stack>
+      <EmptyState message={messages.users.list.empty} action={action} />
     </GridOverlay>
   );
 }
@@ -98,6 +94,7 @@ export function UsersGrid({
       disableColumnMenu
       disableRowSelectionOnClick
       autoHeight
+      sx={GRID_APPEARANCE_STYLES}
       slots={{ noRowsOverlay: NoRowsOverlay }}
       slotProps={{
         noRowsOverlay: { action: emptyAction },

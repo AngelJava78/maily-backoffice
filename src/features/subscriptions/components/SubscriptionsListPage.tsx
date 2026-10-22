@@ -1,4 +1,3 @@
-import AddIcon from '@mui/icons-material/Add';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
@@ -7,6 +6,7 @@ import { Link as RouterLink } from 'react-router';
 
 import { messages } from '@/shared/messages/es';
 import { ErrorState } from '@/shared/ui/ErrorState';
+import { Icon } from '@/shared/ui/Icon';
 import { LiveStatus } from '@/shared/ui/LiveStatus';
 import { useFocusOnMount } from '@/shared/ui/useFocusOnMount';
 
@@ -39,7 +39,7 @@ export function SubscriptionsListPage({ capabilities }: SubscriptionsListPagePro
       to="/subscriptions/new"
       state={{ listSearch: search }}
       variant="contained"
-      startIcon={<AddIcon />}
+      startIcon={<Icon name="add" decorative />}
     >
       {text.list.createAction}
     </Button>

@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Alert from '@mui/material/Alert';
 import AlertTitle from '@mui/material/AlertTitle';
 import Box from '@mui/material/Box';
@@ -14,6 +13,7 @@ import { Link as RouterLink, useLocation, useNavigate } from 'react-router';
 import { messages } from '@/shared/messages/es';
 import { ErrorState } from '@/shared/ui/ErrorState';
 import { FormFrame } from '@/shared/ui/FormFrame';
+import { Icon } from '@/shared/ui/Icon';
 import { useNotify } from '@/shared/ui/Notifications';
 import { useFocusOnMount } from '@/shared/ui/useFocusOnMount';
 
@@ -199,7 +199,11 @@ export function UserEditPage({
             void query.refetch();
           }}
           secondaryAction={
-            <Button component={RouterLink} to="/users" startIcon={<ArrowBackIcon />}>
+            <Button
+              component={RouterLink}
+              to="/users"
+              startIcon={<Icon name="arrow-back" decorative />}
+            >
               {messages.users.detail.backToList}
             </Button>
           }

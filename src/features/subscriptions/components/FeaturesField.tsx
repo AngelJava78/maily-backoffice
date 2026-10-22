@@ -1,5 +1,3 @@
-import AddIcon from '@mui/icons-material/Add';
-import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import FormHelperText from '@mui/material/FormHelperText';
@@ -16,6 +14,7 @@ import {
 } from 'react-hook-form';
 
 import { messages } from '@/shared/messages/es';
+import { Icon } from '@/shared/ui/Icon';
 
 import { MAX_FEATURES, type SubscriptionFormValues } from '../schemas/subscriptionForm';
 
@@ -108,7 +107,7 @@ export function FeaturesField({ control, register, errors }: FeaturesFieldProps)
                 }}
                 sx={{ mt: 1 }}
               >
-                <DeleteOutlinedIcon />
+                <Icon name="delete" decorative />
               </IconButton>
             </Stack>
           );
@@ -121,7 +120,7 @@ export function FeaturesField({ control, register, errors }: FeaturesFieldProps)
       >
         <Button
           ref={addButton}
-          startIcon={<AddIcon />}
+          startIcon={<Icon name="add" decorative />}
           disabled={atMax}
           aria-describedby={atMax ? ids.max : undefined}
           onClick={() => {

@@ -1,22 +1,16 @@
-import Chip from '@mui/material/Chip';
-
 import { messages } from '@/shared/messages/es';
+import { Badge, type BadgeTone } from '@/shared/ui/Badge';
 
 import { SUBSCRIPTION_STATUS } from '../schemas/subscriptionStatus';
 
-const KNOWN_STATUSES = new Map<number, { label: string; color: 'success' | 'warning' | 'default' }>(
+const KNOWN_STATUSES = new Map<number, { label: string; tone: BadgeTone }>([
+  [SUBSCRIPTION_STATUS.ACTIVE, { label: messages.subscriptions.status.active, tone: 'success' }],
   [
-    [SUBSCRIPTION_STATUS.ACTIVE, { label: messages.subscriptions.status.active, color: 'success' }],
-    [
-      SUBSCRIPTION_STATUS.INACTIVE,
-      { label: messages.subscriptions.status.inactive, color: 'default' },
-    ],
-    [
-      SUBSCRIPTION_STATUS.BLOCKED,
-      { label: messages.subscriptions.status.blocked, color: 'warning' },
-    ],
+    SUBSCRIPTION_STATUS.INACTIVE,
+    { label: messages.subscriptions.status.inactive, tone: 'neutral' },
   ],
-);
+  [SUBSCRIPTION_STATUS.BLOCKED, { label: messages.subscriptions.status.blocked, tone: 'warning' }],
+]);
 
 /**
  * The status of a subscription as a text with a colour. The text carries the meaning, the colour
@@ -31,8 +25,8 @@ export function SubscriptionStatusChip({
 }) {
   const known = KNOWN_STATUSES.get(status.id);
   return known === undefined ? (
-    <Chip size="small" label={status.name} variant="outlined" />
+    <Badge label={status.name} tone="neutral" variant="outlined" />
   ) : (
-    <Chip size="small" label={known.label} color={known.color} />
+    <Badge label={known.label} tone={known.tone} />
   );
 }

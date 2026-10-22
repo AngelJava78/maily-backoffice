@@ -1,5 +1,3 @@
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import EditIcon from '@mui/icons-material/Edit';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -10,6 +8,7 @@ import { Link as RouterLink, useLocation, useNavigate } from 'react-router';
 
 import { messages } from '@/shared/messages/es';
 import { ErrorState } from '@/shared/ui/ErrorState';
+import { Icon } from '@/shared/ui/Icon';
 import { useNotify } from '@/shared/ui/Notifications';
 import { RefreshFailedAlert } from '@/shared/ui/RefreshFailedAlert';
 import { useFocusOnMount } from '@/shared/ui/useFocusOnMount';
@@ -106,7 +105,11 @@ export function UserDetailPage({ userId, operatorUserId, capabilities }: UserDet
         useFlexGap
         sx={{ gap: 1, flexWrap: 'wrap', justifyContent: 'space-between' }}
       >
-        <Button component={RouterLink} to={listAddress} startIcon={<ArrowBackIcon />}>
+        <Button
+          component={RouterLink}
+          to={listAddress}
+          startIcon={<Icon name="arrow-back" decorative />}
+        >
           {messages.users.detail.backToList}
         </Button>
         {actions}
@@ -165,7 +168,7 @@ export function UserDetailPage({ userId, operatorUserId, capabilities }: UserDet
                 to={`/users/${user.id}/edit`}
                 state={listSearch === undefined ? undefined : { listSearch }}
                 variant="contained"
-                startIcon={<EditIcon />}
+                startIcon={<Icon name="edit" decorative />}
               >
                 {messages.users.actions.edit}
               </Button>

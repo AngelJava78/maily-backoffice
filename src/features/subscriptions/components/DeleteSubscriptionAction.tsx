@@ -1,4 +1,3 @@
-import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
@@ -7,6 +6,7 @@ import { useLocation, useNavigate } from 'react-router';
 
 import { messages } from '@/shared/messages/es';
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog';
+import { Icon } from '@/shared/ui/Icon';
 import type { AppNotification } from '@/shared/ui/Notifications';
 import { useDeferredNotice } from '@/shared/ui/useDeferredNotice';
 
@@ -87,7 +87,7 @@ export function DeleteSubscriptionAction({
         <Button
           variant="outlined"
           color="error"
-          startIcon={<DeleteOutlinedIcon />}
+          startIcon={<Icon name="delete" decorative />}
           disabled={availability.kind === 'blocked'}
           aria-describedby={availability.kind === 'blocked' ? reasonId : undefined}
           onClick={() => {

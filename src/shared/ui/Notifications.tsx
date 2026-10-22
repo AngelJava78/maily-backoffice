@@ -61,7 +61,8 @@ export function NotificationsProvider({ children }: { readonly children: ReactNo
             },
           }}
         >
-          <Alert severity={shown.severity} variant="filled" onClose={handleClose}>
+          {/* 'standard' (tinted background, not a solid fill) is the aspect of web-soft's alerts. */}
+          <Alert severity={shown.severity} variant="standard" onClose={handleClose}>
             {shown.message}
           </Alert>
         </Snackbar>

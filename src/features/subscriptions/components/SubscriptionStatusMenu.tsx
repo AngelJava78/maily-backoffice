@@ -1,4 +1,3 @@
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -7,6 +6,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { messages } from '@/shared/messages/es';
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog';
 import { afterDialogClosed, focusIfLost } from '@/shared/ui/focusIfLost';
+import { Icon } from '@/shared/ui/Icon';
 import type { AppNotification } from '@/shared/ui/Notifications';
 import { useDeferredNotice } from '@/shared/ui/useDeferredNotice';
 
@@ -127,7 +127,7 @@ export function SubscriptionStatusMenu({ subscription }: { readonly subscription
         ref={buttonRef}
         id={ids.button}
         variant="outlined"
-        endIcon={<ArrowDropDownIcon />}
+        endIcon={<Icon name="arrow-drop-down" decorative />}
         aria-haspopup="menu"
         aria-controls={anchor === null ? undefined : ids.menu}
         aria-expanded={anchor === null ? undefined : 'true'}

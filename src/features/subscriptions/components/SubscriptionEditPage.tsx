@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Stack from '@mui/material/Stack';
@@ -11,6 +10,7 @@ import { Link as RouterLink, useLocation, useNavigate } from 'react-router';
 import { messages } from '@/shared/messages/es';
 import { ErrorState } from '@/shared/ui/ErrorState';
 import { FormFrame } from '@/shared/ui/FormFrame';
+import { Icon } from '@/shared/ui/Icon';
 import { useNotify } from '@/shared/ui/Notifications';
 import { useFocusOnMount } from '@/shared/ui/useFocusOnMount';
 
@@ -158,7 +158,11 @@ export function SubscriptionEditPage({ subscriptionId }: { readonly subscription
             void query.refetch();
           }}
           secondaryAction={
-            <Button component={RouterLink} to="/subscriptions" startIcon={<ArrowBackIcon />}>
+            <Button
+              component={RouterLink}
+              to="/subscriptions"
+              startIcon={<Icon name="arrow-back" decorative />}
+            >
               {text.detail.backToList}
             </Button>
           }
