@@ -76,16 +76,15 @@ test.describe('access with an authorized account (A1)', () => {
   });
 });
 
-const DENIED: readonly { readonly key: AccountKey; readonly reason: string }[] = [
-  { key: 'A9', reason: messages.denied.reasons.notRegistered },
-  { key: 'A7', reason: messages.denied.reasons.inactiveAccount },
-  { key: 'A8', reason: messages.denied.reasons.inactiveAccount },
-  { key: 'A6', reason: messages.denied.reasons.noAuthorizedRole },
-];
+// feature 006: a single page, "Sin acceso" at its own address, with a single message whatever
+// the reason — A9 has no MailySoft user, A7/A8 are not Active, A6 now has only a role of type
+// Clínica (it used to be "Owner, an unauthorized role name"; the real classification of
+// mailySoft-usuarios already makes Owner a role of type Clínica).
+const DENIED: readonly AccountKey[] = ['A9', 'A7', 'A8', 'A6'];
 
 test.describe('accounts that may not enter', () => {
-  for (const { key, reason } of DENIED) {
-    test(`V7: ${key} sees the denial with its reason and its account, and nothing protected`, async ({
+  for (const key of DENIED) {
+    test(`V7: ${key} sees "Sin acceso" with its account, and nothing protected`, async ({
       page,
     }) => {
       test.skip(!hasAccounts(key), `Needs E2E_AUTH0_USER_${key} and E2E_AUTH0_PASSWORD_${key}`);
@@ -94,13 +93,35 @@ test.describe('accounts that may not enter', () => {
       await page.goto('/');
       await signIn(page, account(key));
 
+      await expect(page).toHaveURL(/\/access-denied$/);
       await expect(
         page.getByRole('heading', { level: 1, name: messages.denied.title }),
       ).toBeVisible();
-      await expect(page.getByRole('alert')).toContainText(reason);
-      await expect(page.getByText(messages.common.account(email.toLowerCase()))).toBeVisible();
+      await expect(page.getByRole('alert')).toContainText(messages.denied.message);
+      await expect(page.getByText(messages.denied.signedInAs(email.toLowerCase()))).toBeVisible();
       await expect(page.getByRole('banner')).toBeHidden();
       await expect(page.getByRole('link', { name: messages.nav.profile })).toBeHidden();
     });
   }
+
+  // US5: closing the session from "Sin acceso" ends it fully (also at Auth0, FR-016), so a
+  // different, authorized account can then enter without getting stuck looping back here.
+  test('V10 of feature 006: logging out from "Sin acceso" lets a different account enter', async ({
+    page,
+  }) => {
+    test.skip(!hasAccounts('A6', 'A1'), 'Needs E2E_AUTH0_USER_A6/A1 and E2E_AUTH0_PASSWORD_A6/A1');
+
+    await page.goto('/');
+    await signIn(page, account('A6'));
+    await expect(page).toHaveURL(/\/access-denied$/);
+
+    await page.getByRole('button', { name: messages.common.logout }).click();
+    await expect(page).toHaveURL(/\/access$/);
+
+    await startSignIn(page);
+    await expect(page.locator('#username')).toBeVisible();
+    await submitCredentials(page, account('A1'));
+
+    await expect(panelHeading(page)).toBeVisible();
+  });
 });

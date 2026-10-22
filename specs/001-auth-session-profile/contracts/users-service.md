@@ -5,6 +5,8 @@
 Resume solo lo que consume la feature 001. La fuente de verdad es el repositorio del servicio (copia local `C:\maily\code\mailySoft-usuarios`, `origin` `Quint4n4/mailySoft-usuarios`): su spec `008-auth0-access-control` (`contracts/permission-matrix.md`, `contracts/auth0-integration.md`, `contracts/error-catalog.md`) y los OpenAPI de `specs/004-users`. Verificado leyendo `src/routers`, `src/dtos` y `src/security.py` el 2026-10-18.
 
 > **Estado de M1**: la consulta `me` es una **propuesta pendiente de implementar en el servicio** (decisión de producto, aclaración 14). La solicitud lista para `/speckit-specify` está en [users-service-me-request.md](users-service-me-request.md). Mientras no exista, la 001 se construye y se prueba contra MSW con este mismo contrato.
+>
+> **Actualización (feature 006, 2026-10-21)**: la consulta `me` ya está implementada en `mailySoft-usuarios` (specs 009 a 012) y su respuesta cambió: cada role trae ahora su `type` (`id`, `name`) y la respuesta incluye `password_change_required`. El contrato vigente es [specs/006-system-role-access/contracts/users-service-me.md](../../006-system-role-access/contracts/users-service-me.md); lo de aquí abajo queda como registro histórico de cómo se diseñó la 001.
 
 ## Condiciones generales
 

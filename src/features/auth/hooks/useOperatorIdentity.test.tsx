@@ -13,8 +13,8 @@ function accessFor(overrides: Parameters<typeof userDto>[0] = {}) {
   return operatorAccess({
     user: platformUserSchema.parse(userDto(overrides)),
     roles: [
-      { id: 4, name: 'Marketing', permissions: ['tenants:read'] },
-      { id: 5, name: 'Owner', permissions: [] },
+      { id: 4, name: 'Marketing', type: { id: 1, name: 'Sistema' }, permissions: ['tenants:read'] },
+      { id: 5, name: 'Owner', type: { id: 2, name: 'Clínica' }, permissions: [] },
     ],
   });
 }
@@ -40,8 +40,13 @@ describe('useOperatorIdentity', () => {
       email: 'maria@clinica.com',
       initials: 'MJ',
       roles: [
-        { id: 4, name: 'Marketing', permissions: ['tenants:read'] },
-        { id: 5, name: 'Owner', permissions: [] },
+        {
+          id: 4,
+          name: 'Marketing',
+          type: { id: 1, name: 'Sistema' },
+          permissions: ['tenants:read'],
+        },
+        { id: 5, name: 'Owner', type: { id: 2, name: 'Clínica' }, permissions: [] },
       ],
     });
   });

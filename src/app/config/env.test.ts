@@ -34,7 +34,12 @@ describe('parseEnv', () => {
   it('accepts the minimal configuration and applies the defaults', () => {
     expect(parseEnv(validSource, development)).toEqual({
       ok: true,
-      env: { ...validSource, VITE_CLINICS_API_URL: undefined, VITE_DASHBOARD_REFRESH_MINUTES: 5 },
+      env: {
+        ...validSource,
+        VITE_CLINICS_API_URL: undefined,
+        VITE_DASHBOARD_REFRESH_MINUTES: 5,
+        VITE_MAILYSOFT_APP_URL: undefined,
+      },
     });
   });
 
@@ -265,6 +270,57 @@ describe('parseEnv', () => {
         ]);
       },
     );
+  });
+
+  // The link to MailySoft's clinic-facing application on the "Sin acceso" page (feature 006,
+  // FR-015): optional, and — unlike VITE_CLINICS_API_URL — not a base the client sends a token
+  // to, so a trailing slash, a path, a query or a fragment are all accepted.
+  describe('VITE_MAILYSOFT_APP_URL', () => {
+    it('is optional, and an empty value counts as not set', () => {
+      expect(parseEnv(validSource, development).ok).toBe(true);
+
+      const result = parseEnv({ ...validSource, VITE_MAILYSOFT_APP_URL: '' }, development);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.env).toMatchObject({ VITE_MAILYSOFT_APP_URL: undefined });
+      }
+    });
+
+    it.each([
+      'https://clinicas.mailysoft.example',
+      'http://127.0.0.1:4000',
+      // Unlike an API base: a trailing slash, a path, a query and a fragment are all fine here.
+      'https://clinicas.mailysoft.example/',
+      'https://clinicas.mailysoft.example/entrar?ref=backoffice#top',
+    ])('accepts %s in development', (url) => {
+      const result = parseEnv({ ...validSource, VITE_MAILYSOFT_APP_URL: url }, development);
+
+      expect(result.ok).toBe(true);
+      if (result.ok) {
+        expect(result.env).toMatchObject({ VITE_MAILYSOFT_APP_URL: url });
+      }
+    });
+
+    it.each([
+      'no es una url',
+      'ftp://clinicas.mailysoft.example',
+      ' https://x.com',
+      'https:/\\x.com',
+    ])('rejects %j', (url) => {
+      expect(errorsFor({ ...validSource, VITE_MAILYSOFT_APP_URL: url })).toEqual([
+        `VITE_MAILYSOFT_APP_URL: ${messages.config.rules.mailySoftAppUrl}`,
+      ]);
+    });
+
+    it('requires https for an absolute URL in production builds', () => {
+      expect(
+        errorsFor(
+          { ...validSource, VITE_MAILYSOFT_APP_URL: 'http://clinicas.mailysoft.example' },
+          production,
+        ),
+      ).toEqual([`VITE_MAILYSOFT_APP_URL: ${messages.config.rules.mailySoftAppUrl}`]);
+    });
   });
 
   describe('VITE_FEATURE_POSTMAN_TOKEN, which feature 005 removed', () => {

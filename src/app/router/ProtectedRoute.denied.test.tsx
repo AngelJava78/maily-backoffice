@@ -23,15 +23,21 @@ const routes: RouteObject[] = [
     children: [
       { path: '/', element: <p>Protected home</p> },
       { path: '/profile', element: <p>Protected profile</p> },
+      { path: '/users', element: <p>Protected users</p> },
+      { path: '/subscriptions', element: <p>Protected subscriptions</p> },
+      { path: '/tools/postman-token', element: <p>Protected token</p> },
+      { path: '/no-existe-tampoco', element: <p>Protected catch-all</p> },
     ],
   },
+  { path: '/access-denied', element: <p>Sin acceso screen</p> },
 ];
 
 const marketing = roleDto({ name: 'Marketing', permissions: ['tenants:read'] });
-const owner = roleDto({ id: 5, name: 'Owner', permissions: ['clinics:read'] });
+// Of type Clínica, explicitly: `roleDto`'s default is now Sistema (feature 006, research D8).
+const owner = roleDto({ id: 5, name: 'Owner', type: { id: 2, name: 'Clínica' }, permissions: [] });
 
-const DENIED_CASES: readonly (readonly [string, Record<string, MockAccount>, string])[] = [
-  ['an account that is not registered', {}, messages.denied.reasons.notRegistered],
+const DENIED_CASES: readonly (readonly [string, Record<string, MockAccount>])[] = [
+  ['an account that is not registered', {}],
   [
     'a blocked account',
     {
@@ -40,7 +46,6 @@ const DENIED_CASES: readonly (readonly [string, Record<string, MockAccount>, str
         roles: [marketing],
       },
     },
-    messages.denied.reasons.inactiveAccount,
   ],
   [
     'a deleted account',
@@ -50,13 +55,21 @@ const DENIED_CASES: readonly (readonly [string, Record<string, MockAccount>, str
         roles: [marketing],
       },
     },
-    messages.denied.reasons.inactiveAccount,
   ],
   [
-    'an account whose only role does not give access',
+    'an account whose only role is of type Clínica',
     { [SUB]: { user: userDto({ auth0_id: SUB }), roles: [owner] } },
-    messages.denied.reasons.noAuthorizedRole,
   ],
+];
+
+// SC-002: at least these internal destinations, denied the same way whatever was asked for.
+const DENIED_ROUTES = [
+  '/',
+  '/profile',
+  '/users',
+  '/subscriptions',
+  '/tools/postman-token',
+  '/no-existe-tampoco',
 ];
 
 afterEach(() => {
@@ -64,19 +77,16 @@ afterEach(() => {
 });
 
 describe('ProtectedRoute when the access is denied', () => {
-  describe.each(['/', '/profile'])('opening %s directly', (route) => {
+  describe.each(DENIED_ROUTES)('opening %s directly', (route) => {
     it.each(DENIED_CASES)(
-      'shows the denial for %s, with the account, and not the content',
-      async (_label, accounts, reason) => {
+      'navigates to /access-denied for %s, without showing any protected content',
+      async (_label, accounts) => {
         createUsersServiceMock(accounts);
 
-        renderWithProviders(routes, { route, auth0: SIGNED_IN });
+        const { router } = renderWithProviders(routes, { route, auth0: SIGNED_IN });
 
-        expect(
-          await screen.findByRole('heading', { level: 1, name: messages.denied.title }),
-        ).toBeInTheDocument();
-        expect(screen.getByRole('alert')).toHaveTextContent(reason);
-        expect(screen.getByText(messages.common.account(EMAIL))).toBeInTheDocument();
+        await screen.findByText('Sin acceso screen');
+        expect(router.state.location.pathname).toBe('/access-denied');
         expect(screen.queryByText(/Protected/)).not.toBeInTheDocument();
         expect(screen.queryByRole('banner')).not.toBeInTheDocument();
       },

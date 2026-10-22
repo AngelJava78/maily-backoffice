@@ -39,10 +39,13 @@ test.describe('the life of the session', () => {
     });
     await page.clock.fastForward('05:01');
 
+    // feature 006: the periodic recheck that finds the access lost now navigates to its own
+    // address, with the single message of "Sin acceso" (there is no longer a reason to quote).
+    await expect(page).toHaveURL(/\/access-denied$/);
     await expect(
       page.getByRole('heading', { level: 1, name: messages.denied.title }),
     ).toBeVisible();
-    await expect(page.getByRole('alert')).toContainText(messages.denied.reasons.inactiveAccount);
+    await expect(page.getByRole('alert')).toContainText(messages.denied.message);
   });
 
   test('V11: logging out in one tab takes the other tab to the access screen', async ({ page }) => {

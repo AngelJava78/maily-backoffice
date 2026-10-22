@@ -5,38 +5,35 @@ import { describe, expect, it } from 'vitest';
 import { messages } from '@/shared/messages/es';
 import { renderWithProviders } from '@/test/renderWithProviders';
 
-import type { AccessDeniedReason } from '../policy/types';
 import { AccessDeniedPage } from './AccessDeniedPage';
 
-const REASONS: readonly (readonly [AccessDeniedReason, string])[] = [
-  ['not_registered', messages.denied.reasons.notRegistered],
-  ['inactive_account', messages.denied.reasons.inactiveAccount],
-  ['no_authorized_role', messages.denied.reasons.noAuthorizedRole],
-];
-
 describe('AccessDeniedPage', () => {
-  it.each(REASONS)('explains the reason %s (US2-1 to US2-3)', (reason, text) => {
-    renderWithProviders(<AccessDeniedPage reason={reason} email="cuenta@ejemplo.com" />);
+  it('shows the single title and message, whatever the reason would have been (FR-003, FR-013)', () => {
+    renderWithProviders(
+      <AccessDeniedPage email="cuenta@ejemplo.com" mailySoftAppUrl={undefined} />,
+    );
 
     expect(screen.getByRole('heading', { level: 1, name: messages.denied.title })).toHaveFocus();
-    expect(screen.getByRole('alert')).toHaveTextContent(text);
+    expect(screen.getByRole('alert')).toHaveTextContent(messages.denied.message);
   });
 
-  it('shows the e-mail of the account the person signed in with', () => {
-    renderWithProviders(<AccessDeniedPage reason="not_registered" email="cuenta@ejemplo.com" />);
+  it('shows "Iniciaste sesión como" with the e-mail of the account (FR-014)', () => {
+    renderWithProviders(
+      <AccessDeniedPage email="cuenta@ejemplo.com" mailySoftAppUrl={undefined} />,
+    );
 
-    expect(screen.getByText(messages.common.account('cuenta@ejemplo.com'))).toBeInTheDocument();
+    expect(screen.getByText(messages.denied.signedInAs('cuenta@ejemplo.com'))).toBeInTheDocument();
   });
 
-  it('leaves the account line out when Auth0 did not provide an e-mail', () => {
-    renderWithProviders(<AccessDeniedPage reason="not_registered" email={null} />);
+  it('leaves the account line out when there is no e-mail at all', () => {
+    renderWithProviders(<AccessDeniedPage email={null} mailySoftAppUrl={undefined} />);
 
-    expect(screen.queryByText(/Cuenta:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Iniciaste sesión como/)).not.toBeInTheDocument();
   });
 
   it('lets the person log out', async () => {
     const { user, auth0 } = renderWithProviders(
-      <AccessDeniedPage reason="inactive_account" email="cuenta@ejemplo.com" />,
+      <AccessDeniedPage email="cuenta@ejemplo.com" mailySoftAppUrl={undefined} />,
     );
 
     await user.click(screen.getByRole('button', { name: messages.common.logout }));
@@ -46,20 +43,58 @@ describe('AccessDeniedPage', () => {
     });
   });
 
-  it('shows no name, no link to the profile and nothing protected (FR-008)', () => {
+  // FR-015: the link only exists when the environment configured the URL.
+  it('offers "Ir a MailySoft" when the link is configured', () => {
     renderWithProviders(
-      <AccessDeniedPage reason="no_authorized_role" email="cuenta@ejemplo.com" />,
+      <AccessDeniedPage
+        email="cuenta@ejemplo.com"
+        mailySoftAppUrl="https://clinicas.mailysoft.example"
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: messages.denied.goToMailySoft })).toHaveAttribute(
+      'href',
+      'https://clinicas.mailysoft.example',
+    );
+  });
+
+  it('has no link at all when it is not configured', () => {
+    renderWithProviders(
+      <AccessDeniedPage email="cuenta@ejemplo.com" mailySoftAppUrl={undefined} />,
     );
 
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('shows no name, no link to the profile and nothing protected (FR-012)', () => {
+    renderWithProviders(
+      <AccessDeniedPage
+        email="cuenta@ejemplo.com"
+        mailySoftAppUrl="https://clinicas.mailysoft.example"
+      />,
+    );
+
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
     expect(screen.queryByRole('banner')).not.toBeInTheDocument();
     expect(screen.getByRole('main')).toBeInTheDocument();
+    // The only link on the page is "Ir a MailySoft", never one to the profile.
+    expect(screen.getAllByRole('link')).toHaveLength(1);
   });
 
-  it.each(REASONS)('has no accessibility violations for %s', async (reason) => {
+  it('has no accessibility violations with the link', async () => {
     const { container } = renderWithProviders(
-      <AccessDeniedPage reason={reason} email="cuenta@ejemplo.com" />,
+      <AccessDeniedPage
+        email="cuenta@ejemplo.com"
+        mailySoftAppUrl="https://clinicas.mailysoft.example"
+      />,
+    );
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('has no accessibility violations without the link or the account line', async () => {
+    const { container } = renderWithProviders(
+      <AccessDeniedPage email={null} mailySoftAppUrl={undefined} />,
     );
 
     expect(await axe(container)).toHaveNoViolations();

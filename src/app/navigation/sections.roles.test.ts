@@ -33,10 +33,12 @@ const administrator = roleDto({
 const marketing = roleDto({ id: 2, name: 'Marketing', permissions: ['tenants:read'] });
 const billing = roleDto({ id: 3, name: 'Billing', permissions: allPermissions(['subscriptions']) });
 const developer = roleDto({ id: 4, name: 'Developer', permissions: [] });
-// Owner is not an authorized role: whatever it grants must not count.
+// Owner is of type Clínica (feature 006): whatever it grants must not count. `roleDto`'s default
+// type is now Sistema, so this needs the override (research D8).
 const owner = roleDto({
   id: 5,
   name: 'Owner',
+  type: { id: 2, name: 'Clínica' },
   permissions: ['clinics:read', 'clinics:write', 'users:read', 'tenants:update'],
 });
 
@@ -52,7 +54,7 @@ function allowedActions(permissions: ReadonlySet<string>): string[] {
 function resolve(...roles: ReturnType<typeof roleDto>[]) {
   const decision = evaluateAccess(myAccessSchema.parse(myAccessDto({ roles })));
   if (decision.kind !== 'granted') {
-    throw new Error(`Expected access to be granted, it was denied: ${decision.reason}`);
+    throw new Error('Expected access to be granted, it was denied');
   }
   return decision.access;
 }

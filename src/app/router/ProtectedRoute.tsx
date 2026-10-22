@@ -3,7 +3,6 @@ import { Navigate, Outlet, useLocation } from 'react-router';
 
 import {
   AccessCheckFailedPage,
-  AccessDeniedPage,
   SessionWatchers,
   useOperatorAccess,
   type AccessLocationState,
@@ -16,8 +15,10 @@ function ProtectedContent({ access }: { readonly access: OperatorAccessState }) 
   switch (access.status) {
     case 'resolving':
       return <PageLoader />;
+    // feature 006, FR-018: "Sin acceso" has its own address now, so it is reached by navigating
+    // there instead of being drawn in the place of whatever route was requested.
     case 'denied':
-      return <AccessDeniedPage reason={access.reason} email={access.accountEmail} />;
+      return <Navigate to="/access-denied" replace />;
     case 'failed':
       return <AccessCheckFailedPage refetch={access.refetch} email={access.accountEmail} />;
     case 'granted':

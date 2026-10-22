@@ -24,6 +24,7 @@ const defaultEnv: AppEnv = {
   VITE_CLINICS_API_URL: undefined,
   VITE_SUBSCRIPTIONS_API_URL: SUBSCRIPTIONS_API_BASE_URL,
   VITE_DASHBOARD_REFRESH_MINUTES: 5,
+  VITE_MAILYSOFT_APP_URL: undefined,
 };
 
 export interface RenderAppOptions {

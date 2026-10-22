@@ -86,7 +86,7 @@ describe('useGrantedAccess', () => {
   it('fails where the access was denied', () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const queryClient = new QueryClient();
-    const denied: AccessDecision = { kind: 'denied', reason: 'no_authorized_role' };
+    const denied: AccessDecision = { kind: 'denied', userEmail: null };
     queryClient.setQueryData(key, denied);
 
     expect(() =>

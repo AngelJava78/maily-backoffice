@@ -29,13 +29,16 @@ export const messages = {
   callback: {
     progress: 'Completando el acceso…',
   },
+  // "Sin acceso" (feature 006): a single page and a single message for every reason — not
+  // registered, account not Active, or no role of type Sistema (FR-003, FR-013).
   denied: {
-    title: 'Acceso denegado',
-    reasons: {
-      notRegistered: 'Tu cuenta no está registrada en MailySoft.',
-      inactiveAccount: 'Tu cuenta no está activa.',
-      noAuthorizedRole: 'No tienes un role con acceso al Backoffice.',
-    },
+    title: 'No tienes acceso al Backoffice',
+    // Shorter, for the browser tab (no route `handle` manages it here: research D5 of 006).
+    tabTitle: 'Sin acceso',
+    message:
+      'Tu usuario no tiene un rol de sistema asignado. Si crees que es un error, contacta al administrador.',
+    signedInAs: (email: string) => `Iniciaste sesión como ${email}`,
+    goToMailySoft: 'Ir a MailySoft',
   },
   checkFailed: {
     title: 'No se pudo comprobar el acceso',
@@ -522,6 +525,7 @@ export const messages = {
       apiUrl:
         'Ruta que empieza con `/` o URL `http(s)`; en builds de producción una URL absoluta debe ser `https`. Sin `/` final.',
       refreshMinutes: 'Entero de 1 a 60 (minutos), escrito solo con dígitos; si no se define, 5.',
+      mailySoftAppUrl: 'URL http(s) completa; en builds de producción debe ser https.',
     },
   },
   titles: {

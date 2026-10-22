@@ -17,7 +17,14 @@ const SUB = 'auth0|user1';
 const SIGNED_IN = { isAuthenticated: true, user: auth0User({ sub: SUB }) };
 
 const marketing = roleDto({ id: 4, name: 'Marketing', permissions: ['tenants:read'] });
-const owner = roleDto({ id: 5, name: 'Owner', permissions: ['clinics:read'] });
+// Of type Clínica, explicitly (feature 006, research D8): `roleDto`'s default is now Sistema,
+// so a role meant to represent one that does not give access needs the override.
+const owner = roleDto({
+  id: 5,
+  name: 'Owner',
+  type: { id: 2, name: 'Clínica' },
+  permissions: ['clinics:read'],
+});
 
 function accountWith(...roles: MockAccount['roles']): MockAccount {
   return { user: userDto({ auth0_id: SUB }), roles };
@@ -79,6 +86,46 @@ describe('useOperatorAccess', () => {
       });
       expect(grantedAccess(result.current).permissions.size).toBe(0);
     });
+
+    // US1-5: the type's identifier decides, never its name — in either direction.
+    it('grants access when the Sistema type arrives under another name', async () => {
+      createUsersServiceMock({
+        [SUB]: accountWith(
+          roleDto({ name: 'Marketing', type: { id: 1, name: 'System' }, permissions: [] }),
+        ),
+      });
+      const { wrapper } = createWrapper({ auth0: SIGNED_IN });
+
+      const { result } = renderHook(() => useOperatorAccess(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.status).toBe('granted');
+      });
+    });
+
+    it('counts only the role of type Sistema when a type Clínica role is named "Sistema"', async () => {
+      createUsersServiceMock({
+        [SUB]: accountWith(
+          marketing,
+          roleDto({
+            id: 9,
+            name: 'Sistema',
+            type: { id: 2, name: 'Sistema' },
+            permissions: ['clinics:write'],
+          }),
+        ),
+      });
+      const { wrapper } = createWrapper({ auth0: SIGNED_IN });
+
+      const { result } = renderHook(() => useOperatorAccess(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.status).toBe('granted');
+      });
+      const access = grantedAccess(result.current);
+      expect(access.authorizedRoles.map((role) => role.name)).toEqual(['Marketing']);
+      expect([...access.permissions]).toEqual(['tenants:read']);
+    });
   });
 
   describe('when the person may not enter', () => {
@@ -89,8 +136,9 @@ describe('useOperatorAccess', () => {
       const { result } = renderHook(() => useOperatorAccess(), { wrapper });
 
       await waitFor(() => {
-        expect(result.current).toMatchObject({ status: 'denied', reason: 'not_registered' });
+        expect(result.current).toMatchObject({ status: 'denied' });
       });
+      expect(result.current).not.toHaveProperty('reason');
     });
 
     it.each([
@@ -108,7 +156,7 @@ describe('useOperatorAccess', () => {
       const { result } = renderHook(() => useOperatorAccess(), { wrapper });
 
       await waitFor(() => {
-        expect(result.current).toMatchObject({ status: 'denied', reason: 'inactive_account' });
+        expect(result.current).toMatchObject({ status: 'denied' });
       });
     });
 
@@ -119,9 +167,29 @@ describe('useOperatorAccess', () => {
       const { result } = renderHook(() => useOperatorAccess(), { wrapper });
 
       await waitFor(() => {
-        expect(result.current).toMatchObject({ status: 'denied', reason: 'no_authorized_role' });
+        expect(result.current).toMatchObject({ status: 'denied' });
       });
     });
+  });
+
+  // FR-023: a 403 or a 404 of the access query (never sent by the real API today, but a
+  // protection against a change of it or of an intermediary) are a response, not a failure.
+  describe('when the service refuses the query by permission or cannot find the person', () => {
+    it.each([403, 404])(
+      'resolves as denied on a %i, after a single request (not the 5xx retries)',
+      async (status) => {
+        const usersService = createUsersServiceMock({ [SUB]: accountWith(marketing) });
+        usersService.failWith(status);
+        const { wrapper } = createWrapper({ auth0: SIGNED_IN, queryClient: createQueryClient() });
+
+        const { result } = renderHook(() => useOperatorAccess(), { wrapper });
+
+        await waitFor(() => {
+          expect(result.current.status).toBe('denied');
+        });
+        expect(usersService.requestCount).toBe(1);
+      },
+    );
   });
 
   describe('when the check cannot be completed', () => {
@@ -215,7 +283,7 @@ describe('useOperatorAccess', () => {
   });
 
   describe('the e-mail of the Auth0 account', () => {
-    it('is the one in the token', async () => {
+    it('is the one in the token when there is no MailySoft user to prefer', async () => {
       createUsersServiceMock({});
       const { wrapper } = createWrapper({
         auth0: {
@@ -231,6 +299,26 @@ describe('useOperatorAccess', () => {
         expect(result.current.status).toBe('denied');
       });
       expect(result.current.accountEmail).toBe('cuenta@ejemplo.com');
+    });
+
+    // FR-014: "Sin acceso" shows the MailySoft user's own e-mail, not the Auth0 account's, once
+    // there is a user to prefer — even though they usually coincide, the spec names a priority.
+    it('prefers the MailySoft user e-mail once denied for lacking a role of type Sistema', async () => {
+      createUsersServiceMock({ [SUB]: accountWith(owner) });
+      const { wrapper } = createWrapper({
+        auth0: {
+          isAuthenticated: true,
+          user: auth0User({ sub: SUB, email: 'cuenta@ejemplo.com' }),
+        },
+      });
+
+      const { result } = renderHook(() => useOperatorAccess(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.status).toBe('denied');
+      });
+      // `userDto()` (test/factories.ts) defaults to this e-mail, distinct from the Auth0 one above.
+      expect(result.current.accountEmail).toBe('ana@clinica.com');
     });
 
     it('is null when the token does not carry it', () => {

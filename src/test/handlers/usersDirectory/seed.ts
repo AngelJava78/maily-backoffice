@@ -39,10 +39,15 @@ export function defaultDirectory(): DirectoryInitial {
         ],
       }),
       directoryRole({ id: 2, name: 'Developer' }),
-      directoryRole({ id: 3, name: 'Owner' }),
+      // Owner and Doctor are of type Clínica (feature 006, Assumptions): they must not give
+      // access to the Backoffice, unlike the rest of this catalog, which stays at the default
+      // (Sistema) because that is what it already was under the old rule by name.
+      directoryRole({ id: 3, name: 'Owner', typeId: 2 }),
       directoryRole({ id: 4, name: 'Marketing', permissions: ['tenants:read'] }),
       directoryRole({ id: 5, name: 'Billing', permissions: ['subscriptions:read'] }),
-      directoryRole({ id: 6, name: 'Doctor' }),
+      directoryRole({ id: 6, name: 'Doctor', typeId: 2 }),
+      // Support was not in the feature 001 list by name; it is of type Sistema in the real
+      // platform, so it now gives access too (feature 006, Assumptions, US1-3).
       directoryRole({ id: 7, name: 'Support' }),
     ],
     associations: [{ userId: ADMIN_ID, roleId: 1 }],

@@ -12,6 +12,17 @@ const STATUS_NAMES: ReadonlyMap<number, string> = new Map([
   [DELETED, 'Eliminado'],
 ]);
 
+/** Ids of the role types of the platform catalog (feature 006); mirrors `roleTypes.ts` locally,
+ * the same way the statuses above mirror `userStatus.ts`: this simulator does not import from
+ * `features/auth`. */
+const SYSTEM_TYPE = 1;
+const CLINIC_TYPE = 2;
+
+const TYPE_NAMES: ReadonlyMap<number, string> = new Map([
+  [SYSTEM_TYPE, 'Sistema'],
+  [CLINIC_TYPE, 'Clínica'],
+]);
+
 export interface DirectoryUser {
   readonly id: string;
   readonly auth0Id: string;
@@ -30,6 +41,8 @@ export interface DirectoryRole {
   readonly description: string | null;
   readonly createdAt: string;
   readonly statusId: number;
+  /** Type of the role (feature 006): 1 Sistema gives access to the Backoffice, 2 Clínica does not. */
+  readonly typeId: number;
   readonly permissions: readonly string[];
 }
 
@@ -94,7 +107,12 @@ export function directoryUser(overrides: Partial<DirectoryUser> = {}): Directory
   };
 }
 
-/** An active role without permissions, unless said otherwise. */
+/**
+ * An active role without permissions, unless said otherwise; of type Sistema by default
+ * (feature 006, research D8), so the many tests that seed roles without caring about the type
+ * keep giving access as before. A role that must stand for one that does not give access to the
+ * Backoffice needs `typeId: 2` (Clínica) explicitly.
+ */
 export function directoryRole(overrides: Partial<DirectoryRole> = {}): DirectoryRole {
   const id = overrides.id ?? 1;
   return {
@@ -103,6 +121,7 @@ export function directoryRole(overrides: Partial<DirectoryRole> = {}): Directory
     description: null,
     createdAt: '2026-10-15T05:57:30.521Z',
     statusId: ACTIVE,
+    typeId: SYSTEM_TYPE,
     permissions: [],
     ...overrides,
   };
@@ -313,6 +332,7 @@ export function createDirectoryModel(initial: DirectoryInitial) {
               .map((role) => ({
                 id: role.id,
                 name: role.name,
+                type: { id: role.typeId, name: TYPE_NAMES.get(role.typeId) ?? 'Desconocido' },
                 permissions: [...role.permissions].sort(),
               }))
           : [];

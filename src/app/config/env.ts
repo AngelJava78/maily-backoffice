@@ -41,6 +41,26 @@ function emptyToUndefined(value: unknown): unknown {
   return value === '' ? undefined : value;
 }
 
+/**
+ * A link to another application (feature 006, FR-015): never a base the client sends a token
+ * to, so — unlike `isApiBase` — a trailing slash, a path, a query or a fragment are all fine.
+ * Still rejects whitespace and `\` (a browser reads `/\x` as `//x`) and requires `https` outside
+ * development, for the same reasons as `isApiBase`.
+ */
+function isExternalAppUrl(value: string, isProduction: boolean): boolean {
+  if (/[\\\s]/.test(value)) {
+    return false;
+  }
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return false;
+  }
+  const allowedProtocol = url.protocol === 'https:' || (!isProduction && url.protocol === 'http:');
+  return allowedProtocol && url.hostname !== '';
+}
+
 /** The minutes between two automatic refreshes of the Panel when the variable is not set. */
 const DEFAULT_DASHBOARD_REFRESH_MINUTES = 5;
 
@@ -71,6 +91,15 @@ function createEnvSchema(isProduction: boolean) {
     .string({ error: rules.apiUrl })
     .refine((value) => isApiBase(value, isProduction), { error: rules.apiUrl });
   const optionalApiBase = z.preprocess(emptyToUndefined, apiBase.optional());
+  const externalAppUrl = z.preprocess(
+    emptyToUndefined,
+    z
+      .string({ error: rules.mailySoftAppUrl })
+      .refine((value) => isExternalAppUrl(value, isProduction), {
+        error: rules.mailySoftAppUrl,
+      })
+      .optional(),
+  );
 
   return z.object({
     VITE_AUTH0_DOMAIN: z
@@ -85,6 +114,9 @@ function createEnvSchema(isProduction: boolean) {
     VITE_SUBSCRIPTIONS_API_URL: apiBase,
     // Fixed when the application is built: changing it means building and deploying again.
     VITE_DASHBOARD_REFRESH_MINUTES: dashboardRefreshMinutes,
+    // The "Sin acceso" link to MailySoft's clinic-facing application (feature 006, FR-015);
+    // without it, the link just does not appear.
+    VITE_MAILYSOFT_APP_URL: externalAppUrl,
   });
 }
 
