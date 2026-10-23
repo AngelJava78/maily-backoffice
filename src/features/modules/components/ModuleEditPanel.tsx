@@ -13,10 +13,9 @@ import { ConfirmDialog } from '@/shared/ui/ConfirmDialog';
 import { useNotify } from '@/shared/ui/Notifications';
 
 import { describeModuleError } from '../api/moduleErrors';
-import { useChangeModuleStatus } from '../hooks/useChangeModuleStatus';
 import { useUpdateModule } from '../hooks/useUpdateModule';
 import { withActionChecked } from '../policy/moduleActionSelection';
-import { MODULE_STATUS, MODULE_TYPE, type ModuleActionKey } from '../schemas/moduleActionCatalog';
+import { MODULE_TYPE, type ModuleActionKey } from '../schemas/moduleActionCatalog';
 import {
   getChangedActions,
   moduleFormSchema,
@@ -24,9 +23,10 @@ import {
   toUpdateModuleBody,
   type ModuleFormValues,
 } from '../schemas/moduleForm';
-import { isProtectedModule, type SystemModule } from '../schemas/systemModule';
+import type { SystemModule } from '../schemas/systemModule';
 import type { ModuleCapabilities } from '..';
 import { applyModuleRefusal } from './applyModuleRefusal';
+import { ModuleDangerZone } from './ModuleDangerZone';
 import { ModuleFormFields } from './ModuleFormFields';
 
 const text = messages.modules;
@@ -34,6 +34,8 @@ const text = messages.modules;
 interface ModuleEditPanelProps {
   readonly module: SystemModule;
   readonly capabilities: ModuleCapabilities;
+  /** The module was deleted (US5): the caller closes this panel, since there is nothing left to edit. */
+  readonly onDeleted: () => void;
 }
 
 /** An uncheck waiting for its confirmation (research D9); `null` while none is pending. */
@@ -42,15 +44,13 @@ interface PendingUncheck {
 }
 
 /**
- * The edición panel of Módulos (US3, US4): Clave and Tipo as fixed information, the fields `alta`
- * and `edición` share, a confirmation before any action the module already had is taken away, and
- * (US4) Bloquear/Desbloquear — unlike eliminar (US5), these are reversible and frequent enough that
- * the spec asks for no confirmation of their own (spec.md's "Why this priority" of US5).
+ * The edición panel of Módulos (US3): Clave and Tipo as fixed information, the fields `alta` and
+ * `edición` share, and a confirmation before any action the module already had is taken away.
+ * Bloquear/Desbloquear/Eliminar (US4, US5) live in `ModuleDangerZone`, which this panel only hosts.
  */
-export function ModuleEditPanel({ module, capabilities }: ModuleEditPanelProps) {
+export function ModuleEditPanel({ module, capabilities, onDeleted }: ModuleEditPanelProps) {
   const notify = useNotify();
   const update = useUpdateModule();
-  const changeStatus = useChangeModuleStatus();
   const errorRef = useRef<HTMLDivElement>(null);
   const [generalError, setGeneralError] = useState<string>();
   const [pendingUncheck, setPendingUncheck] = useState<PendingUncheck | null>(null);
@@ -89,28 +89,6 @@ export function ModuleEditPanel({ module, capabilities }: ModuleEditPanelProps) 
       return;
     }
     applyToggle(action, checked);
-  }
-
-  // Prefers what the service just confirmed over the prop (constitution IV: no optimistic update),
-  // so the button flips right after a success without waiting for the catalog to be asked again.
-  const statusId = changeStatus.data?.statusId ?? module.statusId;
-
-  function toggleStatus(): void {
-    const action = statusId === MODULE_STATUS.ACTIVE ? 'block' : 'unblock';
-    changeStatus.mutate(
-      { moduleId: module.id, action },
-      {
-        onSuccess: () => {
-          notify({
-            severity: 'success',
-            message: action === 'block' ? text.notices.blocked : text.notices.unblocked,
-          });
-        },
-        onError: (error) => {
-          notify({ severity: 'error', message: describeModuleError(error, action).message });
-        },
-      },
-    );
   }
 
   const save = handleSubmit(async (values) => {
@@ -209,26 +187,7 @@ export function ModuleEditPanel({ module, capabilities }: ModuleEditPanelProps) 
             </Button>
           </Stack>
 
-          {(capabilities.canBlock || capabilities.canUnblock) && (
-            <Stack component="section" spacing={1} sx={{ pt: 2, borderTop: 1, borderColor: 'divider' }}>
-              <Typography variant="subtitle2" component="p">
-                {text.blockSection.help}
-              </Typography>
-              {isProtectedModule(module.key) ? (
-                <Alert severity="info">{text.blockSection.protectedNotice}</Alert>
-              ) : (
-                <Button
-                  variant="outlined"
-                  color={statusId === MODULE_STATUS.ACTIVE ? 'warning' : 'success'}
-                  loading={changeStatus.isPending}
-                  onClick={toggleStatus}
-                  sx={{ alignSelf: 'flex-start' }}
-                >
-                  {statusId === MODULE_STATUS.ACTIVE ? text.blockSection.block : text.blockSection.unblock}
-                </Button>
-              )}
-            </Stack>
-          )}
+          <ModuleDangerZone module={module} capabilities={capabilities} onDeleted={onDeleted} />
         </Stack>
       </Box>
 

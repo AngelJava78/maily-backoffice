@@ -69,6 +69,20 @@ export function updateModule(
   });
 }
 
+/** `DELETE /api/v1/modules/{id}` (FR-022, FR-023): the module and every one of its actions. */
+export function deleteModule(
+  client: HttpClient,
+  moduleId: number,
+  { signal }: Cancellable = {},
+): Promise<void> {
+  return client.request({
+    path: `${MODULES_PATH}/${moduleId}`,
+    method: 'DELETE',
+    schema: z.undefined(),
+    signal,
+  });
+}
+
 const createdPermissionSchema = z.object({ id: z.number() });
 
 /**

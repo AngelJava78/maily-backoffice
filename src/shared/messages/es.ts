@@ -209,6 +209,8 @@ export const messages = {
       delete: 'Eliminar módulo',
       deleteConfirm: (name: string) =>
         `¿Eliminar el módulo «${name}»? Esta acción no se puede deshacer.`,
+      deleteConfirmButton: 'Eliminar',
+      deleted: 'Módulo eliminado.',
       protectedNotice:
         'Los módulos base de administración (Usuarios, Roles, Permisos y Módulos) no se pueden bloquear ni eliminar.',
     },

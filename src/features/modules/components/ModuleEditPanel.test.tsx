@@ -1,7 +1,7 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createHttpClient } from '@/shared/api/httpClient';
 import { messages } from '@/shared/messages/es';
@@ -48,8 +48,14 @@ async function usersModule(): Promise<SystemModule> {
   return found;
 }
 
-function renderPanel(module: SystemModule, capabilities: ModuleCapabilities = FULL_ACCESS) {
-  return renderWithProviders(<ModuleEditPanel module={module} capabilities={capabilities} />);
+function renderPanel(
+  module: SystemModule,
+  capabilities: ModuleCapabilities = FULL_ACCESS,
+  onDeleted: () => void = vi.fn(),
+) {
+  return renderWithProviders(
+    <ModuleEditPanel module={module} capabilities={capabilities} onDeleted={onDeleted} />,
+  );
 }
 
 /** MUI keeps the dialog's node mounted through its exit transition: only once it is gone does the
@@ -265,13 +271,23 @@ describe('ModuleEditPanel', () => {
 });
 
 describe('ModuleEditPanel: blocking and unblocking (US4)', () => {
-  it('shows the section with its help text only with canBlock/canUnblock', async () => {
+  it('hides the section entirely without canBlock, canUnblock nor canDelete', async () => {
+    createModulesCatalogMock();
+    const module = await medicalRecords();
+    renderPanel(module, { ...FULL_ACCESS, canBlock: false, canUnblock: false, canDelete: false });
+
+    expect(screen.queryByText(messagesBlockSection.help)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Bloquear módulo/ })).not.toBeInTheDocument();
+  });
+
+  it('shows the section for canDelete alone, without a block/unblock button', async () => {
     createModulesCatalogMock();
     const module = await medicalRecords();
     renderPanel(module, { ...FULL_ACCESS, canBlock: false, canUnblock: false });
 
-    expect(screen.queryByText(messagesBlockSection.help)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Bloquear módulo/ })).not.toBeInTheDocument();
+    expect(screen.getByText(messagesBlockSection.help)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^(Bloquear|Desbloquear) módulo/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Eliminar módulo' })).toBeInTheDocument();
   });
 
   it('offers "Bloquear módulo" for an Active module', async () => {
@@ -325,12 +341,67 @@ describe('ModuleEditPanel: blocking and unblocking (US4)', () => {
     expect(screen.getByRole('button', { name: 'Bloquear módulo' })).toBeInTheDocument();
   });
 
-  it('hides the block/unblock action for a protected module, with an explanation', async () => {
+  it('hides the block/unblock and delete actions for a protected module, with an explanation', async () => {
     createModulesCatalogMock();
     const module = await usersModule();
     renderPanel(module);
 
     expect(screen.queryByRole('button', { name: /^(Bloquear|Desbloquear) módulo/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Eliminar módulo' })).not.toBeInTheDocument();
     expect(screen.getByText(messagesBlockSection.protectedNotice)).toBeInTheDocument();
+  });
+});
+
+describe('ModuleEditPanel: deleting (US5)', () => {
+  it('offers "Eliminar módulo" only with canDelete', async () => {
+    createModulesCatalogMock();
+    const module = await medicalRecords();
+    renderPanel(module, { ...FULL_ACCESS, canDelete: false });
+
+    expect(screen.queryByRole('button', { name: 'Eliminar módulo' })).not.toBeInTheDocument();
+  });
+
+  it('asks to confirm, naming the module, before deleting anything (constitution VI)', async () => {
+    const user = userEvent.setup();
+    const mock = createModulesCatalogMock();
+    const module = await medicalRecords();
+    renderPanel(module);
+
+    await user.click(screen.getByRole('button', { name: 'Eliminar módulo' }));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent('Expediente clínico');
+    expect(mock.requestsTo('DELETE', `/api/v1/modules/${module.id}`)).toHaveLength(0);
+  });
+
+  it('does nothing when the confirmation is cancelled', async () => {
+    const user = userEvent.setup();
+    const mock = createModulesCatalogMock();
+    const module = await medicalRecords();
+    const onDeleted = vi.fn();
+    renderPanel(module, FULL_ACCESS, onDeleted);
+
+    await user.click(screen.getByRole('button', { name: 'Eliminar módulo' }));
+    await user.click(await screen.findByRole('button', { name: 'Cancelar' }));
+    await noDialog();
+
+    expect(mock.requestsTo('DELETE', `/api/v1/modules/${module.id}`)).toHaveLength(0);
+    expect(onDeleted).not.toHaveBeenCalled();
+  });
+
+  it('deletes once confirmed, says so and calls onDeleted', async () => {
+    const user = userEvent.setup();
+    const mock = createModulesCatalogMock();
+    const module = await medicalRecords();
+    const onDeleted = vi.fn();
+    renderPanel(module, FULL_ACCESS, onDeleted);
+
+    await user.click(screen.getByRole('button', { name: 'Eliminar módulo' }));
+    await screen.findByRole('dialog');
+    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+
+    expect(await screen.findByText('Módulo eliminado.')).toBeInTheDocument();
+    expect(mock.requestsTo('DELETE', `/api/v1/modules/${module.id}`)).toHaveLength(1);
+    expect(onDeleted).toHaveBeenCalledTimes(1);
   });
 });

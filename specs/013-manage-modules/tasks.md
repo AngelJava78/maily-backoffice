@@ -513,24 +513,30 @@ desaparece de toda lista y consulta, y que después se puede crear un módulo nu
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T070 [P] [US5] Ampliar `src/features/modules/api/modulesApi.delete.test.ts` (tras T033):
+- [X] T070 [P] [US5] Ampliar `src/features/modules/api/modulesApi.delete.test.ts` (tras T033):
   `deleteModule(client, id)` hace `DELETE /api/v1/modules/{id}`.
-- [ ] T071 [US5] Ampliar `src/features/modules/components/ModuleEditPanel.test.tsx` (tras T068):
+- [X] T071 [US5] Ampliar `src/features/modules/components/ModuleEditPanel.test.tsx` (tras T068):
   "Eliminar módulo" (gated por `canDelete`) pide confirmación explícita que nombra el módulo antes
   de eliminar; para los cuatro módulos protegidos esa acción no está disponible, con una
-  explicación; tras eliminar, el panel se cierra y la fila desaparece de la lista.
-- [ ] T072 [US5] Escribir `src/app/router/modules/deleteModule.integration.test.tsx` (tras T071):
+  explicación; tras eliminar, el panel se cierra y la fila desaparece de la lista. `ModuleEditPanel`
+  gana un prop `onDeleted: () => void` (lo pasa `ModulesPage` como `closePanel`).
+- [X] T072 [US5] Escribir `src/app/router/modules/deleteModule.integration.test.tsx` (tras T071):
   la parte de W15 relativa a eliminar un módulo protegido, y W16 completo.
 
 ### Implementation for User Story 5
 
-- [ ] T073 [P] [US5] Ampliar `src/features/modules/api/modulesApi.ts` (tras T070, T033):
-  `deleteModule`. Hace pasar T070.
-- [ ] T074 [US5] Ampliar `src/features/modules/components/ModuleEditPanel.tsx` (tras T071, T073,
+- [X] T073 [P] [US5] Ampliar `src/features/modules/api/modulesApi.ts` (tras T070, T033):
+  `deleteModule`. Hace pasar T070. Se agregó `hooks/useDeleteModule.ts`.
+- [X] T074 [US5] Ampliar `src/features/modules/components/ModuleEditPanel.tsx` (tras T071, T073,
   T068): agregar "Eliminar módulo" con su diálogo de confirmación (constitución VI), oculto para los
-  protegidos. Hace pasar T071.
-- [ ] T075 [US5] Punto de control de la historia: ejecutar las pruebas y validar manualmente W15 y
-  W16 de [quickstart.md](quickstart.md).
+  protegidos. Hace pasar T071. La sección entera "Bloquear o eliminar" (T068 y esta) se extrajo a
+  `components/ModuleDangerZone.tsx` — con `deleteModule.test.ts` ya sumado, `ModuleEditPanel.tsx`
+  pasaba las 250 líneas del límite de la constitución; el corte por "la zona de las acciones
+  destructivas, con sus propios hooks y su propio estado" es una frontera natural, no artificial.
+- [X] T075 [US5] Punto de control de la historia: ejecutar las pruebas y validar manualmente W15 y
+  W16 de [quickstart.md](quickstart.md). Las cinco historias (consultar, crear, modificar,
+  bloquear/desbloquear, eliminar) funcionan juntas: 198 pruebas en verde en el alcance de módulos;
+  `tsc -b` y `eslint` sin errores nuevos fuera de la 012.
 
 **Checkpoint**: las cinco historias funcionan juntas de punta a punta: consultar, crear, modificar,
 bloquear/desbloquear y eliminar un módulo.

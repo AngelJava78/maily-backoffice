@@ -109,7 +109,7 @@ export function ModulesPage({ capabilities }: ModulesPageProps) {
       // own to open the panel.
       const editing = (query.data ?? []).find((module) => module.id === panelState.moduleId);
       if (editing !== undefined) {
-        return <ModuleEditPanel module={editing} capabilities={capabilities} />;
+        return <ModuleEditPanel module={editing} capabilities={capabilities} onDeleted={closePanel} />;
       }
       return loaded ? <EmptyState message={text.errors.notFound} /> : <PageLoader />;
     }
