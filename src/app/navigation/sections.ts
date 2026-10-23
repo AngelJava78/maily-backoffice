@@ -19,6 +19,14 @@ export interface SectionDefinition {
  * inject example sections of their own.
  */
 export const sections: readonly SectionDefinition[] = [
+  // The modules section of feature 013: listed for whoever has `modules:read`, first in the menu.
+  {
+    id: 'modules',
+    path: '/modules',
+    labelKey: 'modules',
+    resource: 'modules',
+    icon: 'modules',
+  },
   { id: 'users', path: '/users', labelKey: 'users', resource: 'users', icon: 'users' },
   // The subscriptions section of feature 003: listed for whoever has `subscriptions:read`.
   {

@@ -17,7 +17,12 @@ describe('the Token entry of the navigation (feature 005)', () => {
       resource: 'token',
       icon: 'token',
     });
-    expect(sections.map((section) => section.id)).toEqual(['users', 'subscriptions', 'token']);
+    expect(sections.map((section) => section.id)).toEqual([
+      'modules',
+      'users',
+      'subscriptions',
+      'token',
+    ]);
   });
 
   it('is called Token', () => {
