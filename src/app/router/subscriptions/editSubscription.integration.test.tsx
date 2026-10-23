@@ -85,6 +85,43 @@ describe(
       ]);
     });
 
+    it('changes the annual price, a limit and adds a module with a dependency, reflected in the detail (W11)', async () => {
+      const { catalog } = start();
+      const { user } = open('/subscriptions/2/edit');
+      await formOf('Pro');
+
+      await user.clear(field(text.form.fields.annualPrice));
+      await user.type(field(text.form.fields.annualPrice), '48000');
+      const doctors = field(text.form.fields.doctorsLimit);
+      await user.clear(doctors);
+      await user.type(doctors, '5');
+      await user.click(
+        screen.getByRole('checkbox', {
+          name: new RegExp(`^${messages.subscriptions.modules.catalog.reminders.name}`),
+        }),
+      );
+      await user.click(save());
+
+      expect(await screen.findByText(text.edit.saved)).toBeInTheDocument();
+      expect(await screen.findByText('$48,000.00/año')).toBeInTheDocument();
+      expect(catalog.state.find(2)).toMatchObject({
+        annualPrice: '48000.00',
+        doctorsLimit: 5,
+        moduleKeys: ['patients', 'reminders', 'scheduling'],
+      });
+    });
+
+    it('saves nothing when nothing changed, and says so with no PATCH in the Network tab (W12)', async () => {
+      const { catalog } = start();
+      const { user } = open('/subscriptions/2/edit');
+      await formOf('Pro');
+
+      await user.click(save());
+
+      expect(await screen.findByText(text.edit.noChanges)).toBeInTheDocument();
+      expect(catalog.requestsTo('PATCH', '/api/v1/subscriptions/2')).toHaveLength(0);
+    });
+
     it('keeps the change of another person to another datum (US3-7)', async () => {
       const { catalog } = start();
       const { user } = open('/subscriptions/2/edit');

@@ -77,6 +77,11 @@ describe('the subscriptions section: the credential (FR-022, SC-011)', { timeout
     await screen.findByRole('heading', { level: 1, name: text.form.createTitle });
     await user.type(field(text.form.fields.name), 'Nueva');
     await user.type(field(text.form.fields.monthlyPrice), '10');
+    await user.type(field(text.form.fields.annualPrice), '100');
+    await user.type(field(text.form.fields.consultingRoomsLimit), '1');
+    await user.type(field(text.form.fields.doctorsLimit), '1');
+    await user.type(field(text.form.fields.assistantsLimit), '1');
+    await user.type(field(text.form.fields.newPatientsPerYearLimit), '1');
     await user.click(save());
     await screen.findByText(text.notices.created);
 

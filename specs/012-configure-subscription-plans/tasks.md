@@ -220,14 +220,14 @@ Proyecto único existente en la raíz del repositorio (`C:\Maily\code\maily-back
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T056 [P] [US3] Ampliar `src/features/subscriptions/components/SubscriptionEditPage.test.tsx` (tras T013, T053): el formulario abre con los valores actuales, incluidos los módulos marcados (`toFormValues`), el precio anual, los días de prueba, el autoconsumo, los cuatro límites y las otras funcionalidades; cambiar solo un límite y guardar envía únicamente ese campo (`toUpdateSubscriptionBody`); agregar un módulo envía el conjunto completo; sin ningún cambio, «Guardar» no envía nada y vuelve al detalle con el aviso de que no había cambios.
-- [ ] T057 [P] [US3] Ampliar `src/test/handlers/subscriptionsCatalog/update.test.ts` (tras T021): `module_keys` en una modificación sustituye el conjunto completo (con las mismas reglas de dependencia y catálogo que `create`, T047); los demás campos nuevos cambian solo lo recibido; un cuerpo vacío sigue dando `422` en `body`.
-- [ ] T058 [US3] Ampliar `src/app/router/subscriptions/editSubscription.integration.test.tsx` (tras T056, T057): el recorrido de W11 (agregar un límite y un módulo, guardar, ver el detalle actualizado) y de W12 (guardar sin cambios, ver el aviso, ningún `PATCH` en la pestaña Red).
+- [X] T056 [P] [US3] Ampliar `src/features/subscriptions/components/SubscriptionEditPage.test.tsx` (tras T013, T053): el formulario abre con los valores actuales, incluidos los módulos marcados (`toFormValues`), el precio anual, los días de prueba, el autoconsumo, los cuatro límites y las otras funcionalidades; cambiar solo un límite y guardar envía únicamente ese campo (`toUpdateSubscriptionBody`); agregar un módulo envía el conjunto completo; sin ningún cambio, «Guardar» no envía nada y vuelve al detalle con el aviso de que no había cambios.
+- [X] T057 [P] [US3] Ampliar `src/test/handlers/subscriptionsCatalog/update.test.ts` (tras T021): `module_keys` en una modificación sustituye el conjunto completo (con las mismas reglas de dependencia y catálogo que `create`, T047); los demás campos nuevos cambian solo lo recibido; un cuerpo vacío sigue dando `422` en `body`.
+- [X] T058 [US3] Ampliar `src/app/router/subscriptions/editSubscription.integration.test.tsx` (tras T056, T057): el recorrido de W11 (agregar un límite y un módulo, guardar, ver el detalle actualizado) y de W12 (guardar sin cambios, ver el aviso, ningún `PATCH` en la pestaña Red).
 
 ### Implementation for User Story 3
 
-- [ ] T059 [US3] Revisar `src/features/subscriptions/components/SubscriptionEditPage.tsx` (tras T056): confirma que, al reutilizar `SubscriptionFormFields` (T053) y `toFormValues`/`toUpdateSubscriptionBody` (T013) sin cambios propios, pasa T056; ajustar solo si la prueba revela un hueco (por ejemplo, pasar `moduleKeys` o los límites iniciales al abrir). Hace pasar T056.
-- [ ] T060 [US3] Punto de control de la historia: ejecutar las pruebas y validar manualmente W11 y W12 de [quickstart.md](quickstart.md).
+- [X] T059 [US3] Revisar `src/features/subscriptions/components/SubscriptionEditPage.tsx` (tras T056): confirma que, al reutilizar `SubscriptionFormFields` (T053) y `toFormValues`/`toUpdateSubscriptionBody` (T013) sin cambios propios, pasa T056; ajustar solo si la prueba revela un hueco (por ejemplo, pasar `moduleKeys` o los límites iniciales al abrir). Hace pasar T056.
+- [X] T060 [US3] Punto de control de la historia: ejecutar las pruebas y validar manualmente W11 y W12 de [quickstart.md](quickstart.md).
 
 **Checkpoint**: las tres historias funcionan juntas de punta a punta: consultar, crear y modificar un plan completo.
 
@@ -237,9 +237,9 @@ Proyecto único existente en la raíz del repositorio (`C:\Maily\code\maily-back
 
 **Purpose**: verificaciones finales que cruzan las tres historias.
 
-- [ ] T061 [P] Buscar en todo el repositorio (`src/`, `e2e/`, `README.md`) referencias sueltas a `features`/«Lo que incluye» que debieran decir `otherFeatures`/«Otras funcionalidades», y corregirlas.
+- [X] T061 [P] Buscar en todo el repositorio (`src/`, `e2e/`, `README.md`) referencias sueltas a `features`/«Lo que incluye» que debieran decir `otherFeatures`/«Otras funcionalidades», y corregirlas.
 - [ ] T062 [P] Revisar accesibilidad manual del `Tabs` Listado/Comparativo, del grupo de módulos y de la matriz del Comparativo a 1024 px y a 320 px, solo con teclado (quickstart W15; contracts/app-routes.md, «Accesibilidad»).
-- [ ] T063 Medir de nuevo el bundle (`npm run build && npm run size`) y comparar con la línea base de T001; si crece por encima del presupuesto de 300 KB gzip, revisar qué pantalla nueva debe cargarse de forma perezosa.
+- [X] T063 Medir de nuevo el bundle (`npm run build && npm run size`) y comparar con la línea base de T001; si crece por encima del presupuesto de 300 KB gzip, revisar qué pantalla nueva debe cargarse de forma perezosa.
 - [ ] T064 Ejecutar de punta a punta los escenarios W1 a W15 de [quickstart.md](quickstart.md) (los automatizados ya corren en CI; esta pasada es manual, como el cierre de la 003 y la 011).
 - [ ] T065 Punto de control final: `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run test:coverage` (umbral de 80 % en `api`, `policy`, `schemas`, `hooks` y `shared/api|lib`) y `npm run build` pasan todos.
 

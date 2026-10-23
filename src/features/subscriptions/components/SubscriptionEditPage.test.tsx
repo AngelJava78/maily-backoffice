@@ -45,7 +45,7 @@ const field = (label: string) => screen.getByRole('textbox', { name: new RegExp(
 const name = () => field(text.form.fields.name);
 const description = () => field(text.form.fields.description);
 const price = () => field(text.form.fields.monthlyPrice);
-const element = (n: number) => field(text.form.featureLabel(n));
+const element = (n: number) => field(text.form.otherFeatureLabel(n));
 const save = () => screen.getByRole('button', { name: new RegExp(`^${messages.common.save}`) });
 const PATCHES = '/api/v1/subscriptions/2';
 
@@ -56,7 +56,9 @@ async function formReady() {
   });
 }
 
-describe('SubscriptionEditPage', () => {
+// Several tests set every field of the form: the same margin already given to its integration
+// sibling (editSubscription.integration.test.tsx) and to SubscriptionCreatePage's.
+describe('SubscriptionEditPage', { timeout: 30_000 }, () => {
   it('shows its title from the first render, and that it is loading', async () => {
     const catalog = start();
     const release = catalog.defer();
@@ -68,7 +70,7 @@ describe('SubscriptionEditPage', () => {
     await formReady();
   });
 
-  it('opens with the current values, what it includes in its order and the price as it is', async () => {
+  it('opens with the current values, other features in their order and the price as it is', async () => {
     start();
     renderEdit();
     await formReady();
@@ -79,6 +81,25 @@ describe('SubscriptionEditPage', () => {
     expect(element(2)).toHaveValue('Usuarios ilimitados');
     expect(element(3)).toHaveValue('Todo lo clínico');
     expect(screen.queryByLabelText(/estatus/i)).not.toBeInTheDocument();
+  });
+
+  it('opens with the annual price, trial days, autoconsumo, modules and limits already set', async () => {
+    start();
+    renderEdit();
+    await formReady();
+
+    expect(field(text.form.fields.annualPrice)).toHaveValue('1000.00');
+    expect(field(text.form.fields.trialDays)).toHaveValue('0');
+    expect(
+      screen.getByRole('switch', { name: new RegExp(`^${text.form.fields.selfService}`) }),
+    ).not.toBeChecked();
+    expect(
+      screen.getByRole('checkbox', {
+        name: new RegExp(`^${messages.subscriptions.modules.catalog.patients.name}`),
+      }),
+    ).toBeChecked();
+    expect(field(text.form.fields.consultingRoomsLimit)).toHaveValue('1');
+    expect(field(text.form.fields.doctorsLimit)).toHaveValue('1');
   });
 
   it.each([
@@ -128,13 +149,45 @@ describe('SubscriptionEditPage', () => {
       await formReady();
 
       await user.clear(description());
-      await user.click(screen.getByRole('button', { name: text.form.removeFeature(2) }));
+      await user.click(screen.getByRole('button', { name: text.form.removeOtherFeature(2) }));
       await user.click(save());
 
       await screen.findByText(/^Detalle 2:/);
       expect(catalog.requestsTo('PATCH', PATCHES)[0]?.body).toEqual({
         description: null,
-        features: ['Hasta 5 consultorios', 'Todo lo clínico'],
+        other_features: ['Hasta 5 consultorios', 'Todo lo clínico'],
+      });
+    });
+
+    it('sends only the limit that changed', async () => {
+      const catalog = start();
+      const { user } = renderEdit();
+      await formReady();
+
+      const doctors = field(text.form.fields.doctorsLimit);
+      await user.clear(doctors);
+      await user.type(doctors, '5');
+      await user.click(save());
+
+      await screen.findByText(/^Detalle 2:/);
+      expect(catalog.requestsTo('PATCH', PATCHES)[0]?.body).toEqual({ doctors_limit: 5 });
+    });
+
+    it('sends the complete module set when a module with a dependency was added', async () => {
+      const catalog = start();
+      const { user } = renderEdit();
+      await formReady();
+
+      await user.click(
+        screen.getByRole('checkbox', {
+          name: new RegExp(`^${messages.subscriptions.modules.catalog.reminders.name}`),
+        }),
+      );
+      await user.click(save());
+
+      await screen.findByText(/^Detalle 2:/);
+      expect(catalog.requestsTo('PATCH', PATCHES)[0]?.body).toEqual({
+        module_keys: ['patients', 'reminders', 'scheduling'],
       });
     });
 

@@ -73,7 +73,9 @@ async function fillIn(
   await user.type(newPatientsPerYearLimit(), '8000');
 }
 
-describe('SubscriptionCreatePage', () => {
+// Several tests fill every field of the form (fillIn, above): the same margin already given to
+// its integration sibling (createSubscription.integration.test.tsx) and to usersList's.
+describe('SubscriptionCreatePage', { timeout: 30_000 }, () => {
   it('has its title and the empty form, without a status', () => {
     start();
     renderCreate();
