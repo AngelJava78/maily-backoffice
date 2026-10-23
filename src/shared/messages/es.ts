@@ -135,7 +135,9 @@ export const messages = {
       'Las partes del sistema a las que se dan permisos. Los de Sistema son pantallas del Backoffice y los de Clínica, de la aplicación para clínicas.',
     newAction: '+ Nuevo módulo',
     filters: {
+      typeLabel: 'Tipo',
       type: { all: 'Todos', system: 'Sistema', clinic: 'Clínica' },
+      statusLabel: 'Estatus',
       status: { active: 'Activos', blocked: 'Bloqueados' },
       search: 'Nombre o clave',
     },
@@ -143,7 +145,12 @@ export const messages = {
       active: (n: number) => `${n} módulos activos`,
       blocked: (n: number) => `${n} módulos bloqueados`,
       noResults: 'Ningún módulo coincide con la búsqueda.',
+      noneActive: 'No hay módulos activos.',
       noneBlocked: 'No hay módulos bloqueados.',
+    },
+    loadError: {
+      title: 'No se pudo cargar el catálogo de módulos',
+      message: 'Ocurrió un problema al consultar los módulos. Inténtalo de nuevo.',
     },
     groups: {
       system: (n: number) => `Sistema, pantallas del Backoffice · ${n} módulos`,
@@ -157,6 +164,7 @@ export const messages = {
       action: 'Acción',
     },
     baseBadge: 'Base',
+    editAction: 'Editar',
     type: { system: 'Sistema', clinic: 'Clínica' },
     typeHelp: { system: 'Pantallas del Backoffice', clinic: 'Aplicación para clínicas' },
     actions: { read: 'Ver', write: 'Crear', update: 'Modificar', delete: 'Eliminar' },

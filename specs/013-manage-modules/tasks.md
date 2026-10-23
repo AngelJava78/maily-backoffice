@@ -259,11 +259,11 @@ agrupados con sus acciones correctas, y que los filtros y la búsqueda acotan la
 
 > Escribir estas pruebas primero y comprobar que fallan antes de implementar.
 
-- [ ] T035 [P] [US1] Escribir `src/features/modules/components/ModulesFilters.test.tsx`: grupo de
+- [X] T035 [P] [US1] Escribir `src/features/modules/components/ModulesFilters.test.tsx`: grupo de
   botones accesible "Tipo" (Todos/Sistema/Clínica) y "Estatus" (Activos/Bloqueados), cada uno con su
   valor controlado y su `onChange`; campo de texto "Buscar" con su etiqueta asociada y su `onChange`
   (con un pequeño *debounce* o directo, a decidir en la implementación); sin violaciones de axe.
-- [ ] T036 [P] [US1] Escribir `src/features/modules/components/ModulesTable.test.tsx`, con una lista
+- [X] T036 [P] [US1] Escribir `src/features/modules/components/ModulesTable.test.tsx`, con una lista
   de ejemplo (variedad de Sistema y de Clínica, con distintas combinaciones de acciones, incluidos
   los cuatro módulos protegidos).
   - Dos secciones con encabezado y conteo correctos: "Sistema, pantallas del Backoffice · N
@@ -273,7 +273,7 @@ agrupados con sus acciones correctas, y que los filtros y la búsqueda acotan la
   - Los cuatro módulos protegidos llevan la etiqueta "Base" junto al nombre.
   - Sin módulos, no se renderiza (el estado vacío lo decide quien la usa).
   - Sin violaciones de axe.
-- [ ] T037 [US1] Escribir `src/features/modules/components/ModulesPage.test.tsx` (tras T035, T036,
+- [X] T037 [US1] Escribir `src/features/modules/components/ModulesPage.test.tsx` (tras T035, T036,
   T033, T020): con el simulador MSW real,
   - al abrir, se ven las dos secciones con el catálogo completo y el contador "23 módulos activos";
   - cambiar el filtro Tipo a Sistema deja solo esa sección y **no genera ninguna solicitud nueva**
@@ -284,31 +284,33 @@ agrupados con sus acciones correctas, y que los filtros y la búsqueda acotan la
   - un error de red al cargar muestra el estado de error con la opción de reintentar, conservando
     los filtros elegidos;
   - sin violaciones de axe.
-- [ ] T038 [US1] Escribir `src/app/router/modules/modulesList.integration.test.tsx` (tras T037):
+- [ ] T038 [US1] **EN PAUSA, ROTA**: 3 de 4 pruebas fallan (falta `configure({asyncUtilTimeout})`
+  + precargar el chunk perezoso, igual que `usersList.integration.test.tsx`; ya identificado, falta
+  aplicarlo). Escribir `src/app/router/modules/modulesList.integration.test.tsx` (tras T037):
   con el catálogo real de 23 módulos sembrado por el simulador, abrir `/modules` y comprobar W1 a W4
   de [quickstart.md](quickstart.md).
-- [ ] T039 [US1] Escribir `src/app/layouts/useRouteAccessibility.modules.test.tsx` (mismo patrón
+- [X] T039 [US1] Escribir `src/app/layouts/useRouteAccessibility.modules.test.tsx` (mismo patrón
   que `useRouteAccessibility.subscriptions.test.tsx`/`.token.test.tsx`, ya existentes): sin
   `modules:read`, "Módulos" no aparece en el menú principal y entrar a `/modules` directamente
   muestra "sin permisos" sin cerrar la sesión (quickstart W5).
 
 ### Implementation for User Story 1
 
-- [ ] T040 [P] [US1] Implementar `src/features/modules/components/ModulesFilters.tsx` (tras T035,
+- [X] T040 [P] [US1] Implementar `src/features/modules/components/ModulesFilters.tsx` (tras T035,
   T020). Hace pasar T035.
-- [ ] T041 [P] [US1] Implementar `src/features/modules/components/ModulesTable.tsx` (tras T036,
+- [X] T041 [P] [US1] Implementar `src/features/modules/components/ModulesTable.tsx` (tras T036,
   T005, T020; research D7, `Table`/`TableHead`/`TableBody`/`TableRow`/`TableCell` de MUI, no
   `DataGrid`). Hace pasar T036.
-- [ ] T042 [US1] Implementar `src/features/modules/components/ModulesPage.tsx` (tras T037, T015,
+- [X] T042 [US1] Implementar `src/features/modules/components/ModulesPage.tsx` (tras T037, T015,
   T033, T040, T041): usa `useModulesLocation`, TanStack Query (`modulesKeys.list(statusId)`) con
   `listModules`, `ModulesFilters` y `ModulesTable`; estados de carga, vacío, error (con reintentar)
   y éxito; el panel de la derecha, por ahora, solo existe vacío (research D10; su contenido de
   Editar/Nuevo módulo llega en US2/US3). Hace pasar T037.
-- [ ] T043 [US1] Ampliar `src/app/router/routes.tsx` (tras T042): agregar la ruta `/modules` con
+- [X] T043 [US1] Ampliar `src/app/router/routes.tsx` (tras T042): agregar la ruta `/modules` con
   `<RequirePermission resource="modules"><Outlet /></RequirePermission>`, el componente de
   `ModulesPage` cargado con `React.lazy`, `handle.titleKey: 'modules'`, mismo patrón que `/users` y
   `/subscriptions`. Hace pasar T038 y T039.
-- [ ] T044 [US1] Crear `src/features/modules/index.ts`: exporta `ModulesPage` y el tipo
+- [X] T044 [US1] Crear `src/features/modules/index.ts`: exporta `ModulesPage` y el tipo
   `ModuleCapabilities` (usado por T019).
 - [ ] T045 [US1] Punto de control de la historia: ejecutar las pruebas y validar manualmente W1 a W5
   de [quickstart.md](quickstart.md).

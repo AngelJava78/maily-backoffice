@@ -11,6 +11,7 @@ import { AccessDeniedRoute } from './AccessDeniedRoute';
 import { HomeRoute } from './HomeRoute';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
+import { ModulesRoute } from './modules/ModulesRoute';
 import { SubscriptionCreateRoute } from './subscriptions/SubscriptionCreateRoute';
 import { SubscriptionDetailRoute } from './subscriptions/SubscriptionDetailRoute';
 import { SubscriptionEditRoute } from './subscriptions/SubscriptionEditRoute';
@@ -90,6 +91,26 @@ export const appRoutes: RouteObject[] = [
                 Component: ProfilePage,
                 handle: { titleKey: 'profile' },
                 ErrorBoundary: RouteErrorBoundary,
+              },
+              // The modules section (feature 013, contracts/app-routes.md): seeing it needs
+              // `modules:read`. No sub-routes yet: alta and edición are a panel of the same screen
+              // (research D10 of 013), not separate addresses like users and subscriptions below.
+              {
+                path: '/modules',
+                element: (
+                  <RequirePermission resource="modules">
+                    <Outlet />
+                  </RequirePermission>
+                ),
+                ErrorBoundary: RouteErrorBoundary,
+                children: [
+                  {
+                    index: true,
+                    Component: ModulesRoute,
+                    handle: { titleKey: 'modules' },
+                    ErrorBoundary: RouteErrorBoundary,
+                  },
+                ],
               },
               // The users section: seeing it needs `users:read`, and each screen asks for more when
               // it does more (feature 002, contracts/app-routes.md).

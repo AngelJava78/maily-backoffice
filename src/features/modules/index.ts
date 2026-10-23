@@ -11,3 +11,5 @@ export interface ModuleCapabilities {
   readonly canUnblock: boolean;
   readonly canDelete: boolean;
 }
+
+export { ModulesPage } from './components/ModulesPage';
