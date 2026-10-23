@@ -70,6 +70,10 @@ export function readUserId(params: PathParams): string {
 /** The `{role_id}` of the path: a whole number from 1, or a 422. */
 export const readRoleId = (params: PathParams): number => readPathId(params, 'roleId', 'role_id');
 
+/** The `{permission_id}` of the path (feature 014): a whole number from 1, or a 422. */
+export const readPermissionId = (params: PathParams): number =>
+  readPathId(params, 'permissionId', 'permission_id');
+
 /** An email that the service would accept: with the format and at most 255 characters. */
 export const isValidEmail = (email: string): boolean =>
   email.length > 0 && email.length <= 255 && EMAIL_PATTERN.test(email);

@@ -43,8 +43,11 @@ describe('getVisibleSections', () => {
     expect(getVisibleSections(accessWith('users:read', 'tenants:read'), [])).toEqual([]);
   });
 
-  // The registry lists only the sections that exist (FR-009): each feature adds its own.
-  it('registers the modules section (feature 013), the users section (feature 002), the subscriptions section (feature 003) and then the Token tool (feature 005)', () => {
+  // The registry lists only the sections that exist (FR-009): each feature adds its own. The order
+  // (FR-002 of feature 014) is Panel, Módulos, Roles y Permisos, Usuarios, Suscripciones, Token,
+  // until Clínicas becomes a section of its own (inserted after Suscripciones to reach the final
+  // order the feature documents).
+  it('registers modules (feature 013), then roles (014), users (002), subscriptions (003) and the Token tool (005)', () => {
     expect(sections).toEqual([
       {
         id: 'modules',
@@ -53,6 +56,7 @@ describe('getVisibleSections', () => {
         resource: 'modules',
         icon: 'modules',
       },
+      { id: 'roles', path: '/roles', labelKey: 'roles', resource: 'roles', icon: 'roles' },
       { id: 'users', path: '/users', labelKey: 'users', resource: 'users', icon: 'users' },
       {
         id: 'subscriptions',

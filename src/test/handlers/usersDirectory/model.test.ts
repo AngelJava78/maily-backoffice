@@ -13,6 +13,9 @@ const ACTIVE = 1;
 const BLOCKED = 2;
 const DELETED = 3;
 
+const SYSTEM_TYPE = 1;
+const CLINIC_TYPE = 2;
+
 function build(initial: Partial<DirectoryInitial> = {}) {
   return createDirectoryModel({
     users: initial.users ?? [],
@@ -538,6 +541,138 @@ describe('the catalog of roles', () => {
     });
 
     expect(model.listActiveRoles().map((role) => role.name)).toEqual(['Administrator', 'Doctor']);
+  });
+
+  it('includes the type of each role (feature 014)', () => {
+    const model = build({ roles: [directoryRole({ id: 6, name: 'Doctor', typeId: CLINIC_TYPE })] });
+
+    expect(model.listActiveRoles()).toEqual([
+      {
+        id: 6,
+        name: 'Doctor',
+        description: null,
+        created_at: '2026-10-15T05:57:30.521Z',
+        status: { id: ACTIVE, name: 'Activo' },
+        type: { id: CLINIC_TYPE, name: 'Clínica' },
+      },
+    ]);
+  });
+});
+
+describe('createRole (feature 014)', () => {
+  it('stores an active role with the name trimmed and no permissions', () => {
+    const role = build().createRole({
+      name: '  Auditor  ',
+      description: null,
+      typeId: SYSTEM_TYPE,
+    });
+
+    expect(role).toMatchObject({
+      name: 'Auditor',
+      description: null,
+      statusId: ACTIVE,
+      typeId: SYSTEM_TYPE,
+      permissions: [],
+    });
+  });
+
+  it('rejects a name already used by a non-deleted role, of either type, without distinguishing case', () => {
+    const model = build({ roles: [directoryRole({ id: 1, name: 'Doctor', typeId: CLINIC_TYPE })] });
+
+    const failure = failureOf(() =>
+      model.createRole({ name: ' doctor ', description: null, typeId: SYSTEM_TYPE }),
+    );
+
+    expect(failure).toMatchObject({ status: 409, code: 'role_name_already_exists' });
+  });
+
+  it('allows reusing the name of a deleted role', () => {
+    const model = build({ roles: [directoryRole({ id: 1, name: 'Doctor', statusId: DELETED })] });
+
+    const role = model.createRole({ name: 'Doctor', description: null, typeId: SYSTEM_TYPE });
+
+    expect(role.name).toBe('Doctor');
+  });
+});
+
+describe('updateRole (feature 014)', () => {
+  it('changes the name and/or description of an active role, keeping its type', () => {
+    const model = build({
+      roles: [directoryRole({ id: 1, name: 'Doctor', description: null, typeId: CLINIC_TYPE })],
+    });
+
+    const role = model.updateRole(1, { name: 'Doctor General', description: 'Atiende todo.' });
+
+    expect(role).toMatchObject({
+      name: 'Doctor General',
+      description: 'Atiende todo.',
+      typeId: CLINIC_TYPE,
+    });
+  });
+
+  it('rejects a name already used by another non-deleted role', () => {
+    const model = build({
+      roles: [directoryRole({ id: 1, name: 'Doctor' }), directoryRole({ id: 2, name: 'Nurse' })],
+    });
+
+    expect(failureOf(() => model.updateRole(2, { name: 'doctor' }))).toMatchObject({
+      status: 409,
+      code: 'role_name_already_exists',
+    });
+  });
+
+  it('lets a role keep its own name, even changing only the case', () => {
+    const model = build({ roles: [directoryRole({ id: 1, name: 'Doctor' })] });
+
+    expect(model.updateRole(1, { name: 'doctor' }).name).toBe('doctor');
+  });
+
+  it('refuses a role that does not exist or is not active', () => {
+    expect(failureOf(() => build().updateRole(1, { name: 'X' }))).toMatchObject({
+      status: 404,
+      code: 'role_not_found',
+    });
+    const model = build({ roles: [directoryRole({ id: 1, statusId: DELETED })] });
+    expect(failureOf(() => model.updateRole(1, { name: 'X' }))).toMatchObject({
+      status: 404,
+      code: 'role_not_found',
+    });
+  });
+});
+
+describe('deleteRole (feature 014)', () => {
+  it('marks the role as deleted even if it is assigned to a user or has permissions', () => {
+    const model = build({
+      users: [directoryUser({ id: uuidOf(1) })],
+      roles: [directoryRole({ id: 4, name: 'Marketing', permissions: ['tenants:read'] })],
+      associations: [{ userId: uuidOf(1), roleId: 4 }],
+    });
+
+    model.deleteRole(4);
+
+    expect(model.findRole(4)?.statusId).toBe(DELETED);
+    expect(model.rolesOf(uuidOf(1)).map((role) => role.name)).toEqual(['Marketing']);
+  });
+
+  it('frees the name for a new role', () => {
+    const model = build({ roles: [directoryRole({ id: 1, name: 'Doctor' })] });
+
+    model.deleteRole(1);
+
+    expect(model.createRole({ name: 'Doctor', description: null, typeId: SYSTEM_TYPE }).name).toBe(
+      'Doctor',
+    );
+  });
+
+  it('refuses a role that does not exist or is already deleted', () => {
+    expect(
+      failureOf(() => {
+        build().deleteRole(1);
+      }),
+    ).toMatchObject({
+      status: 404,
+      code: 'role_not_found',
+    });
   });
 });
 

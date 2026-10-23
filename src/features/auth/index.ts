@@ -17,6 +17,7 @@ export { useReloadOnBfcacheRestore } from './hooks/useReloadOnBfcacheRestore';
 export { useSessionExpiry } from './hooks/useSessionExpiry';
 export { can, hasAnythingToSee, SECTION_RESOURCES } from './policy/permissions';
 export { getModuleCapabilities } from './policy/moduleCapabilities';
+export { getRoleCapabilities } from './policy/roleCapabilities';
 export { getSubscriptionCapabilities } from './policy/subscriptionCapabilities';
 export { getUserCapabilities } from './policy/userCapabilities';
 export type { PermissionAction, PermissionResource, SectionResource } from './policy/permissions';

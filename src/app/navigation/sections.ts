@@ -27,6 +27,10 @@ export const sections: readonly SectionDefinition[] = [
     resource: 'modules',
     icon: 'modules',
   },
+  // Roles y permisos (feature 014): the menu order the feature asks for (FR-002) is Panel,
+  // Módulos, Roles y Permisos, Usuarios, Suscripciones, Clínicas, Token — Módulos now exists
+  // (feature 013), so this is inserted right after it, as feature 014 already anticipated.
+  { id: 'roles', path: '/roles', labelKey: 'roles', resource: 'roles', icon: 'roles' },
   { id: 'users', path: '/users', labelKey: 'users', resource: 'users', icon: 'users' },
   // The subscriptions section of feature 003: listed for whoever has `subscriptions:read`.
   {

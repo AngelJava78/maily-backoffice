@@ -17,8 +17,15 @@ function accessWith(...permissions: string[]) {
 }
 
 describe('SECTION_RESOURCES', () => {
-  it('lists the four sections and the token tool (features 002/003/004/013, 005)', () => {
-    expect([...SECTION_RESOURCES]).toEqual([...RESOURCES, 'token']);
+  it('lists modules (013), roles (014), the four sections and the token tool (002/003/004, 005)', () => {
+    expect([...SECTION_RESOURCES]).toEqual([
+      'modules',
+      'roles',
+      'users',
+      'subscriptions',
+      'tenants',
+      'token',
+    ]);
   });
 });
 
@@ -81,38 +88,50 @@ describe('can', () => {
 });
 
 describe('hasAnythingToSee', () => {
-  it.each(['users:read', 'subscriptions:read', 'tenants:read', 'token:read', 'dashboard:read'])(
-    'is true with %s alone',
-    (permission) => {
-      expect(hasAnythingToSee(accessWith(permission))).toBe(true);
-    },
-  );
+  it.each([
+    'users:read',
+    'subscriptions:read',
+    'tenants:read',
+    'token:read',
+    'roles:read',
+    'dashboard:read',
+  ])('is true with %s alone', (permission) => {
+    expect(hasAnythingToSee(accessWith(permission))).toBe(true);
+  });
 
   it('is false without permissions', () => {
     expect(hasAnythingToSee(accessWith())).toBe(false);
-  });
-
-  it('is false when the only permissions are users:write and roles:read', () => {
-    expect(hasAnythingToSee(accessWith('users:write', 'roles:read'))).toBe(false);
   });
 
   it('is false when the only permissions are not read permissions', () => {
     expect(hasAnythingToSee(accessWith('users:write', 'tenants:delete'))).toBe(false);
   });
 
-  it('is false when the only read permissions belong to resources without a section', () => {
-    expect(hasAnythingToSee(accessWith('roles:read', 'clinics:read'))).toBe(false);
-  });
-
-  it('is false with only roles:read: the roles are read to assign them, they have no section', () => {
-    expect(hasAnythingToSee(accessWith('roles:read'))).toBe(false);
+  it('is false when the only read permission belongs to a resource with neither a section nor a nav entry', () => {
+    // `clinics` is not (yet) one of PERMISSION_RESOURCES: an unrelated read permission never counts.
+    expect(hasAnythingToSee(accessWith('clinics:read'))).toBe(false);
   });
 });
 
-describe('the roles resource (feature 002)', () => {
-  it('is a permission resource without a section of its own', () => {
-    expect([...PERMISSION_RESOURCES]).toEqual([...RESOURCES, 'token', 'roles', 'dashboard']);
-    expect([...SECTION_RESOURCES]).toEqual([...RESOURCES, 'token']);
+describe('the roles resource (features 002, 014)', () => {
+  it('is both a section of its own (Roles y permisos) and a permission resource', () => {
+    expect([...PERMISSION_RESOURCES]).toEqual([
+      'modules',
+      'roles',
+      'users',
+      'subscriptions',
+      'tenants',
+      'token',
+      'dashboard',
+    ]);
+    expect([...SECTION_RESOURCES]).toEqual([
+      'modules',
+      'roles',
+      'users',
+      'subscriptions',
+      'tenants',
+      'token',
+    ]);
   });
 
   it('is read with roles:read alone, without needing users:read', () => {
@@ -165,6 +184,7 @@ describe('the dashboard resource (feature 007)', () => {
     expect(SECTION_RESOURCES).not.toContain('dashboard');
     expect([...SECTION_RESOURCES]).toEqual([
       'modules',
+      'roles',
       'users',
       'subscriptions',
       'tenants',

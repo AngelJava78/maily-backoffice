@@ -1,16 +1,25 @@
 /**
- * Resources that have an entry in the navigation: the sections of the product (clarification 3) and
- * the Token tool of feature 005, whose only permission is `token:read`.
+ * Resources that have an entry in the navigation: the sections of the product (clarification 3),
+ * the Token tool of feature 005 (`token:read`), Módulos (feature 013, `modules:read`) and Roles y
+ * permisos (feature 014, `roles:read`) — this last one the same resource feature 002 already used
+ * to offer assigning a role to a user, now also its own section to administer roles and their
+ * permissions.
  */
-export const SECTION_RESOURCES = ['modules', 'users', 'subscriptions', 'tenants', 'token'] as const;
+export const SECTION_RESOURCES = [
+  'modules',
+  'roles',
+  'users',
+  'subscriptions',
+  'tenants',
+  'token',
+] as const;
 
 /**
- * Every resource whose permissions are checked. The roles are only read, to offer assigning them to
- * a user (feature 002): they are not administered here, so they have no section of their own. Nor
- * has `dashboard`, the indicators of the Panel (feature 007): the Panel is the home page, always in
- * the navigation, and the permission only decides whether it shows them.
+ * Every resource whose permissions are checked. `dashboard`, the indicators of the Panel (feature
+ * 007), has no section of its own: the Panel is the home page, always in the navigation, and the
+ * permission only decides whether it shows them.
  */
-export const PERMISSION_RESOURCES = [...SECTION_RESOURCES, 'roles', 'dashboard'] as const;
+export const PERMISSION_RESOURCES = [...SECTION_RESOURCES, 'dashboard'] as const;
 
 export type SectionResource = (typeof SECTION_RESOURCES)[number];
 

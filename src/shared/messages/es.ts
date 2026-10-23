@@ -109,6 +109,7 @@ export const messages = {
       subscriptions: 'Suscripciones',
       clinics: 'Clínicas',
       token: 'Token',
+      roles: 'Roles y permisos',
     },
   },
   idleDialog: {
@@ -805,5 +806,77 @@ export const messages = {
     subscriptionDetail: 'Detalle de la suscripción',
     subscriptionEdit: 'Editar suscripción',
     token: 'Token',
+    roles: 'Roles y permisos',
+  },
+  // Feature 014: "Roles y permisos" — pantalla maestro-detalle (pestañas Clínica/Sistema, lista y
+  // matriz de permisos por módulo y acción).
+  roles: {
+    title: 'Roles y permisos',
+    newRole: 'Nuevo role',
+    tabs: { clinica: 'Clínica', sistema: 'Sistema', ariaLabel: 'Tipo de role' },
+    list: {
+      clinicaDescription: 'Roles de los usuarios de las clínicas.',
+      sistemaDescription: 'Roles del personal del Backoffice.',
+      emptyClinica: 'Todavía no hay roles de Clínica. Crea el primero.',
+      emptySistema: 'Todavía no hay roles de Sistema. Crea el primero.',
+      permissionsCount: (count: number) => `${count} permisos`,
+    },
+    detail: {
+      emptySelection: 'Elige un role para ver y cambiar lo que puede hacer en cada módulo.',
+      fields: { name: 'Nombre', description: 'Descripción', type: 'Tipo' },
+      nameHelper: 'Hasta 50 caracteres.',
+      permissionsCount: (granted: number, total: number) => `${granted} de ${total} permisos`,
+      duplicate: 'Duplicar',
+      save: 'Guardar cambios',
+      saved: 'Cambios guardados.',
+      discard: 'Descartar cambios',
+      matrixTitle: (roleName: string) => `Permisos de ${roleName} por módulo y acción`,
+      matrixHelper:
+        'Marca lo que puede hacer en cada módulo. Para crear, modificar o eliminar también necesita Ver. Solo aparecen los módulos del tipo de este role.',
+      matrixError: 'No se pudo cargar la tabla de permisos.',
+      columns: {
+        module: 'Módulo',
+        read: 'Ver',
+        write: 'Crear',
+        update: 'Modificar',
+        delete: 'Eliminar',
+        allModule: 'Todo el módulo',
+      },
+      emptyModules: 'Este tipo todavía no tiene módulos en el catálogo.',
+      unsavedChangesTitle: 'Tienes cambios sin guardar',
+      unsavedChangesBody: 'Si continúas, perderás los cambios que no has guardado.',
+      unsavedChangesDiscard: 'Descartar y continuar',
+      unsavedChangesStay: 'Quedarme',
+    },
+    form: {
+      createTitle: 'Nuevo role',
+      typeHelper: 'No se puede cambiar después.',
+      copyFrom: 'Copiar permisos de',
+      copyFromHelper:
+        'Opcional. Llena la tabla con los permisos de otro role; después la puedes ajustar.',
+      create: 'Crear role',
+      cancel: 'Cancelar',
+    },
+    delete: {
+      action: 'Eliminar role',
+      confirmTitle: (roleName: string) => `¿Eliminar ${roleName}?`,
+      confirmBody: 'Eliminar borra el role y no se puede deshacer.',
+      confirm: 'Eliminar role',
+      cancel: 'Cancelar',
+    },
+    validation: {
+      nameRequired: 'El nombre es obligatorio.',
+      nameTooLong: 'Escribe hasta 50 caracteres.',
+      nameInvalid: 'Revisa el nombre: no es válido.',
+      typeRequired: 'Elige un tipo.',
+    },
+    errors: {
+      nameAlreadyExists: 'Ya existe un role con este nombre.',
+      notFound: 'Este role ya no existe.',
+      moduleTypeConflict: 'Este permiso no corresponde al tipo de este role.',
+      saveIncomplete: (failed: number) =>
+        `No se pudieron guardar ${failed} ${failed === 1 ? 'cambio' : 'cambios'}. Vuelve a intentarlo.`,
+      retryable: 'No pudimos completar la operación. Inténtalo de nuevo.',
+    },
   },
 } as const;

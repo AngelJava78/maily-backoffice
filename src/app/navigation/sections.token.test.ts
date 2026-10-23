@@ -19,6 +19,7 @@ describe('the Token entry of the navigation (feature 005)', () => {
     });
     expect(sections.map((section) => section.id)).toEqual([
       'modules',
+      'roles',
       'users',
       'subscriptions',
       'token',
