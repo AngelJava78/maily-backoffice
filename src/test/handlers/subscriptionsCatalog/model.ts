@@ -1,3 +1,9 @@
+import {
+  CLINIC_MODULE_ORDER,
+  MODULE_PREREQUISITE,
+  REQUIRED_MODULE_KEY,
+} from '@/features/subscriptions/schemas/clinicModuleCatalog';
+
 import type { SubscriptionDto } from '../../factories';
 
 /** Ids of the statuses of the API. Statuses added by hand have an id from 5. */
@@ -21,7 +27,17 @@ export interface CatalogSubscription {
   readonly description: string | null;
   /** Always with two decimals, as the API keeps it: `4500.00`. */
   readonly monthlyPrice: string;
-  readonly features: readonly string[];
+  /** Always with two decimals, independent of the monthly price. */
+  readonly annualPrice: string;
+  readonly trialDays: number;
+  readonly selfService: boolean;
+  /** Always includes `REQUIRED_MODULE_KEY` ("patients"). */
+  readonly moduleKeys: readonly string[];
+  readonly otherFeatures: readonly string[];
+  readonly consultingRoomsLimit: number;
+  readonly doctorsLimit: number;
+  readonly assistantsLimit: number;
+  readonly newPatientsPerYearLimit: number;
   readonly statusId: number;
   /** The clinics that have it, as the clinics API would count them when it is available. */
   readonly clinicsCount: number;
@@ -46,7 +62,16 @@ export interface SubscriptionInput {
   readonly name: string;
   readonly description?: string | null;
   readonly monthly_price: string | number;
-  readonly features?: readonly string[];
+  readonly annual_price: string | number;
+  readonly trial_days?: number;
+  readonly self_service?: boolean;
+  /** Besides `patients`, which is always included whether or not it is sent. */
+  readonly module_keys?: readonly string[];
+  readonly other_features?: readonly string[];
+  readonly consulting_rooms_limit: number;
+  readonly doctors_limit: number;
+  readonly assistants_limit: number;
+  readonly new_patients_per_year_limit: number;
 }
 
 /** What an edition receives once its body is valid (S4): only the data that change. */
@@ -54,7 +79,15 @@ export interface SubscriptionChanges {
   readonly name?: string;
   readonly description?: string | null;
   readonly monthly_price?: string | number;
-  readonly features?: readonly string[];
+  readonly annual_price?: string | number;
+  readonly trial_days?: number;
+  readonly self_service?: boolean;
+  readonly module_keys?: readonly string[];
+  readonly other_features?: readonly string[];
+  readonly consulting_rooms_limit?: number;
+  readonly doctors_limit?: number;
+  readonly assistants_limit?: number;
+  readonly new_patients_per_year_limit?: number;
 }
 
 export interface CatalogFieldError {
@@ -110,7 +143,15 @@ export function catalogSubscription(
     name: `Plan ${id}`,
     description: null,
     monthlyPrice: '100.00',
-    features: [],
+    annualPrice: '1000.00',
+    trialDays: 0,
+    selfService: false,
+    moduleKeys: [REQUIRED_MODULE_KEY],
+    otherFeatures: [],
+    consultingRoomsLimit: 1,
+    doctorsLimit: 1,
+    assistantsLimit: 0,
+    newPatientsPerYearLimit: 0,
     statusId: ACTIVE,
     clinicsCount: 0,
     createdAt: '2026-10-17T15:00:00.000Z',
@@ -128,6 +169,37 @@ function keepPrice(price: string | number): string {
 function orNull(text: string | null | undefined): string | null {
   const trimmed = text?.trim() ?? '';
   return trimmed === '' ? null : trimmed;
+}
+
+const KNOWN_MODULE_KEYS: ReadonlySet<string> = new Set(CLINIC_MODULE_ORDER);
+
+/**
+ * The module keys a creation or an edition sends, always including `patients`, validated the way
+ * the real API does (research D9 of the Backoffice's plan; `maily-system-api/src/clinic_modules.py`):
+ * every key must be a clinic module the users API recognises (here, the fixed catalog of nine), and
+ * every dependent module needs its prerequisite among the keys.
+ */
+function normalizeModuleKeys(keys: readonly string[] | undefined): string[] {
+  const requested = new Set([...(keys ?? []), REQUIRED_MODULE_KEY]);
+  for (const key of requested) {
+    if (!KNOWN_MODULE_KEYS.has(key)) {
+      throw new CatalogError(
+        422,
+        'subscription_module_not_found',
+        `La API de usuarios no reconoce el módulo «${key}» como un módulo de clínica vigente.`,
+      );
+    }
+  }
+  for (const [dependent, prerequisite] of Object.entries(MODULE_PREREQUISITE)) {
+    if (requested.has(dependent) && !requested.has(prerequisite)) {
+      throw new CatalogError(
+        409,
+        'subscription_module_prerequisite_missing',
+        `El módulo «${dependent}» exige el módulo «${prerequisite}», que no está incluido.`,
+      );
+    }
+  }
+  return [...requested].sort();
 }
 
 /**
@@ -206,9 +278,27 @@ export function createCatalogModel(initial: CatalogInitial) {
       ...(changes.monthly_price === undefined
         ? {}
         : { monthlyPrice: keepPrice(changes.monthly_price) }),
-      ...(changes.features === undefined
+      ...(changes.annual_price === undefined
         ? {}
-        : { features: changes.features.map((feature) => feature.trim()) }),
+        : { annualPrice: keepPrice(changes.annual_price) }),
+      ...(changes.trial_days === undefined ? {} : { trialDays: changes.trial_days }),
+      ...(changes.self_service === undefined ? {} : { selfService: changes.self_service }),
+      ...(changes.module_keys === undefined
+        ? {}
+        : { moduleKeys: normalizeModuleKeys(changes.module_keys) }),
+      ...(changes.other_features === undefined
+        ? {}
+        : { otherFeatures: changes.other_features.map((feature) => feature.trim()) }),
+      ...(changes.consulting_rooms_limit === undefined
+        ? {}
+        : { consultingRoomsLimit: changes.consulting_rooms_limit }),
+      ...(changes.doctors_limit === undefined ? {} : { doctorsLimit: changes.doctors_limit }),
+      ...(changes.assistants_limit === undefined
+        ? {}
+        : { assistantsLimit: changes.assistants_limit }),
+      ...(changes.new_patients_per_year_limit === undefined
+        ? {}
+        : { newPatientsPerYearLimit: changes.new_patients_per_year_limit }),
       updatedAt: now(),
     };
   }
@@ -238,7 +328,15 @@ export function createCatalogModel(initial: CatalogInitial) {
         name: subscription.name,
         description: subscription.description,
         monthly_price: subscription.monthlyPrice,
-        features: [...subscription.features],
+        annual_price: subscription.annualPrice,
+        trial_days: subscription.trialDays,
+        self_service: subscription.selfService,
+        module_keys: [...subscription.moduleKeys],
+        other_features: [...subscription.otherFeatures],
+        consulting_rooms_limit: subscription.consultingRoomsLimit,
+        doctors_limit: subscription.doctorsLimit,
+        assistants_limit: subscription.assistantsLimit,
+        new_patients_per_year_limit: subscription.newPatientsPerYearLimit,
         status: { id: subscription.statusId, name: statusName(subscription.statusId) },
         clinics_count: clinicsAvailable ? subscription.clinicsCount : null,
         created_at: subscription.createdAt,
@@ -250,13 +348,24 @@ export function createCatalogModel(initial: CatalogInitial) {
     create(input: SubscriptionInput): CatalogSubscription {
       const name = input.name.trim();
       requireFreeName(name);
+      // Modules are validated before anything is created, same order as the real API (create vs.
+      // update): an invalid request changes nothing.
+      const moduleKeys = normalizeModuleKeys(input.module_keys);
       const at = now();
       const created: CatalogSubscription = {
         id: subscriptions.reduce((highest, current) => Math.max(highest, current.id), 0) + 1,
         name,
         description: orNull(input.description),
         monthlyPrice: keepPrice(input.monthly_price),
-        features: (input.features ?? []).map((feature) => feature.trim()),
+        annualPrice: keepPrice(input.annual_price),
+        trialDays: input.trial_days ?? 0,
+        selfService: input.self_service ?? false,
+        moduleKeys,
+        otherFeatures: (input.other_features ?? []).map((feature) => feature.trim()),
+        consultingRoomsLimit: input.consulting_rooms_limit,
+        doctorsLimit: input.doctors_limit,
+        assistantsLimit: input.assistants_limit,
+        newPatientsPerYearLimit: input.new_patients_per_year_limit,
         statusId: ACTIVE,
         clinicsCount: 0,
         createdAt: at,

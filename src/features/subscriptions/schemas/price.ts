@@ -24,3 +24,34 @@ export function toCents(text: string): number {
   const [, pesos = '', decimals = ''] = parts;
   return Number(pesos) * 100 + Number(decimals.padEnd(2, '0'));
 }
+
+/** The annual saving of a plan over 12 monthly payments (research D5), all in whole cents. */
+export interface AnnualSavings {
+  /** Monthly price × 12 − annual price, always > 0. */
+  readonly amountCents: number;
+  /** `amountCents` over (monthly price × 12), rounded to the nearest whole number. */
+  readonly percent: number;
+  /** Annual price ÷ 12, rounded to the nearest cent. */
+  readonly monthlyEquivalentCents: number;
+}
+
+/**
+ * The saving an annual price represents over 12 monthly payments, or `null` when it is not a
+ * saving (the annual price equals or is greater than 12 monthly payments, FR-005).
+ */
+export function computeAnnualSavings(
+  monthlyPrice: string,
+  annualPrice: string,
+): AnnualSavings | null {
+  const monthlyCents = toCents(monthlyPrice) * 12;
+  const annualCents = toCents(annualPrice);
+  const amountCents = monthlyCents - annualCents;
+  if (!(amountCents > 0)) {
+    return null;
+  }
+  return {
+    amountCents,
+    percent: Math.round((amountCents / monthlyCents) * 100),
+    monthlyEquivalentCents: Math.round(annualCents / 12),
+  };
+}

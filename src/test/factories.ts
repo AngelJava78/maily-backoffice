@@ -121,14 +121,32 @@ export function operatorAccess(overrides: Partial<OperatorAccess> = {}): Operato
   };
 }
 
-/** A subscription as the subscriptions API returns it: Pro, active, without clinics (id 2). */
+/**
+ * A subscription as the subscriptions API returns it: Profesional, active, without clinics (id 2;
+ * the mockup example of contracts/subscriptions-service.md).
+ */
 export function subscriptionDto(overrides: Partial<SubscriptionDto> = {}): SubscriptionDto {
   return {
     id: 2,
     name: 'Pro',
     description: 'Para clínicas en crecimiento.',
     monthly_price: '4500.00',
-    features: ['Hasta 5 consultorios', 'Usuarios ilimitados'],
+    annual_price: '45000.00',
+    trial_days: 14,
+    self_service: true,
+    module_keys: [
+      'clinical_record_templates',
+      'clinical_records',
+      'patients',
+      'prescriptions',
+      'reminders',
+      'scheduling',
+    ],
+    other_features: ['Soporte por correo y WhatsApp', 'Capacitación inicial en línea'],
+    consulting_rooms_limit: 2,
+    doctors_limit: 3,
+    assistants_limit: 2,
+    new_patients_per_year_limit: 15000,
     status: { id: 1, name: 'Activa' },
     clinics_count: 0,
     created_at: '2026-10-17T15:00:00Z',

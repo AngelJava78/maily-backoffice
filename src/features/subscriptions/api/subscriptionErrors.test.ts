@@ -31,7 +31,18 @@ describe('describeSubscriptionError', () => {
         { field: 'name', message: 'El nombre de la suscripción es obligatorio.' },
         { field: 'description', message: 'La descripción no puede tener más de 500 caracteres.' },
         { field: 'monthly_price', message: 'El precio mensual es obligatorio.' },
-        { field: 'features', message: 'Lo que incluye la suscripción no puede tener más de 20.' },
+        { field: 'annual_price', message: 'El precio anual es obligatorio.' },
+        { field: 'trial_days', message: 'Los días de prueba deben ser un entero de 0 a 3650.' },
+        { field: 'self_service', message: 'El autoconsumo debe ser verdadero o falso.' },
+        { field: 'module_keys', message: 'La API de usuarios no reconoce el módulo «x».' },
+        { field: 'consulting_rooms_limit', message: 'El límite de consultorios es obligatorio.' },
+        { field: 'doctors_limit', message: 'El límite de doctores es obligatorio.' },
+        { field: 'assistants_limit', message: 'El límite de asistentes es obligatorio.' },
+        {
+          field: 'new_patients_per_year_limit',
+          message: 'El límite de pacientes nuevos es obligatorio.',
+        },
+        { field: 'other_features', message: 'Otras funcionalidades admite hasta 20.' },
       ]),
       'update',
     );
@@ -43,8 +54,29 @@ describe('describeSubscriptionError', () => {
         name: text.fields.name,
         description: text.fields.description,
         monthlyPrice: text.fields.monthlyPrice,
-        features: text.fields.features,
+        annualPrice: text.fields.annualPrice,
+        trialDays: text.fields.trialDays,
+        selfService: text.fields.selfService,
+        moduleKeys: text.fields.moduleKeys,
+        consultingRoomsLimit: text.fields.consultingRoomsLimit,
+        doctorsLimit: text.fields.doctorsLimit,
+        assistantsLimit: text.fields.assistantsLimit,
+        newPatientsPerYearLimit: text.fields.newPatientsPerYearLimit,
+        otherFeatures: text.fields.otherFeatures,
       },
+    });
+  });
+
+  it.each([
+    [409, 'subscription_module_prerequisite_missing'],
+    [422, 'subscription_module_not_found'],
+  ])('puts %i %s next to the modules section, with an own text', (status, code) => {
+    const outcome = describeSubscriptionError(refusal(status, code), 'create');
+
+    expect(outcome).toEqual({
+      kind: 'field',
+      message: text.fields.moduleKeys,
+      fields: { moduleKeys: text.fields.moduleKeys },
     });
   });
 
@@ -108,6 +140,7 @@ describe('describeSubscriptionError', () => {
 
   it.each([
     ['the permissions could not be checked', refusal(503, 'authorization_unavailable')],
+    ['the modules could not be checked', refusal(503, 'module_check_unavailable')],
     ['an internal error', refusal(500, 'internal_error')],
     ['another 5xx', refusal(502, 'bad_gateway')],
     ['a 5xx without body', ApiError.fromResponse(504, 'Gateway Timeout')],

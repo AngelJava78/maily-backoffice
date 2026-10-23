@@ -8,7 +8,15 @@ const FORM_FIELDS: readonly SubscriptionFormField[] = [
   'name',
   'description',
   'monthlyPrice',
-  'features',
+  'annualPrice',
+  'trialDays',
+  'selfService',
+  'moduleKeys',
+  'consultingRoomsLimit',
+  'doctorsLimit',
+  'assistantsLimit',
+  'newPatientsPerYearLimit',
+  'otherFeatures',
 ];
 
 /**

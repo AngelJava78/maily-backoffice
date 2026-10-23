@@ -43,16 +43,17 @@ export function useSubscriptionsLocation(): SubscriptionsLocationApi {
     location,
     search: canonical === '' ? '' : `?${canonical}`,
     setPage: (page, options) => {
-      setSearchParams(toSubscriptionsSearchParams({ page, pageSize: location.pageSize }), {
-        replace: options?.replace === true,
-      });
+      setSearchParams(
+        toSubscriptionsSearchParams({ page, pageSize: location.pageSize, tab: location.tab }),
+        { replace: options?.replace === true },
+      );
     },
     setPageSize: (nextPageSize) => {
       // The sizes the list offers are the only ones accepted: anything else becomes the default.
       const { pageSize } = parseSubscriptionsSearchParams(
         new URLSearchParams({ page_size: String(nextPageSize) }),
       );
-      setSearchParams(toSubscriptionsSearchParams({ page: 1, pageSize }));
+      setSearchParams(toSubscriptionsSearchParams({ page: 1, pageSize, tab: location.tab }));
     },
   };
 }

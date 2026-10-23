@@ -12,11 +12,19 @@ const parse = (search: string) => parseSubscriptionsSearchParams(new URLSearchPa
 
 describe('parseSubscriptionsSearchParams', () => {
   it('reads the page and the page size of the address', () => {
-    expect(parse('page=2&page_size=25')).toEqual({ page: 2, pageSize: 25 });
+    expect(parse('page=2&page_size=25')).toEqual({ page: 2, pageSize: 25, tab: 'list' });
   });
 
-  it('starts at the first page with 10 rows when the address says nothing', () => {
-    expect(parse('')).toEqual({ page: 1, pageSize: 10 });
+  it('starts at the first page with 10 rows, in the Listado tab, when the address says nothing', () => {
+    expect(parse('')).toEqual({ page: 1, pageSize: 10, tab: 'list' });
+  });
+
+  it('reads the Comparativo tab', () => {
+    expect(parse('tab=comparison').tab).toBe('comparison');
+  });
+
+  it.each(['list', 'x', '', 'comparative'])('takes tab %j as the Listado tab', (tab) => {
+    expect(parse(`tab=${tab}`).tab).toBe('list');
   });
 
   it.each(['abc', '0', '-2', '2.5', '', '1e2'])(
@@ -38,22 +46,33 @@ describe('parseSubscriptionsSearchParams', () => {
   );
 
   it('ignores the other parameters', () => {
-    expect(parse('page=3&email=a%40b.com&sort=name')).toEqual({ page: 3, pageSize: 10 });
+    expect(parse('page=3&email=a%40b.com&sort=name')).toEqual({
+      page: 3,
+      pageSize: 10,
+      tab: 'list',
+    });
   });
 });
 
 describe('toSubscriptionsSearchParams', () => {
   it('leaves the default values out of the address', () => {
-    expect(toSubscriptionsSearchParams({ page: 1, pageSize: 10 }).toString()).toBe('');
-    expect(toSubscriptionsSearchParams({ page: 3, pageSize: 10 }).toString()).toBe('page=3');
-    expect(toSubscriptionsSearchParams({ page: 1, pageSize: 50 }).toString()).toBe('page_size=50');
+    expect(toSubscriptionsSearchParams({ page: 1, pageSize: 10, tab: 'list' }).toString()).toBe('');
+    expect(toSubscriptionsSearchParams({ page: 3, pageSize: 10, tab: 'list' }).toString()).toBe(
+      'page=3',
+    );
+    expect(toSubscriptionsSearchParams({ page: 1, pageSize: 50, tab: 'list' }).toString()).toBe(
+      'page_size=50',
+    );
+    expect(
+      toSubscriptionsSearchParams({ page: 1, pageSize: 10, tab: 'comparison' }).toString(),
+    ).toBe('tab=comparison');
   });
 
   it.each([
-    { page: 1, pageSize: 10 },
-    { page: 2, pageSize: 25 },
-    { page: 7, pageSize: 50 },
-  ] as const)('is the inverse of the parser for $page and $pageSize', (location) => {
+    { page: 1, pageSize: 10, tab: 'list' },
+    { page: 2, pageSize: 25, tab: 'list' },
+    { page: 7, pageSize: 50, tab: 'comparison' },
+  ] as const)('is the inverse of the parser for $page, $pageSize and $tab', (location) => {
     expect(parseSubscriptionsSearchParams(toSubscriptionsSearchParams(location))).toEqual(location);
   });
 });

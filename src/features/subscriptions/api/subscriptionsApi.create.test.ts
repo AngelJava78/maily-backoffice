@@ -15,7 +15,15 @@ const BODY: CreateSubscriptionBody = {
   name: 'Clínica Plus',
   description: 'Para clínicas medianas.',
   monthly_price: '3200.5',
-  features: ['Hasta 3 consultorios', 'Agenda'],
+  annual_price: '32000.5',
+  trial_days: 14,
+  self_service: true,
+  module_keys: ['patients', 'scheduling'],
+  other_features: ['Hasta 3 consultorios', 'Agenda'],
+  consulting_rooms_limit: 3,
+  doctors_limit: 4,
+  assistants_limit: 2,
+  new_patients_per_year_limit: 8000,
 };
 
 describe('createSubscription', () => {
@@ -33,7 +41,7 @@ describe('createSubscription', () => {
             id: 21,
             name: 'Clínica Plus',
             monthly_price: '3200.50',
-            features: ['Hasta 3 consultorios', 'Agenda'],
+            other_features: ['Hasta 3 consultorios', 'Agenda'],
             clinics_count: 0,
           }),
           { status: 201, headers: { Location: '/api/v1/subscriptions/21' } },
@@ -77,7 +85,7 @@ describe('createSubscription', () => {
     server.use(
       http.post(LIST_URL, () =>
         HttpResponse.json(
-          errorBody('validation_error', [{ field: 'features', message: 'Demasiados.' }]),
+          errorBody('validation_error', [{ field: 'other_features', message: 'Demasiados.' }]),
           { status: 422 },
         ),
       ),
@@ -91,7 +99,7 @@ describe('createSubscription', () => {
     expect(failure).toMatchObject({
       status: 422,
       code: 'validation_error',
-      fieldErrors: [{ field: 'features', message: 'Demasiados.' }],
+      fieldErrors: [{ field: 'other_features', message: 'Demasiados.' }],
     });
   });
 

@@ -16,13 +16,26 @@ const dateTimeSchema = z.iso.datetime({ offset: true });
  * II). The number of clinics is `null` when the platform could not count them, and also when the
  * field is missing, because the published contract does not require it: it is never taken for 0.
  */
+// A clinic limit (consultorios, doctores, asistentes, pacientes nuevos al año): informational only,
+// never validated against the clinic's actual usage.
+const clinicLimitSchema = z.number().int().min(0).max(1_000_000);
+
 export const subscriptionSchema = z
   .object({
     id: z.number().int().min(1).max(MAX_SUBSCRIPTION_ID),
     name: z.string().min(1),
     description: z.string().nullable(),
     monthly_price: z.string().regex(READ_PRICE_PATTERN),
-    features: z.array(z.string()),
+    annual_price: z.string().regex(READ_PRICE_PATTERN),
+    trial_days: z.number().int().min(0).max(3650),
+    self_service: z.boolean(),
+    // A key outside the fixed catalog (research D3) is kept as plain text, never rejected here.
+    module_keys: z.array(z.string()),
+    other_features: z.array(z.string()),
+    consulting_rooms_limit: clinicLimitSchema,
+    doctors_limit: clinicLimitSchema,
+    assistants_limit: clinicLimitSchema,
+    new_patients_per_year_limit: clinicLimitSchema,
     status: subscriptionStatusSchema,
     clinics_count: z.number().int().min(0).nullable().optional(),
     created_at: dateTimeSchema,
@@ -33,7 +46,15 @@ export const subscriptionSchema = z
     name: dto.name,
     description: dto.description,
     monthlyPrice: dto.monthly_price,
-    features: dto.features,
+    annualPrice: dto.annual_price,
+    trialDays: dto.trial_days,
+    selfService: dto.self_service,
+    moduleKeys: dto.module_keys,
+    otherFeatures: dto.other_features,
+    consultingRoomsLimit: dto.consulting_rooms_limit,
+    doctorsLimit: dto.doctors_limit,
+    assistantsLimit: dto.assistants_limit,
+    newPatientsPerYearLimit: dto.new_patients_per_year_limit,
     status: dto.status,
     clinicsCount: dto.clinics_count ?? null,
     createdAt: dto.created_at,

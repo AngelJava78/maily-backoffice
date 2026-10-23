@@ -8,7 +8,19 @@ export type SubscriptionOperation =
   'catalog' | 'get' | 'create' | 'update' | 'changeStatus' | 'delete';
 
 /** The inputs of the form that the API can complain about. */
-export type SubscriptionFormField = 'name' | 'description' | 'monthlyPrice' | 'features';
+export type SubscriptionFormField =
+  | 'name'
+  | 'description'
+  | 'monthlyPrice'
+  | 'annualPrice'
+  | 'trialDays'
+  | 'selfService'
+  | 'moduleKeys'
+  | 'consultingRoomsLimit'
+  | 'doctorsLimit'
+  | 'assistantsLimit'
+  | 'newPatientsPerYearLimit'
+  | 'otherFeatures';
 
 /**
  * How a failure is told to the person (data-model.md, `SubscriptionErrorOutcome`). Every text is
@@ -40,7 +52,15 @@ const FORM_FIELDS = new Map<string, SubscriptionFormField>([
   ['name', 'name'],
   ['description', 'description'],
   ['monthly_price', 'monthlyPrice'],
-  ['features', 'features'],
+  ['annual_price', 'annualPrice'],
+  ['trial_days', 'trialDays'],
+  ['self_service', 'selfService'],
+  ['module_keys', 'moduleKeys'],
+  ['consulting_rooms_limit', 'consultingRoomsLimit'],
+  ['doctors_limit', 'doctorsLimit'],
+  ['assistants_limit', 'assistantsLimit'],
+  ['new_patients_per_year_limit', 'newPatientsPerYearLimit'],
+  ['other_features', 'otherFeatures'],
 ]);
 
 /** The operations that send what a person wrote in a form. */
@@ -103,6 +123,13 @@ export function describeSubscriptionError(
   switch (error.code) {
     case 'subscription_name_already_exists':
       return { kind: 'field', message: text.nameInUse, fields: { name: text.nameInUse } };
+    case 'subscription_module_prerequisite_missing':
+    case 'subscription_module_not_found':
+      return {
+        kind: 'field',
+        message: text.fields.moduleKeys,
+        fields: { moduleKeys: text.fields.moduleKeys },
+      };
     case 'validation_error':
       return FORM_OPERATIONS.has(operation)
         ? fromValidation(error.fieldErrors)

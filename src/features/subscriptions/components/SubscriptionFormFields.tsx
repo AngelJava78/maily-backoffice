@@ -5,7 +5,7 @@ import type { Control, FieldErrors, UseFormRegister } from 'react-hook-form';
 import { messages } from '@/shared/messages/es';
 
 import type { SubscriptionFormValues } from '../schemas/subscriptionForm';
-import { FeaturesField } from './FeaturesField';
+import { OtherFeaturesField } from './OtherFeaturesField';
 
 const text = messages.subscriptions.form;
 
@@ -66,7 +66,7 @@ export function SubscriptionFormFields({ register, control, errors }: Subscripti
           htmlInput: { inputMode: 'decimal' },
         }}
       />
-      <FeaturesField control={control} register={register} errors={errors.features} />
+      <OtherFeaturesField control={control} register={register} errors={errors.otherFeatures} />
     </>
   );
 }

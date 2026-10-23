@@ -19,6 +19,15 @@ function modelWith(...subscriptions: ReturnType<typeof catalogSubscription>[]) {
   return createCatalogModel({ subscriptions });
 }
 
+/** The fields `create` requires besides `name` and `monthly_price`, for tests that do not care. */
+const REQUIRED_CREATE_FIELDS = {
+  annual_price: '0',
+  consulting_rooms_limit: 0,
+  doctors_limit: 0,
+  assistants_limit: 0,
+  new_patients_per_year_limit: 0,
+};
+
 const names = (items: readonly { readonly name: string }[]) => items.map(({ name }) => name);
 
 describe('createCatalogModel', () => {
@@ -65,21 +74,27 @@ describe('createCatalogModel', () => {
   });
 
   describe('create', () => {
-    it('trims the texts, keeps the price with two decimals and is born active without clinics', () => {
+    it('trims the texts, keeps the prices with two decimals and is born active without clinics', () => {
       const model = modelWith();
 
       const created = model.create({
         name: '  Pro  ',
         description: '  Para clínicas.  ',
         monthly_price: '4500',
-        features: ['  Uno ', 'Dos'],
+        annual_price: '45000',
+        other_features: ['  Uno ', 'Dos'],
+        consulting_rooms_limit: 2,
+        doctors_limit: 3,
+        assistants_limit: 1,
+        new_patients_per_year_limit: 5000,
       });
 
       expect(created).toMatchObject({
         name: 'Pro',
         description: 'Para clínicas.',
         monthlyPrice: '4500.00',
-        features: ['Uno', 'Dos'],
+        annualPrice: '45000.00',
+        otherFeatures: ['Uno', 'Dos'],
         statusId: 1,
         clinicsCount: 0,
       });
@@ -90,22 +105,105 @@ describe('createCatalogModel', () => {
       ['4500.5', '4500.50'],
       ['0', '0.00'],
       ['99999999.99', '99999999.99'],
-    ])('keeps the price %s as %s', (price, kept) => {
-      expect(modelWith().create({ name: 'Pro', monthly_price: price }).monthlyPrice).toBe(kept);
+    ])('keeps a price of %s as %s, for the monthly and the annual price alike', (price, kept) => {
+      const created = modelWith().create({
+        ...REQUIRED_CREATE_FIELDS,
+        name: 'Pro',
+        monthly_price: price,
+        annual_price: price,
+      });
+      expect(created.monthlyPrice).toBe(kept);
+      expect(created.annualPrice).toBe(kept);
     });
 
-    it('takes an empty description as none, and no list as an empty one', () => {
-      const created = modelWith().create({ name: 'Pro', description: '   ', monthly_price: '0' });
+    it('takes an empty description as none, and no list of other features as an empty one', () => {
+      const created = modelWith().create({
+        name: 'Pro',
+        monthly_price: '0',
+        description: '   ',
+        ...REQUIRED_CREATE_FIELDS,
+      });
 
       expect(created.description).toBeNull();
-      expect(created.features).toEqual([]);
+      expect(created.otherFeatures).toEqual([]);
+    });
+
+    it('defaults trial_days to 0 and self_service to false when they are not sent', () => {
+      const created = modelWith().create({
+        name: 'Pro',
+        monthly_price: '0',
+        ...REQUIRED_CREATE_FIELDS,
+      });
+
+      expect(created.trialDays).toBe(0);
+      expect(created.selfService).toBe(false);
+    });
+
+    it('always includes "patients", whether or not it is sent in module_keys', () => {
+      expect(
+        modelWith().create({ name: 'A', monthly_price: '0', ...REQUIRED_CREATE_FIELDS }).moduleKeys,
+      ).toEqual(['patients']);
+      expect(
+        modelWith().create({
+          name: 'B',
+          monthly_price: '0',
+          ...REQUIRED_CREATE_FIELDS,
+          module_keys: ['scheduling'],
+        }).moduleKeys,
+      ).toEqual(expect.arrayContaining(['patients', 'scheduling']));
+    });
+
+    it('refuses a module key outside the fixed catalog of nine', () => {
+      const refusal = refusalOf(() =>
+        modelWith().create({
+          name: 'A',
+          monthly_price: '0',
+          ...REQUIRED_CREATE_FIELDS,
+          module_keys: ['facturacion'],
+        }),
+      );
+
+      expect(refusal).toMatchObject({
+        status: 422,
+        code: 'subscription_module_not_found',
+      });
+    });
+
+    it.each([
+      ['reminders', 'scheduling'],
+      ['clinical_record_templates', 'clinical_records'],
+      ['prescriptions', 'clinical_records'],
+      ['billing', 'finance'],
+    ])('refuses "%s" without its prerequisite "%s"', (dependent, prerequisite) => {
+      const refusal = refusalOf(() =>
+        modelWith().create({
+          name: 'A',
+          monthly_price: '0',
+          ...REQUIRED_CREATE_FIELDS,
+          module_keys: [dependent],
+        }),
+      );
+
+      expect(refusal).toMatchObject({
+        status: 409,
+        code: 'subscription_module_prerequisite_missing',
+      });
+
+      expect(
+        modelWith().create({
+          name: 'B',
+          monthly_price: '0',
+          ...REQUIRED_CREATE_FIELDS,
+          module_keys: [dependent, prerequisite],
+        }).moduleKeys,
+      ).toEqual(expect.arrayContaining([dependent, prerequisite]));
     });
 
     it('gives the next id and moves the dates forward', () => {
       const model = modelWith(catalogSubscription({ id: 7 }));
 
-      const first = model.create({ name: 'A', monthly_price: '1' });
-      const second = model.create({ name: 'B', monthly_price: '1' });
+      const first = model.create({ name: 'A', monthly_price: '1', ...REQUIRED_CREATE_FIELDS });
+      const second = model.create({ name: 'B', monthly_price: '1', ...REQUIRED_CREATE_FIELDS });
 
       expect([first.id, second.id]).toEqual([8, 9]);
       expect(second.createdAt > first.createdAt).toBe(true);
@@ -117,7 +215,9 @@ describe('createCatalogModel', () => {
       (name) => {
         const model = modelWith(catalogSubscription({ id: 1, name: 'Pro', statusId: 3 }));
 
-        const refusal = refusalOf(() => model.create({ name, monthly_price: '1' }));
+        const refusal = refusalOf(() =>
+          model.create({ name, monthly_price: '1', ...REQUIRED_CREATE_FIELDS }),
+        );
 
         expect(refusal).toMatchObject({
           status: 409,
@@ -130,13 +230,17 @@ describe('createCatalogModel', () => {
     it('tells the accents apart, as the API does', () => {
       const model = modelWith(catalogSubscription({ id: 1, name: 'Basico' }));
 
-      expect(model.create({ name: 'Básico', monthly_price: '1' }).name).toBe('Básico');
+      expect(
+        model.create({ name: 'Básico', monthly_price: '1', ...REQUIRED_CREATE_FIELDS }).name,
+      ).toBe('Básico');
     });
 
     it('accepts the name of a deleted subscription', () => {
       const model = modelWith(catalogSubscription({ id: 1, name: 'Pro', statusId: 4 }));
 
-      expect(model.create({ name: 'Pro', monthly_price: '1' }).name).toBe('Pro');
+      expect(
+        model.create({ name: 'Pro', monthly_price: '1', ...REQUIRED_CREATE_FIELDS }).name,
+      ).toBe('Pro');
     });
   });
 
@@ -173,11 +277,28 @@ describe('createCatalogModel', () => {
       });
     });
 
-    it('replaces the whole list of what it includes', () => {
-      const model = modelWith(catalogSubscription({ id: 1, features: ['Uno', 'Dos'] }));
+    it('replaces the whole list of other features', () => {
+      const model = modelWith(catalogSubscription({ id: 1, otherFeatures: ['Uno', 'Dos'] }));
 
-      expect(model.update(1, { features: [' Tres '] }).features).toEqual(['Tres']);
-      expect(model.update(1, { features: [] }).features).toEqual([]);
+      expect(model.update(1, { other_features: [' Tres '] }).otherFeatures).toEqual(['Tres']);
+      expect(model.update(1, { other_features: [] }).otherFeatures).toEqual([]);
+    });
+
+    it('replaces the whole set of module_keys, always keeping "patients"', () => {
+      const model = modelWith(catalogSubscription({ id: 1, moduleKeys: ['patients'] }));
+
+      expect(model.update(1, { module_keys: ['scheduling'] }).moduleKeys).toEqual(
+        expect.arrayContaining(['patients', 'scheduling']),
+      );
+    });
+
+    it('refuses an updated module_keys that is missing a prerequisite', () => {
+      const model = modelWith(catalogSubscription({ id: 1, moduleKeys: ['patients'] }));
+
+      expect(refusalOf(() => model.update(1, { module_keys: ['reminders'] }))).toMatchObject({
+        status: 409,
+        code: 'subscription_module_prerequisite_missing',
+      });
     });
 
     it.each(['', '   ', null])('takes the description away with %j', (description) => {
@@ -263,7 +384,9 @@ describe('createCatalogModel', () => {
 
       expect(model.find(1)).toBeUndefined();
       expect(model.list()).toEqual([]);
-      expect(model.create({ name: 'Pro', monthly_price: '1' }).name).toBe('Pro');
+      expect(
+        model.create({ name: 'Pro', monthly_price: '1', ...REQUIRED_CREATE_FIELDS }).name,
+      ).toBe('Pro');
     });
 
     it('refuses a subscription with clinics, and changes nothing', () => {

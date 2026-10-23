@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { PRICE_INPUT_PATTERN, READ_PRICE_PATTERN, toCents } from './price';
+import { computeAnnualSavings, PRICE_INPUT_PATTERN, READ_PRICE_PATTERN, toCents } from './price';
 
 describe('PRICE_INPUT_PATTERN', () => {
   it.each(['0', '4500', '4500.5', '4500.50', '99999999.99', '00000001'])(
@@ -48,5 +48,47 @@ describe('toCents', () => {
   it('gives NaN for a text that is not a price', () => {
     expect(toCents('abc')).toBeNaN();
     expect(toCents('4,500')).toBeNaN();
+  });
+});
+
+describe('computeAnnualSavings', () => {
+  it('gives the amount, percent and monthly equivalent of the "Profesional" mockup plan', () => {
+    expect(computeAnnualSavings('1299.00', '12990.00')).toEqual({
+      amountCents: 259_800,
+      percent: 17,
+      monthlyEquivalentCents: 108_250,
+    });
+  });
+
+  it('rounds the monthly equivalent of the "Empresarial" mockup plan ($4,999.17)', () => {
+    expect(computeAnnualSavings('5999.00', '59990.00')).toEqual({
+      amountCents: 1_199_800,
+      percent: 17,
+      monthlyEquivalentCents: 499_917,
+    });
+  });
+
+  it('rounds the monthly equivalent of the "Esencial" mockup plan ($415.83)', () => {
+    expect(computeAnnualSavings('499.00', '4990.00')).toEqual({
+      amountCents: 99_800,
+      percent: 17,
+      monthlyEquivalentCents: 41_583,
+    });
+  });
+
+  it('rounds the monthly equivalent of the "Avanzado" mockup plan ($2,082.50)', () => {
+    expect(computeAnnualSavings('2499.00', '24990.00')).toEqual({
+      amountCents: 499_800,
+      percent: 17,
+      monthlyEquivalentCents: 208_250,
+    });
+  });
+
+  it('gives null when the annual price equals 12 monthly payments (no savings)', () => {
+    expect(computeAnnualSavings('900.00', '10800.00')).toBeNull();
+  });
+
+  it('gives null when the annual price is greater than 12 monthly payments', () => {
+    expect(computeAnnualSavings('900.00', '12000.00')).toBeNull();
   });
 });

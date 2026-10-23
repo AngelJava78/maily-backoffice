@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import { messages } from '@/shared/messages/es';
 
+import { REQUIRED_MODULE_KEY, type ClinicModuleKey } from './clinicModuleCatalog';
 import {
-  MAX_FEATURES,
+  MAX_OTHER_FEATURES,
   subscriptionFormSchema,
   toCreateSubscriptionBody,
   toFormValues,
@@ -17,10 +18,18 @@ const valid: SubscriptionFormValues = {
   name: 'Pro',
   description: 'Para clínicas en crecimiento.',
   monthlyPrice: '4500',
-  features: [{ value: 'Hasta 5 consultorios' }, { value: 'Usuarios ilimitados' }],
+  annualPrice: '45000',
+  trialDays: '14',
+  selfService: true,
+  moduleKeys: new Set<ClinicModuleKey>(['patients', 'scheduling']),
+  consultingRoomsLimit: '2',
+  doctorsLimit: '3',
+  assistantsLimit: '2',
+  newPatientsPerYearLimit: '15000',
+  otherFeatures: [{ value: 'Hasta 5 consultorios' }, { value: 'Usuarios ilimitados' }],
 };
 
-function features(count: number) {
+function otherFeatures(count: number) {
   return Array.from({ length: count }, (_, index) => ({ value: `Elemento ${index + 1}` }));
 }
 
@@ -35,10 +44,10 @@ describe('subscriptionFormSchema', () => {
     expect(subscriptionFormSchema.safeParse(valid).success).toBe(true);
     expect(
       subscriptionFormSchema.safeParse({
-        name: 'Básico',
+        ...valid,
         description: '',
-        monthlyPrice: '0',
-        features: [],
+        otherFeatures: [],
+        moduleKeys: new Set<ClinicModuleKey>([REQUIRED_MODULE_KEY]),
       }).success,
     ).toBe(true);
   });
@@ -87,93 +96,181 @@ describe('subscriptionFormSchema', () => {
     );
   });
 
-  describe('what it includes', () => {
-    it(`admits from 0 to ${MAX_FEATURES} elements`, () => {
-      expect(MAX_FEATURES).toBe(20);
-      expect(errorAt({ ...valid, features: [] }, 'features')).toBeUndefined();
-      expect(errorAt({ ...valid, features: features(20) }, 'features')).toBeUndefined();
-      expect(errorAt({ ...valid, features: features(21) }, 'features')).toBe(text.featuresTooMany);
+  describe('the annual price', () => {
+    it.each(['0', '45000', '45000.5', '99999999.99'])('accepts %j', (price) => {
+      expect(errorAt({ ...valid, annualPrice: price }, 'annualPrice')).toBeUndefined();
+    });
+
+    it.each(['', '   '])('is required (%j)', (price) => {
+      expect(errorAt({ ...valid, annualPrice: price }, 'annualPrice')).toBe(
+        text.annualPriceRequired,
+      );
+    });
+
+    it.each(['4,500', '$4500', '-1', '12.345'])(
+      'rejects %j, same format as the monthly price',
+      (price) => {
+        expect(errorAt({ ...valid, annualPrice: price }, 'annualPrice')).toBe(
+          text.annualPriceInvalid,
+        );
+      },
+    );
+  });
+
+  describe('the trial days', () => {
+    it.each(['0', '14', '3650'])('accepts %j', (days) => {
+      expect(errorAt({ ...valid, trialDays: days }, 'trialDays')).toBeUndefined();
+    });
+
+    it.each(['', '-1', '3651', '14.5', 'abc'])('rejects %j', (days) => {
+      expect(errorAt({ ...valid, trialDays: days }, 'trialDays')).toBe(text.trialDaysInvalid);
+    });
+  });
+
+  describe('the clinic limits', () => {
+    it.each(['consultingRoomsLimit', 'doctorsLimit', 'assistantsLimit', 'newPatientsPerYearLimit'])(
+      '%s accepts 0 and 1,000,000, and rejects empty, negative or fractional',
+      (field) => {
+        expect(errorAt({ ...valid, [field]: '0' }, field)).toBeUndefined();
+        expect(errorAt({ ...valid, [field]: '1000000' }, field)).toBeUndefined();
+        expect(errorAt({ ...valid, [field]: '' }, field)).toBeDefined();
+        expect(errorAt({ ...valid, [field]: '-1' }, field)).toBeDefined();
+        expect(errorAt({ ...valid, [field]: '1000001' }, field)).toBeDefined();
+        expect(errorAt({ ...valid, [field]: '1.5' }, field)).toBeDefined();
+      },
+    );
+  });
+
+  describe('other features', () => {
+    it(`admits from 0 to ${MAX_OTHER_FEATURES} elements`, () => {
+      expect(MAX_OTHER_FEATURES).toBe(20);
+      expect(errorAt({ ...valid, otherFeatures: [] }, 'otherFeatures')).toBeUndefined();
+      expect(
+        errorAt({ ...valid, otherFeatures: otherFeatures(20) }, 'otherFeatures'),
+      ).toBeUndefined();
+      expect(errorAt({ ...valid, otherFeatures: otherFeatures(21) }, 'otherFeatures')).toBe(
+        text.otherFeaturesTooMany,
+      );
     });
 
     it.each(['', '   '])('puts the error of an empty element (%j) next to it', (value) => {
-      const values = { ...valid, features: [{ value: 'Uno' }, { value }, { value: 'Tres' }] };
+      const values = {
+        ...valid,
+        otherFeatures: [{ value: 'Uno' }, { value }, { value: 'Tres' }],
+      };
 
-      expect(errorAt(values, 'features.1.value')).toBe(text.featureRequired);
-      expect(errorAt(values, 'features.0.value')).toBeUndefined();
+      expect(errorAt(values, 'otherFeatures.1.value')).toBe(text.otherFeatureRequired);
+      expect(errorAt(values, 'otherFeatures.0.value')).toBeUndefined();
     });
 
     it('admits up to 150 characters in each element, spaces around it apart', () => {
       expect(
-        errorAt({ ...valid, features: [{ value: ` ${'a'.repeat(150)} ` }] }, 'features.0.value'),
+        errorAt(
+          { ...valid, otherFeatures: [{ value: ` ${'a'.repeat(150)} ` }] },
+          'otherFeatures.0.value',
+        ),
       ).toBeUndefined();
       expect(
-        errorAt({ ...valid, features: [{ value: 'a'.repeat(151) }] }, 'features.0.value'),
-      ).toBe(text.featureTooLong);
+        errorAt({ ...valid, otherFeatures: [{ value: 'a'.repeat(151) }] }, 'otherFeatures.0.value'),
+      ).toBe(text.otherFeatureTooLong);
     });
-  });
-
-  it('does not transform the values: what the form holds is what it submits', () => {
-    const values = { ...valid, monthlyPrice: '4500.5' };
-
-    expect(subscriptionFormSchema.parse(values)).toEqual(values);
   });
 });
 
 describe('toFormValues', () => {
+  const subscription = {
+    name: 'Pro',
+    description: 'Para clínicas en crecimiento.',
+    monthlyPrice: '4500.00',
+    annualPrice: '45000.00',
+    trialDays: 14,
+    selfService: true,
+    moduleKeys: ['scheduling', 'patients'],
+    otherFeatures: ['Hasta 5 consultorios', 'Usuarios ilimitados'],
+    consultingRoomsLimit: 2,
+    doctorsLimit: 3,
+    assistantsLimit: 2,
+    newPatientsPerYearLimit: 15000,
+  };
+
   it('opens the edition with the values of the subscription', () => {
-    expect(
-      toFormValues({
-        name: 'Pro',
-        description: 'Para clínicas en crecimiento.',
-        monthlyPrice: '4500.00',
-        features: ['Hasta 5 consultorios', 'Usuarios ilimitados'],
-      }),
-    ).toEqual({
+    expect(toFormValues(subscription)).toEqual({
       name: 'Pro',
       description: 'Para clínicas en crecimiento.',
       monthlyPrice: '4500.00',
-      features: [{ value: 'Hasta 5 consultorios' }, { value: 'Usuarios ilimitados' }],
+      annualPrice: '45000.00',
+      trialDays: '14',
+      selfService: true,
+      moduleKeys: new Set(['scheduling', 'patients']),
+      consultingRoomsLimit: '2',
+      doctorsLimit: '3',
+      assistantsLimit: '2',
+      newPatientsPerYearLimit: '15000',
+      otherFeatures: [{ value: 'Hasta 5 consultorios' }, { value: 'Usuarios ilimitados' }],
     });
   });
 
   it('opens a subscription without description with the field empty', () => {
+    expect(toFormValues({ ...subscription, description: null }).description).toBe('');
+  });
+
+  it('drops a module key that is not in the fixed catalog of nine', () => {
     expect(
-      toFormValues({ name: 'Pro', description: null, monthlyPrice: '0.00', features: [] })
-        .description,
-    ).toBe('');
+      toFormValues({ ...subscription, moduleKeys: ['patients', 'future_module'] }).moduleKeys,
+    ).toEqual(new Set(['patients']));
   });
 });
 
 describe('toCreateSubscriptionBody', () => {
-  it('sends the data that can be written, trimmed, with the price as text', () => {
+  it('sends the data that can be written, trimmed, with the new fields as numbers', () => {
     expect(
       toCreateSubscriptionBody({
+        ...valid,
         name: '  Pro ',
         description: ' Para clínicas. ',
         monthlyPrice: ' 4500.5 ',
-        features: [{ value: ' Uno ' }, { value: 'Dos' }],
+        annualPrice: ' 45000.5 ',
+        trialDays: ' 14 ',
+        otherFeatures: [{ value: ' Uno ' }, { value: 'Dos' }],
       }),
     ).toEqual({
       name: 'Pro',
       description: 'Para clínicas.',
       monthly_price: '4500.5',
-      features: ['Uno', 'Dos'],
+      annual_price: '45000.5',
+      trial_days: 14,
+      self_service: true,
+      module_keys: ['patients', 'scheduling'],
+      other_features: ['Uno', 'Dos'],
+      consulting_rooms_limit: 2,
+      doctors_limit: 3,
+      assistants_limit: 2,
+      new_patients_per_year_limit: 15000,
     });
   });
 
   it.each(['', '   '])('leaves an empty description (%j) out of the body', (description) => {
-    expect(toCreateSubscriptionBody({ ...valid, description })).toEqual({
-      name: 'Pro',
-      monthly_price: '4500',
-      features: ['Hasta 5 consultorios', 'Usuarios ilimitados'],
-    });
+    expect(toCreateSubscriptionBody({ ...valid, description }).description).toBeUndefined();
   });
 
-  it('sends an empty list of what it includes, and never the data that are only read', () => {
-    const body = toCreateSubscriptionBody({ ...valid, features: [] });
+  it('sends an empty list of other features, and never the data that are only read', () => {
+    const body = toCreateSubscriptionBody({ ...valid, otherFeatures: [] });
 
-    expect(body.features).toEqual([]);
-    expect(Object.keys(body).sort()).toEqual(['description', 'features', 'monthly_price', 'name']);
+    expect(body.other_features).toEqual([]);
+    expect(Object.keys(body).sort()).toEqual([
+      'annual_price',
+      'assistants_limit',
+      'consulting_rooms_limit',
+      'description',
+      'doctors_limit',
+      'module_keys',
+      'monthly_price',
+      'name',
+      'new_patients_per_year_limit',
+      'other_features',
+      'self_service',
+      'trial_days',
+    ]);
   });
 });
 
@@ -182,23 +279,20 @@ describe('toUpdateSubscriptionBody', () => {
     name: 'Pro',
     description: 'Para clínicas en crecimiento.',
     monthlyPrice: '4500.00',
-    features: ['Hasta 5 consultorios', 'Usuarios ilimitados'],
+    annualPrice: '45000.00',
+    trialDays: 14,
+    selfService: true,
+    moduleKeys: ['patients', 'scheduling'],
+    otherFeatures: ['Hasta 5 consultorios', 'Usuarios ilimitados'],
+    consultingRoomsLimit: 2,
+    doctorsLimit: 3,
+    assistantsLimit: 2,
+    newPatientsPerYearLimit: 15000,
   };
   const unchanged = toFormValues(initial);
 
   it('gives null when nothing changed, so nothing is sent', () => {
     expect(toUpdateSubscriptionBody(initial, unchanged)).toBeNull();
-  });
-
-  it('does not take spaces around the texts for a change', () => {
-    expect(
-      toUpdateSubscriptionBody(initial, {
-        name: ' Pro ',
-        description: ' Para clínicas en crecimiento. ',
-        monthlyPrice: ' 4500.00 ',
-        features: [{ value: ' Hasta 5 consultorios' }, { value: 'Usuarios ilimitados ' }],
-      }),
-    ).toBeNull();
   });
 
   it('sends only the name, trimmed, when only the name changed', () => {
@@ -207,78 +301,64 @@ describe('toUpdateSubscriptionBody', () => {
     });
   });
 
-  it('takes a change of the upper case of the name for a change', () => {
-    expect(toUpdateSubscriptionBody(initial, { ...unchanged, name: 'pro' })).toEqual({
-      name: 'pro',
+  it('compares the annual price in cents, like the monthly price', () => {
+    expect(toUpdateSubscriptionBody(initial, { ...unchanged, annualPrice: '45000' })).toBeNull();
+    expect(toUpdateSubscriptionBody(initial, { ...unchanged, annualPrice: '46000' })).toEqual({
+      annual_price: '46000',
     });
   });
 
-  it('sends the new description, or null when it was emptied', () => {
-    expect(toUpdateSubscriptionBody(initial, { ...unchanged, description: ' Otra. ' })).toEqual({
-      description: 'Otra.',
-    });
-    expect(toUpdateSubscriptionBody(initial, { ...unchanged, description: '  ' })).toEqual({
-      description: null,
+  it('sends the new trial days only when the number changed', () => {
+    expect(toUpdateSubscriptionBody(initial, { ...unchanged, trialDays: '14' })).toBeNull();
+    expect(toUpdateSubscriptionBody(initial, { ...unchanged, trialDays: '30' })).toEqual({
+      trial_days: 30,
     });
   });
 
-  it('compares the description with an empty one when the subscription had none', () => {
-    const withoutDescription = { ...initial, description: null };
+  it('sends the new self_service only when it changed', () => {
+    expect(toUpdateSubscriptionBody(initial, { ...unchanged, selfService: false })).toEqual({
+      self_service: false,
+    });
+  });
 
+  it('sends the new clinic limits only when they changed', () => {
+    expect(toUpdateSubscriptionBody(initial, { ...unchanged, doctorsLimit: '5' })).toEqual({
+      doctors_limit: 5,
+    });
+  });
+
+  it('compares the module set without regard to order, and sends it complete when it changed', () => {
     expect(
-      toUpdateSubscriptionBody(withoutDescription, toFormValues(withoutDescription)),
+      toUpdateSubscriptionBody(initial, {
+        ...unchanged,
+        moduleKeys: new Set(['scheduling', 'patients']),
+      }),
     ).toBeNull();
     expect(
-      toUpdateSubscriptionBody(withoutDescription, {
-        ...toFormValues(withoutDescription),
-        description: 'Nueva.',
+      toUpdateSubscriptionBody(initial, {
+        ...unchanged,
+        moduleKeys: new Set(['patients', 'scheduling', 'reminders']),
       }),
-    ).toEqual({ description: 'Nueva.' });
+    ).toEqual({ module_keys: ['patients', 'reminders', 'scheduling'] });
   });
 
-  it('compares the prices in cents: 4500 and 4500.00 are the same price', () => {
-    expect(toUpdateSubscriptionBody(initial, { ...unchanged, monthlyPrice: '4500' })).toBeNull();
-    expect(toUpdateSubscriptionBody(initial, { ...unchanged, monthlyPrice: '4500.0' })).toBeNull();
-    expect(toUpdateSubscriptionBody(initial, { ...unchanged, monthlyPrice: ' 4600 ' })).toEqual({
-      monthly_price: '4600',
-    });
-  });
-
-  it('sends the whole list, trimmed, when an element changed', () => {
+  it('sends the whole list of other features when an element changed', () => {
     expect(
       toUpdateSubscriptionBody(initial, {
         ...unchanged,
-        features: [{ value: 'Hasta 10 consultorios ' }, { value: 'Usuarios ilimitados' }],
+        otherFeatures: [{ value: 'Hasta 10 consultorios ' }, { value: 'Usuarios ilimitados' }],
       }),
-    ).toEqual({ features: ['Hasta 10 consultorios', 'Usuarios ilimitados'] });
-  });
-
-  it('sends the whole list when an element was removed or added', () => {
-    expect(
-      toUpdateSubscriptionBody(initial, {
-        ...unchanged,
-        features: [{ value: 'Usuarios ilimitados' }],
-      }),
-    ).toEqual({ features: ['Usuarios ilimitados'] });
-    expect(
-      toUpdateSubscriptionBody(initial, {
-        ...unchanged,
-        features: [...unchanged.features, { value: 'Soporte' }],
-      }),
-    ).toEqual({ features: ['Hasta 5 consultorios', 'Usuarios ilimitados', 'Soporte'] });
-    expect(toUpdateSubscriptionBody(initial, { ...unchanged, features: [] })).toEqual({
-      features: [],
-    });
+    ).toEqual({ other_features: ['Hasta 10 consultorios', 'Usuarios ilimitados'] });
   });
 
   it('sends every datum that changed, and never the data that are only read', () => {
     expect(
       toUpdateSubscriptionBody(initial, {
+        ...unchanged,
         name: 'Pro 2',
         description: '',
         monthlyPrice: '5000',
-        features: [],
       }),
-    ).toEqual({ name: 'Pro 2', description: null, monthly_price: '5000', features: [] });
+    ).toEqual({ name: 'Pro 2', description: null, monthly_price: '5000' });
   });
 });

@@ -28,18 +28,31 @@ describe('PATCH /api/v1/subscriptions/{id}', () => {
         name: 'Pro',
         description: 'Para clínicas en crecimiento.',
         monthly_price: '5000.00',
-        features: before?.features,
+        other_features: before?.otherFeatures,
       },
     });
     expect(catalog.state.find(2)?.updatedAt).not.toBe(before?.updatedAt);
   });
 
-  it('replaces the whole list and takes the description away with null', async () => {
+  it('replaces the whole list of other features and takes the description away with null', async () => {
     setup();
 
-    expect(await update(2, { features: ['Uno'], description: null })).toMatchObject({
+    expect(await update(2, { other_features: ['Uno'], description: null })).toMatchObject({
       status: 200,
-      body: { features: ['Uno'], description: null },
+      body: { other_features: ['Uno'], description: null },
+    });
+  });
+
+  it('replaces the whole set of module_keys, with the same catalog and dependency rules as create', async () => {
+    setup();
+
+    expect(await update(2, { module_keys: ['reminders'] })).toMatchObject({
+      status: 409,
+      body: { code: 'subscription_module_prerequisite_missing' },
+    });
+    expect(await update(2, { module_keys: ['scheduling', 'reminders'] })).toMatchObject({
+      status: 200,
+      body: { module_keys: ['patients', 'reminders', 'scheduling'] },
     });
   });
 
@@ -70,7 +83,11 @@ describe('PATCH /api/v1/subscriptions/{id}', () => {
     ['a null name', { name: null }, 'name'],
     ['an empty name', { name: '  ' }, 'name'],
     ['a null price', { monthly_price: null }, 'monthly_price'],
-    ['21 elements', { features: Array.from({ length: 21 }, (_, n) => `E${n}`) }, 'features'],
+    [
+      '21 other features',
+      { other_features: Array.from({ length: 21 }, (_, n) => `E${n}`) },
+      'other_features',
+    ],
   ])('refuses %s', async (_case, body, field) => {
     setup();
 

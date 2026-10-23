@@ -6,6 +6,7 @@ import { createSubscriptionsCatalogMock } from '@/test/handlers/subscriptionsCat
 import { ADMIN_AUTH0, createUsersDirectoryMock } from '@/test/handlers/usersDirectory';
 import { createWrapper } from '@/test/renderWithProviders';
 
+import { REQUIRED_MODULE_KEY } from '../schemas/clinicModuleCatalog';
 import type { SubscriptionFormValues } from '../schemas/subscriptionForm';
 import { subscriptionKeys } from './subscriptionKeys';
 import { useCreateSubscription } from './useCreateSubscription';
@@ -16,7 +17,15 @@ const VALUES: SubscriptionFormValues = {
   name: ' Clínica Plus ',
   description: '',
   monthlyPrice: '3200.5',
-  features: [{ value: 'Hasta 3 consultorios ' }],
+  annualPrice: '32000.5',
+  trialDays: '14',
+  selfService: true,
+  moduleKeys: new Set([REQUIRED_MODULE_KEY, 'scheduling']),
+  consultingRoomsLimit: '3',
+  doctorsLimit: '4',
+  assistantsLimit: '2',
+  newPatientsPerYearLimit: '8000',
+  otherFeatures: [{ value: 'Hasta 3 consultorios ' }],
 };
 
 function setup() {
@@ -41,7 +50,15 @@ describe('useCreateSubscription', () => {
     expect(catalog.requestsTo('POST', PATH)[0]?.body).toEqual({
       name: 'Clínica Plus',
       monthly_price: '3200.5',
-      features: ['Hasta 3 consultorios'],
+      annual_price: '32000.5',
+      trial_days: 14,
+      self_service: true,
+      module_keys: ['patients', 'scheduling'],
+      other_features: ['Hasta 3 consultorios'],
+      consulting_rooms_limit: 3,
+      doctors_limit: 4,
+      assistants_limit: 2,
+      new_patients_per_year_limit: 8000,
     });
     expect(result.current.data).toMatchObject({
       id: 8,

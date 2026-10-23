@@ -39,7 +39,15 @@ describe('DELETE /api/v1/subscriptions/{id}', () => {
       (
         await callSubscriptions('/api/v1/subscriptions', {
           method: 'POST',
-          body: { name: 'Pro', monthly_price: '1' },
+          body: {
+            name: 'Pro',
+            monthly_price: '1',
+            annual_price: '10',
+            consulting_rooms_limit: 1,
+            doctors_limit: 1,
+            assistants_limit: 0,
+            new_patients_per_year_limit: 0,
+          },
         })
       ).status,
     ).toBe(201);

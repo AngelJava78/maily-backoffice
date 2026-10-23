@@ -143,7 +143,7 @@ test.describe
     await page.getByLabel(new RegExp(`^${fields.name}`)).fill(name);
     await page.getByLabel(new RegExp(`^${fields.monthlyPrice}`)).fill('1234.5');
     for (const value of ['Primer elemento', 'Segundo elemento']) {
-      await page.getByRole('button', { name: text.form.addFeature }).click();
+      await page.getByRole('button', { name: text.form.addOtherFeature }).click();
       await page.keyboard.type(value);
     }
     await page.getByRole('button', { name: messages.common.save }).click();

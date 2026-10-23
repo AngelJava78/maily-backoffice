@@ -1,8 +1,11 @@
 /** Single module of user-facing texts (constitution VI). Spanish only; no text lives in components. */
 
-/** How a monthly price is written: the form tells it, and so does a refusal of that field. */
+/** How a monthly or annual price is written: the form tells it, and so does a refusal of that field. */
 const PRICE_RULE =
   'Escribe un importe de 0 a 99,999,999.99 solo con números y hasta dos decimales.';
+
+/** How a clinic limit is written (consultorios, doctores, asistentes, pacientes nuevos al año). */
+const LIMIT_RULE = 'Escribe un número entero de 0 a 1,000,000.';
 
 export const messages = {
   common: {
@@ -334,8 +337,61 @@ export const messages = {
     title: 'Suscripciones',
     // By the id of the status, never by its name (FR-016).
     status: { active: 'Activa', inactive: 'Inactiva', blocked: 'Bloqueada' },
-    price: { perMonth: (amount: string) => `${amount}/mes` },
+    price: {
+      perMonth: (amount: string) => `${amount}/mes`,
+      perYear: (amount: string) => `${amount}/año`,
+      savingsBadge: (percent: number) => `Ahorra ${percent}%`,
+      savingsCaption: (monthly: string, yearly: string) =>
+        `Equivale a ${monthly} al mes. Ahorras ${yearly} al año.`,
+      trialDays: (days: number) => `${days} días de prueba`,
+    },
     clinics: { notAvailable: 'No disponible' },
+    badge: { selfService: 'Autoconsumo', custom: 'A la medida' },
+    // The nine clinic modules a plan can include (FR-007), in the order of CLINIC_MODULE_ORDER.
+    modules: {
+      catalog: {
+        patients: {
+          name: 'Pacientes',
+          description: 'Directorio de pacientes y sus datos de contacto.',
+        },
+        scheduling: {
+          name: 'Agenda y citas',
+          description: 'Calendario por doctor y consultorio; citas y confirmaciones.',
+        },
+        reminders: {
+          name: 'Recordatorios',
+          description: 'Avisos de cita por WhatsApp, SMS o correo.',
+        },
+        clinical_records: {
+          name: 'Expediente clínico',
+          description: 'Historia clínica, notas de consulta y archivos.',
+        },
+        clinical_record_templates: {
+          name: 'Plantillas de expediente',
+          description:
+            'Plantillas de preguntas de MailySoft que el doctor usa al abrir el expediente de un paciente.',
+        },
+        prescriptions: {
+          name: 'Recetas',
+          description: 'Recetas en PDF con los datos del doctor.',
+        },
+        finance: {
+          name: 'Finanzas',
+          description: 'Cobros, caja y gastos de la clínica.',
+        },
+        reports: {
+          name: 'Reportes',
+          description: 'Indicadores de citas, ingresos y pacientes.',
+        },
+        billing: {
+          name: 'Facturación',
+          description: 'Facturas CFDI para los pacientes.',
+        },
+      },
+      requires: (name: string) => `Requiere ${name}`,
+      alwaysIncluded: 'Siempre incluido',
+      marked: (count: number) => `Marcados: ${count} de 9`,
+    },
     list: {
       createAction: 'Nueva suscripción',
       gridLabel: 'Suscripciones',
@@ -360,14 +416,23 @@ export const messages = {
         name: 'Nombre',
         description: 'Descripción',
         monthlyPrice: 'Precio mensual',
+        annualPrice: 'Precio anual',
+        trialDays: 'Días de prueba',
+        selfService: 'Autoconsumo',
+        modules: 'Módulos incluidos',
+        consultingRoomsLimit: 'Consultorios',
+        doctorsLimit: 'Doctores',
+        assistantsLimit: 'Asistentes',
+        newPatientsPerYearLimit: 'Pacientes nuevos al año',
         status: 'Estatus',
         clinics: 'Clínicas',
-        features: 'Lo que incluye',
+        otherFeatures: 'Otras funcionalidades',
         createdAt: 'Fecha de creación',
         updatedAt: 'Última modificación',
       },
+      notIncluded: (names: string) => `No incluye: ${names}`,
       emptyValue: '—',
-      noFeatures: 'Sin elementos',
+      noOtherFeatures: 'Sin elementos',
       loadError: {
         title: 'No se pudo cargar la suscripción',
         message: 'Ocurrió un problema al consultar la suscripción. Puedes reintentar.',
@@ -386,18 +451,36 @@ export const messages = {
         name: 'Nombre',
         description: 'Descripción',
         monthlyPrice: 'Precio mensual',
-        features: 'Lo que incluye',
+        annualPrice: 'Precio anual',
+        trialDays: 'Días de prueba',
+        selfService: 'Autoconsumo en el portal de MailySoft',
+        consultingRoomsLimit: 'Consultorios',
+        doctorsLimit: 'Doctores',
+        assistantsLimit: 'Asistentes',
+        newPatientsPerYearLimit: 'Pacientes nuevos al año',
+        otherFeatures: 'Otras funcionalidades',
       },
       descriptionHelper: 'Opcional. Hasta 500 caracteres.',
       priceHelper: 'Solo números y punto decimal, por ejemplo 4500 o 4500.50.',
       pricePrefix: '$',
       priceSuffix: '/mes',
-      featuresHelper: 'Se muestra en este orden. Hasta 20 elementos.',
-      featureLabel: (n: number) => `Elemento ${n}`,
-      removeFeature: (n: number) => `Quitar el elemento ${n}`,
-      addFeature: 'Agregar elemento',
-      featuresCount: (n: number) => `${n} de 20`,
-      featuresMax: 'Se alcanzó el máximo de 20 elementos.',
+      annualPriceHelper: 'Solo números y punto decimal, por ejemplo 12990 o 12990.50.',
+      annualPriceSuffix: '/año',
+      trialDaysHelper: '0 = sin periodo de prueba.',
+      selfServiceHelper:
+        'Activada: aparece en el portal de MailySoft y cualquier clínica puede contratarla por su cuenta.',
+      consultingRoomsLimitHelper: 'Espacios donde se da consulta; cada uno tiene su agenda.',
+      doctorsLimitHelper: 'Usuarios de la clínica con el rol Doctor.',
+      assistantsLimitHelper: 'Usuarios de la clínica con el rol Asistente.',
+      newPatientsPerYearLimitHelper:
+        'Pacientes que puede registrar toda la clínica cada año, sin importar cuántos doctores tenga.',
+      otherFeaturesHelper:
+        'Lo que ofrece el plan sin ser un módulo del sistema, como soporte o capacitación. Se muestra en este orden, hasta 20 elementos.',
+      otherFeatureLabel: (n: number) => `Funcionalidad ${n}`,
+      removeOtherFeature: (n: number) => `Quitar la funcionalidad ${n}`,
+      addOtherFeature: 'Agregar funcionalidad',
+      otherFeaturesCount: (n: number) => `${n} de 20`,
+      otherFeaturesMax: 'Se alcanzó el máximo de 20 funcionalidades.',
     },
     notices: {
       created: 'Suscripción creada.',
@@ -448,9 +531,16 @@ export const messages = {
       descriptionTooLong: 'La descripción no puede superar los 500 caracteres.',
       priceRequired: 'El precio mensual es obligatorio.',
       priceInvalid: PRICE_RULE,
-      featureRequired: 'Escribe el texto o quita el elemento.',
-      featureTooLong: 'Cada elemento admite hasta 150 caracteres.',
-      featuresTooMany: 'Lo que incluye admite hasta 20 elementos.',
+      annualPriceRequired: 'El precio anual es obligatorio.',
+      annualPriceInvalid: PRICE_RULE,
+      trialDaysInvalid: 'Escribe un número entero de 0 a 3650.',
+      consultingRoomsLimitInvalid: LIMIT_RULE,
+      doctorsLimitInvalid: LIMIT_RULE,
+      assistantsLimitInvalid: LIMIT_RULE,
+      newPatientsPerYearLimitInvalid: LIMIT_RULE,
+      otherFeatureRequired: 'Escribe el texto o quita la funcionalidad.',
+      otherFeatureTooLong: 'Cada funcionalidad admite hasta 150 caracteres.',
+      otherFeaturesTooMany: 'Otras funcionalidades admite hasta 20 elementos.',
     },
     // Own texts, chosen by the code of the refusal: the text of the API is never shown (FR-010).
     errors: {
@@ -460,7 +550,16 @@ export const messages = {
         name: 'Revisa el nombre: debe tener de 1 a 100 caracteres.',
         description: 'Revisa la descripción: admite hasta 500 caracteres.',
         monthlyPrice: PRICE_RULE,
-        features: 'Revisa lo que incluye: hasta 20 elementos de 1 a 150 caracteres.',
+        annualPrice: PRICE_RULE,
+        trialDays: 'Revisa los días de prueba: deben ser un número entero de 0 a 3650.',
+        selfService: 'Revisa el autoconsumo.',
+        moduleKeys:
+          'Revisa los módulos incluidos: alguno no es válido o le falta su módulo requisito.',
+        consultingRoomsLimit: LIMIT_RULE,
+        doctorsLimit: LIMIT_RULE,
+        assistantsLimit: LIMIT_RULE,
+        newPatientsPerYearLimit: LIMIT_RULE,
+        otherFeatures: 'Revisa otras funcionalidades: hasta 20 elementos de 1 a 150 caracteres.',
       },
       notFound: 'La suscripción ya no existe.',
       statusUnchanged: 'La suscripción ya tenía ese estatus. Se actualizó la pantalla.',
@@ -469,6 +568,29 @@ export const messages = {
       clinicsUnavailable:
         'No se pudo comprobar si la suscripción tiene clínicas asignadas, así que no se eliminó. Inténtalo de nuevo.',
       retryable: 'No pudimos completar la acción. Inténtalo de nuevo.',
+    },
+    comparison: {
+      listTabLabel: 'Listado',
+      tabLabel: 'Comparativo',
+      priceToggle: { monthly: 'Mensual', annual: 'Anual' },
+      sections: {
+        modules: 'Módulos',
+        limits: 'Límites de la clínica',
+        otherFeatures: 'Otras funcionalidades',
+        includes: 'Incluye',
+        other: 'Otros',
+        trialDays: 'Días de prueba',
+        clinics: 'Clínicas con el plan',
+        actions: 'Acciones',
+      },
+      editAction: 'Editar',
+      footerNote: 'Precios simulados en pesos mexicanos, antes de IVA.',
+      moduleIncluded: 'Incluido',
+      moduleNotIncluded: 'No incluido',
+    },
+    preview: {
+      title: 'Vista previa',
+      subtitle: 'Así verá el plan la clínica',
     },
   },
   // The Token tool of feature 005 (contracts/app-routes.md).

@@ -16,7 +16,7 @@ import {
 import { messages } from '@/shared/messages/es';
 import { Icon } from '@/shared/ui/Icon';
 
-import { MAX_FEATURES, type SubscriptionFormValues } from '../schemas/subscriptionForm';
+import { MAX_OTHER_FEATURES, type SubscriptionFormValues } from '../schemas/subscriptionForm';
 
 const text = messages.subscriptions.form;
 
@@ -24,26 +24,27 @@ const text = messages.subscriptions.form;
 const ADD = Symbol('add');
 type FocusTarget = string | typeof ADD;
 
-interface FeaturesFieldProps {
+interface OtherFeaturesFieldProps {
   readonly control: Control<SubscriptionFormValues>;
   readonly register: UseFormRegister<SubscriptionFormValues>;
   /** The errors of the list: its own (`message`, or `root` from the schema) and each element's. */
-  readonly errors?: FieldErrors<SubscriptionFormValues>['features'];
+  readonly errors?: FieldErrors<SubscriptionFormValues>['otherFeatures'];
 }
 
 /**
- * What a subscription includes: from 0 to 20 texts, in the order in which they are written
- * (decision 4 of the spec). They can be added, edited and removed, but not reordered. Adding moves
- * the focus to the new element and removing one moves it to the next, to the one before or, when
- * none is left, to "Agregar elemento", so the keyboard never loses its place.
+ * What a plan offers besides its modules (soporte, capacitación…): from 0 to 20 texts, in the
+ * order in which they are written (FR-011). They can be added, edited and removed, but not
+ * reordered. Adding moves the focus to the new element and removing one moves it to the next, to
+ * the one before or, when none is left, to "Agregar funcionalidad", so the keyboard never loses
+ * its place.
  */
-export function FeaturesField({ control, register, errors }: FeaturesFieldProps) {
-  const { fields, append, remove } = useFieldArray({ control, name: 'features' });
+export function OtherFeaturesField({ control, register, errors }: OtherFeaturesFieldProps) {
+  const { fields, append, remove } = useFieldArray({ control, name: 'otherFeatures' });
   const ids = { help: useId(), error: useId(), max: useId() };
   const inputs = useRef(new Map<string, HTMLInputElement>());
   const addButton = useRef<HTMLButtonElement>(null);
   const pendingFocus = useRef<FocusTarget | null>(null);
-  const atMax = fields.length >= MAX_FEATURES;
+  const atMax = fields.length >= MAX_OTHER_FEATURES;
   const listError = errors?.message ?? errors?.root?.message;
 
   // After the render that removed an element, the focus goes where `removeAt` said.
@@ -68,10 +69,10 @@ export function FeaturesField({ control, register, errors }: FeaturesFieldProps)
       sx={{ border: 0, m: 0, p: 0, minWidth: 0 }}
     >
       <Typography component="legend" variant="subtitle1" sx={{ fontWeight: 'bold', p: 0 }}>
-        {text.fields.features}
+        {text.fields.otherFeatures}
       </Typography>
       <Typography id={ids.help} variant="body2" color="text.secondary">
-        {text.featuresHelper}
+        {text.otherFeaturesHelper}
       </Typography>
       {listError !== undefined && (
         <FormHelperText id={ids.error} error sx={{ mx: 0 }}>
@@ -80,7 +81,7 @@ export function FeaturesField({ control, register, errors }: FeaturesFieldProps)
       )}
       <Stack spacing={2} sx={{ mt: 2 }}>
         {fields.map((item, index) => {
-          const { ref, ...registration } = register(`features.${index}.value`);
+          const { ref, ...registration } = register(`otherFeatures.${index}.value`);
           const error = errors?.[index]?.value?.message;
           return (
             <Stack key={item.id} direction="row" spacing={1} sx={{ alignItems: 'flex-start' }}>
@@ -94,14 +95,14 @@ export function FeaturesField({ control, register, errors }: FeaturesFieldProps)
                     inputs.current.set(item.id, element);
                   }
                 }}
-                label={text.featureLabel(index + 1)}
+                label={text.otherFeatureLabel(index + 1)}
                 fullWidth
                 autoComplete="off"
                 error={error !== undefined}
                 helperText={error}
               />
               <IconButton
-                aria-label={text.removeFeature(index + 1)}
+                aria-label={text.removeOtherFeature(index + 1)}
                 onClick={() => {
                   removeAt(index);
                 }}
@@ -127,15 +128,15 @@ export function FeaturesField({ control, register, errors }: FeaturesFieldProps)
             append({ value: '' });
           }}
         >
-          {text.addFeature}
+          {text.addOtherFeature}
         </Button>
         <Typography variant="body2" color="text.secondary">
-          {text.featuresCount(fields.length)}
+          {text.otherFeaturesCount(fields.length)}
         </Typography>
       </Stack>
       {/* Always in the page, so reaching the limit is announced when it happens. */}
       <Typography id={ids.max} role="status" variant="body2" sx={{ mt: 1 }}>
-        {atMax ? text.featuresMax : ''}
+        {atMax ? text.otherFeaturesMax : ''}
       </Typography>
     </Box>
   );

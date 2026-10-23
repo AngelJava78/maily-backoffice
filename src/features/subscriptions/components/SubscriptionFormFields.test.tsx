@@ -7,6 +7,7 @@ import { axe } from 'vitest-axe';
 
 import { messages } from '@/shared/messages/es';
 
+import { REQUIRED_MODULE_KEY } from '../schemas/clinicModuleCatalog';
 import { subscriptionFormSchema, type SubscriptionFormValues } from '../schemas/subscriptionForm';
 import { SubscriptionFormFields } from './SubscriptionFormFields';
 
@@ -21,7 +22,20 @@ function Harness() {
     formState: { errors },
   } = useForm<SubscriptionFormValues>({
     resolver: zodResolver(subscriptionFormSchema),
-    defaultValues: { name: '', description: '', monthlyPrice: '', features: [] },
+    defaultValues: {
+      name: '',
+      description: '',
+      monthlyPrice: '',
+      annualPrice: '',
+      trialDays: '0',
+      selfService: false,
+      moduleKeys: new Set([REQUIRED_MODULE_KEY]),
+      consultingRoomsLimit: '',
+      doctorsLimit: '',
+      assistantsLimit: '',
+      newPatientsPerYearLimit: '',
+      otherFeatures: [],
+    },
   });
   return (
     <form
@@ -73,10 +87,10 @@ describe('SubscriptionFormFields', () => {
     expect(screen.getByText(text.priceSuffix)).toBeInTheDocument();
   });
 
-  it('asks for what it includes', () => {
+  it('asks for other features', () => {
     setup();
 
-    expect(screen.getByRole('group', { name: text.fields.features })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: text.fields.otherFeatures })).toBeInTheDocument();
   });
 
   it('has no field for the status: a subscription is born active', () => {

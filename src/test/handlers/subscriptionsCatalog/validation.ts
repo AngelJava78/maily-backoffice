@@ -14,7 +14,15 @@ const WRITABLE_FIELDS: ReadonlySet<string> = new Set([
   'name',
   'description',
   'monthly_price',
-  'features',
+  'annual_price',
+  'trial_days',
+  'self_service',
+  'module_keys',
+  'other_features',
+  'consulting_rooms_limit',
+  'doctors_limit',
+  'assistants_limit',
+  'new_patients_per_year_limit',
 ]);
 
 /** The messages of the error catalog of the API (`errors[]` of a `validation_error`). */
@@ -30,9 +38,18 @@ const MESSAGES = {
   priceRequired: 'El precio mensual es obligatorio.',
   priceInvalid:
     'El precio mensual debe ser un importe de 0 a 99 999 999,99 con hasta dos decimales.',
-  featuresNotList: 'Lo que incluye la suscripción debe ser una lista de textos.',
-  featuresTooMany: 'Lo que incluye la suscripción no puede tener más de 20 elementos.',
-  featureLength: 'Cada elemento de lo que incluye la suscripción debe tener de 1 a 150 caracteres.',
+  annualPriceRequired: 'El precio anual es obligatorio.',
+  annualPriceInvalid:
+    'El precio anual debe ser un importe de 0 a 99 999 999,99 con hasta dos decimales.',
+  trialDaysInvalid: 'Los días de prueba deben ser un número entero de 0 a 3650.',
+  selfServiceInvalid: 'El autoconsumo debe ser verdadero o falso.',
+  moduleKeysNotList: 'Las claves de módulos deben ser una lista de textos.',
+  otherFeaturesNotList: 'Otras funcionalidades debe ser una lista de textos.',
+  otherFeaturesTooMany: 'Otras funcionalidades no puede tener más de 20 elementos.',
+  otherFeatureLength: 'Cada elemento de otras funcionalidades debe tener de 1 a 150 caracteres.',
+  limitRequired: (field: string) => `El campo «${field}» es obligatorio.`,
+  limitInvalid: (field: string) =>
+    `El campo «${field}» debe ser un número entero de 0 a 1 000 000.`,
   statusRequired: 'El estatus es obligatorio y debe ser un número entero.',
   idInvalid: 'El identificador de la suscripción debe ser un número entero positivo.',
 } as const;
@@ -82,45 +99,103 @@ function descriptionError(value: unknown): string | null {
   return value.trim().length > 500 ? MESSAGES.descriptionTooLong : null;
 }
 
-function priceError(value: unknown): string | null {
-  if (value === undefined || value === null) {
-    return MESSAGES.priceRequired;
-  }
-  if (typeof value === 'number') {
-    return value >= 0 && PRICE_TEXT.test(String(value)) ? null : MESSAGES.priceInvalid;
-  }
-  return typeof value === 'string' && PRICE_TEXT.test(value.trim()) ? null : MESSAGES.priceInvalid;
+function priceError(required: string, invalid: string) {
+  return (value: unknown): string | null => {
+    if (value === undefined || value === null) {
+      return required;
+    }
+    if (typeof value === 'number') {
+      return value >= 0 && PRICE_TEXT.test(String(value)) ? null : invalid;
+    }
+    return typeof value === 'string' && PRICE_TEXT.test(value.trim()) ? null : invalid;
+  };
 }
 
-function featuresError(value: unknown): string | null {
+/** `trial_days` and `self_service` are optional (the model defaults them): only checked if sent. */
+function trialDaysError(value: unknown): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 3650
+    ? null
+    : MESSAGES.trialDaysInvalid;
+}
+
+function selfServiceError(value: unknown): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  return typeof value === 'boolean' ? null : MESSAGES.selfServiceInvalid;
+}
+
+/**
+ * Only the shape of `module_keys` (a list of texts): whether each key is a known clinic module and
+ * whether its prerequisite is included is a business rule the model checks (`normalizeModuleKeys`),
+ * because it needs the fixed catalog, not just the JSON body.
+ */
+function moduleKeysError(value: unknown): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  return Array.isArray(value) && value.every((item) => typeof item === 'string')
+    ? null
+    : MESSAGES.moduleKeysNotList;
+}
+
+function otherFeaturesError(value: unknown): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
-    return MESSAGES.featuresNotList;
+    return MESSAGES.otherFeaturesNotList;
   }
   if (value.length > 20) {
-    return MESSAGES.featuresTooMany;
+    return MESSAGES.otherFeaturesTooMany;
   }
   const valid = value.every((item: string) => {
     const length = item.trim().length;
     return length >= 1 && length <= 150;
   });
-  return valid ? null : MESSAGES.featureLength;
+  return valid ? null : MESSAGES.otherFeatureLength;
+}
+
+function limitError(field: string) {
+  return (value: unknown): string | null => {
+    if (value === undefined || value === null) {
+      return MESSAGES.limitRequired(field);
+    }
+    return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 1_000_000
+      ? null
+      : MESSAGES.limitInvalid(field);
+  };
 }
 
 const CHECKS: readonly (readonly [string, (value: unknown) => string | null])[] = [
   ['name', nameError],
   ['description', descriptionError],
-  ['monthly_price', priceError],
-  ['features', featuresError],
+  ['monthly_price', priceError(MESSAGES.priceRequired, MESSAGES.priceInvalid)],
+  ['annual_price', priceError(MESSAGES.annualPriceRequired, MESSAGES.annualPriceInvalid)],
+  ['trial_days', trialDaysError],
+  ['self_service', selfServiceError],
+  ['module_keys', moduleKeysError],
+  ['other_features', otherFeaturesError],
+  ['consulting_rooms_limit', limitError('consulting_rooms_limit')],
+  ['doctors_limit', limitError('doctors_limit')],
+  ['assistants_limit', limitError('assistants_limit')],
+  ['new_patients_per_year_limit', limitError('new_patients_per_year_limit')],
 ];
 
-/** The errors of the writable fields; `onlyPresent` limits them to the ones the body carries. */
+/**
+ * The errors of the writable fields. On an update (`onlyPresent: true`), only what the body
+ * carries is checked. On a creation (`onlyPresent: false`), every field is checked even if it is
+ * absent: each checker above already knows whether its own field is required (`name`, the prices,
+ * the four limits) or optional with a default the model applies (`trial_days`, `self_service`,
+ * `module_keys`, `other_features`), so there is no separate "required on create" list to keep in
+ * sync.
+ */
 function fieldErrors(body: JsonObject, { onlyPresent }: { readonly onlyPresent: boolean }) {
   return CHECKS.flatMap(([field, check]) => {
     if (onlyPresent && !(field in body)) {
-      return [];
-    }
-    // `features` may be left out of a creation: it is an empty list by default.
-    if (!onlyPresent && field === 'features' && !('features' in body)) {
       return [];
     }
     const message = check(body[field]);
@@ -144,6 +219,22 @@ function textList(value: unknown): string[] {
   return Array.isArray(value) ? value.map(text) : [];
 }
 
+function integer(value: unknown): number {
+  return typeof value === 'number' ? value : 0;
+}
+
+function optionalBoolean(value: unknown): boolean | undefined {
+  return typeof value === 'boolean' ? value : undefined;
+}
+
+function optionalInteger(value: unknown): number | undefined {
+  return typeof value === 'number' ? value : undefined;
+}
+
+function optionalTextList(value: unknown): readonly string[] | undefined {
+  return Array.isArray(value) ? value.map(text) : undefined;
+}
+
 /** The body of a creation (S3), once it is valid. */
 export function validateCreate(body: unknown): SubscriptionInput {
   const data = objectBody(body);
@@ -152,7 +243,15 @@ export function validateCreate(body: unknown): SubscriptionInput {
     name: text(data.name),
     description: typeof data.description === 'string' ? data.description : null,
     monthly_price: price(data.monthly_price),
-    features: textList(data.features),
+    annual_price: price(data.annual_price),
+    trial_days: optionalInteger(data.trial_days),
+    self_service: optionalBoolean(data.self_service),
+    module_keys: optionalTextList(data.module_keys),
+    other_features: optionalTextList(data.other_features),
+    consulting_rooms_limit: integer(data.consulting_rooms_limit),
+    doctors_limit: integer(data.doctors_limit),
+    assistants_limit: integer(data.assistants_limit),
+    new_patients_per_year_limit: integer(data.new_patients_per_year_limit),
   };
 }
 
@@ -169,7 +268,19 @@ export function validateUpdate(body: unknown): SubscriptionChanges {
       ? { description: typeof data.description === 'string' ? data.description : null }
       : {}),
     ...('monthly_price' in data ? { monthly_price: price(data.monthly_price) } : {}),
-    ...('features' in data ? { features: textList(data.features) } : {}),
+    ...('annual_price' in data ? { annual_price: price(data.annual_price) } : {}),
+    ...('trial_days' in data ? { trial_days: integer(data.trial_days) } : {}),
+    ...('self_service' in data ? { self_service: data.self_service === true } : {}),
+    ...('module_keys' in data ? { module_keys: textList(data.module_keys) } : {}),
+    ...('other_features' in data ? { other_features: textList(data.other_features) } : {}),
+    ...('consulting_rooms_limit' in data
+      ? { consulting_rooms_limit: integer(data.consulting_rooms_limit) }
+      : {}),
+    ...('doctors_limit' in data ? { doctors_limit: integer(data.doctors_limit) } : {}),
+    ...('assistants_limit' in data ? { assistants_limit: integer(data.assistants_limit) } : {}),
+    ...('new_patients_per_year_limit' in data
+      ? { new_patients_per_year_limit: integer(data.new_patients_per_year_limit) }
+      : {}),
   };
 }
 

@@ -7,21 +7,22 @@ import { axe } from 'vitest-axe';
 
 import { messages } from '@/shared/messages/es';
 
+import { REQUIRED_MODULE_KEY } from '../schemas/clinicModuleCatalog';
 import {
-  MAX_FEATURES,
+  MAX_OTHER_FEATURES,
   subscriptionFormSchema,
   type SubscriptionFormValues,
 } from '../schemas/subscriptionForm';
-import { FeaturesField } from './FeaturesField';
+import { OtherFeaturesField } from './OtherFeaturesField';
 
 const text = messages.subscriptions.form;
 
-/** A form of React Hook Form with only what it includes, as the screens hold it. */
+/** A form of React Hook Form with only other features, as the screens hold it. */
 function Harness({
-  features,
+  otherFeatures,
   serverError,
 }: {
-  readonly features: readonly string[];
+  readonly otherFeatures: readonly string[];
   readonly serverError?: string;
 }) {
   const {
@@ -36,7 +37,15 @@ function Harness({
       name: 'Pro',
       description: '',
       monthlyPrice: '1',
-      features: features.map((value) => ({ value })),
+      annualPrice: '10',
+      trialDays: '0',
+      selfService: false,
+      moduleKeys: new Set([REQUIRED_MODULE_KEY]),
+      consultingRoomsLimit: '1',
+      doctorsLimit: '1',
+      assistantsLimit: '0',
+      newPatientsPerYearLimit: '0',
+      otherFeatures: otherFeatures.map((value) => ({ value })),
     },
   });
   return (
@@ -45,35 +54,36 @@ function Harness({
       onSubmit={(event) => {
         void handleSubmit(() => {
           if (serverError !== undefined) {
-            setError('features', { type: 'server', message: serverError });
+            setError('otherFeatures', { type: 'server', message: serverError });
           }
         })(event);
       }}
     >
-      <FeaturesField control={control} register={register} errors={errors.features} />
+      <OtherFeaturesField control={control} register={register} errors={errors.otherFeatures} />
       <button type="submit">Enviar</button>
     </form>
   );
 }
 
-function setup(features: readonly string[] = [], serverError?: string) {
+function setup(otherFeatures: readonly string[] = [], serverError?: string) {
   const user = userEvent.setup();
-  const view = render(<Harness features={features} serverError={serverError} />);
+  const view = render(<Harness otherFeatures={otherFeatures} serverError={serverError} />);
   return { ...view, user };
 }
 
-const element = (n: number) => screen.getByRole('textbox', { name: text.featureLabel(n) });
-const elements = () => screen.queryAllByRole('textbox', { name: /^Elemento \d+/ });
-const addButton = () => screen.getByRole('button', { name: text.addFeature });
-const removeButton = (n: number) => screen.getByRole('button', { name: text.removeFeature(n) });
+const element = (n: number) => screen.getByRole('textbox', { name: text.otherFeatureLabel(n) });
+const elements = () => screen.queryAllByRole('textbox', { name: /^Funcionalidad \d+/ });
+const addButton = () => screen.getByRole('button', { name: text.addOtherFeature });
+const removeButton = (n: number) =>
+  screen.getByRole('button', { name: text.removeOtherFeature(n) });
 
-describe('FeaturesField', () => {
+describe('OtherFeaturesField', () => {
   it('is a group with its legend, its help and how many elements it has', () => {
     setup(['Uno', 'Dos']);
 
-    const group = screen.getByRole('group', { name: text.fields.features });
-    expect(within(group).getByText(text.featuresHelper)).toBeInTheDocument();
-    expect(within(group).getByText(text.featuresCount(2))).toBeInTheDocument();
+    const group = screen.getByRole('group', { name: text.fields.otherFeatures });
+    expect(within(group).getByText(text.otherFeaturesHelper)).toBeInTheDocument();
+    expect(within(group).getByText(text.otherFeaturesCount(2))).toBeInTheDocument();
     expect(elements()).toHaveLength(2);
     expect(element(1)).toHaveValue('Uno');
     expect(element(2)).toHaveValue('Dos');
@@ -87,7 +97,7 @@ describe('FeaturesField', () => {
     expect(elements()).toHaveLength(2);
     expect(element(2)).toHaveValue('');
     expect(element(2)).toHaveFocus();
-    expect(screen.getByText(text.featuresCount(2))).toBeInTheDocument();
+    expect(screen.getByText(text.otherFeaturesCount(2))).toBeInTheDocument();
   });
 
   it('removes an element and moves the focus to the next one', async () => {
@@ -111,14 +121,14 @@ describe('FeaturesField', () => {
     expect(element(1)).toHaveFocus();
   });
 
-  it('moves the focus to «Agregar elemento» when no element is left', async () => {
+  it('moves the focus to «Agregar funcionalidad» when no element is left', async () => {
     const { user } = setup(['Uno']);
 
     await user.click(removeButton(1));
 
     expect(elements()).toHaveLength(0);
     expect(addButton()).toHaveFocus();
-    expect(screen.getByText(text.featuresCount(0))).toBeInTheDocument();
+    expect(screen.getByText(text.otherFeaturesCount(0))).toBeInTheDocument();
   });
 
   it('has no way to reorder the elements: they keep the order in which they were written', () => {
@@ -129,18 +139,18 @@ describe('FeaturesField', () => {
     ).not.toBeInTheDocument();
   });
 
-  it(`cannot add more than ${MAX_FEATURES} elements, and says so; removing one lets it add again`, async () => {
+  it(`cannot add more than ${MAX_OTHER_FEATURES} elements, and says so; removing one lets it add again`, async () => {
     const twenty = Array.from({ length: 20 }, (_, index) => `Elemento ${index + 1}`);
     const { user } = setup(twenty);
 
     expect(addButton()).toBeDisabled();
-    expect(screen.getByText(text.featuresMax)).toBeInTheDocument();
-    expect(screen.getByText(text.featuresCount(20))).toBeInTheDocument();
+    expect(screen.getByText(text.otherFeaturesMax)).toBeInTheDocument();
+    expect(screen.getByText(text.otherFeaturesCount(20))).toBeInTheDocument();
 
     await user.click(removeButton(20));
 
     expect(addButton()).toBeEnabled();
-    expect(screen.queryByText(text.featuresMax)).not.toBeInTheDocument();
+    expect(screen.queryByText(text.otherFeaturesMax)).not.toBeInTheDocument();
   });
 
   it('puts the error of an element next to it', async () => {
@@ -149,24 +159,24 @@ describe('FeaturesField', () => {
     await user.click(screen.getByRole('button', { name: 'Enviar' }));
 
     expect(element(2)).toHaveAccessibleDescription(
-      messages.subscriptions.validation.featureRequired,
+      messages.subscriptions.validation.otherFeatureRequired,
     );
     expect(element(2)).toHaveAttribute('aria-invalid', 'true');
     expect(element(1)).not.toHaveAttribute('aria-invalid', 'true');
   });
 
   it('shows the error of the whole list above it', async () => {
-    const { user } = setup(['Uno'], messages.subscriptions.errors.fields.features);
+    const { user } = setup(['Uno'], messages.subscriptions.errors.fields.otherFeatures);
 
     await user.click(screen.getByRole('button', { name: 'Enviar' }));
 
-    const error = await screen.findByText(messages.subscriptions.errors.fields.features);
+    const error = await screen.findByText(messages.subscriptions.errors.fields.otherFeatures);
     expect(
       error.compareDocumentPosition(element(1)) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(screen.getByRole('group', { name: text.fields.features })).toHaveAccessibleDescription(
-      new RegExp(messages.subscriptions.errors.fields.features),
-    );
+    expect(
+      screen.getByRole('group', { name: text.fields.otherFeatures }),
+    ).toHaveAccessibleDescription(new RegExp(messages.subscriptions.errors.fields.otherFeatures));
   });
 
   it('has no accessibility violations, with elements and with errors', async () => {

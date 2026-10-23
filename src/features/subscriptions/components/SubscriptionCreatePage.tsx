@@ -12,6 +12,7 @@ import { useFocusOnMount } from '@/shared/ui/useFocusOnMount';
 
 import { describeSubscriptionError } from '../api/subscriptionErrors';
 import { useCreateSubscription } from '../hooks/useCreateSubscription';
+import { REQUIRED_MODULE_KEY } from '../schemas/clinicModuleCatalog';
 import { parseSubscriptionDetailState } from '../schemas/subscriptionDetailState';
 import { subscriptionFormSchema, type SubscriptionFormValues } from '../schemas/subscriptionForm';
 import { applyRefusal } from './applyRefusal';
@@ -19,7 +20,20 @@ import { SubscriptionFormFields } from './SubscriptionFormFields';
 
 const text = messages.subscriptions;
 
-const EMPTY: SubscriptionFormValues = { name: '', description: '', monthlyPrice: '', features: [] };
+const EMPTY: SubscriptionFormValues = {
+  name: '',
+  description: '',
+  monthlyPrice: '',
+  annualPrice: '',
+  trialDays: '0',
+  selfService: false,
+  moduleKeys: new Set([REQUIRED_MODULE_KEY]),
+  consultingRoomsLimit: '',
+  doctorsLimit: '',
+  assistantsLimit: '',
+  newPatientsPerYearLimit: '',
+  otherFeatures: [],
+};
 
 /**
  * Creates a subscription (US2): it is born active, so the form asks for no status. On success the

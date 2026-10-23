@@ -7,13 +7,21 @@ export const DEFAULT_PAGE_SIZE = 10;
 
 export type PageSize = (typeof PAGE_SIZE_OPTIONS)[number];
 
+/** The two tabs of the section (research D6, D8): Listado is the default. */
+export const SUBSCRIPTIONS_TABS = ['list', 'comparison'] as const;
+export const DEFAULT_SUBSCRIPTIONS_TAB = 'list';
+
+export type SubscriptionsTab = (typeof SUBSCRIPTIONS_TABS)[number];
+
 /**
  * What the address of the list asks for (constitution III: the state that can be navigated lives in
- * the URL). The order is fixed and there is no search, so the page and its size are all there is.
+ * the URL). The order is fixed and there is no search, so the page, its size and the active tab are
+ * all there is.
  */
 export interface SubscriptionsLocation {
   readonly page: number;
   readonly pageSize: PageSize;
+  readonly tab: SubscriptionsTab;
 }
 
 /** A positive whole number written with digits only; nothing else is read as a number. */
@@ -27,6 +35,7 @@ const pageSchema = positiveIntegerText.catch(1);
 const pageSizeSchema = positiveIntegerText
   .pipe(z.literal(PAGE_SIZE_OPTIONS))
   .catch(DEFAULT_PAGE_SIZE);
+const tabSchema = z.literal(SUBSCRIPTIONS_TABS).catch(DEFAULT_SUBSCRIPTIONS_TAB);
 // Digits without leading zeros, up to the largest id of the API: "007" is not the address of 7.
 const subscriptionIdSchema = z
   .string()
@@ -39,6 +48,7 @@ export function parseSubscriptionsSearchParams(params: URLSearchParams): Subscri
   return {
     page: pageSchema.parse(params.get('page') ?? undefined),
     pageSize: pageSizeSchema.parse(params.get('page_size') ?? undefined),
+    tab: tabSchema.parse(params.get('tab') ?? undefined),
   };
 }
 
@@ -50,6 +60,9 @@ export function toSubscriptionsSearchParams(location: SubscriptionsLocation): UR
   }
   if (location.pageSize !== DEFAULT_PAGE_SIZE) {
     params.set('page_size', String(location.pageSize));
+  }
+  if (location.tab !== DEFAULT_SUBSCRIPTIONS_TAB) {
+    params.set('tab', location.tab);
   }
   return params;
 }
