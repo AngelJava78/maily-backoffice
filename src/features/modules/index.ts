@@ -1,3 +1,5 @@
+import { lazy } from 'react';
+
 /**
  * What the operator may do in the Módulos section (spec 013, FR-008 to FR-024). `features/auth`
  * decides it with `can()` (the single place that knows the permissions, constitution V) and the
@@ -12,4 +14,8 @@ export interface ModuleCapabilities {
   readonly canDelete: boolean;
 }
 
-export { ModulesPage } from './components/ModulesPage';
+// Lazy, in this file and not in the application (same pattern as `users`/`subscriptions`): the
+// screen, its form panels and its Zod schemas only load once someone actually opens `/modules`.
+export const ModulesPage = lazy(() =>
+  import('./components/ModulesPage').then((module) => ({ default: module.ModulesPage })),
+);
