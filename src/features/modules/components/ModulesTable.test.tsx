@@ -33,7 +33,12 @@ describe('ModulesTable', () => {
       <ModulesTable
         modules={[
           module({ id: 1, key: 'users', name: 'Usuarios', typeId: MODULE_TYPE.SYSTEM }),
-          module({ id: 2, key: 'appointments', name: 'Agenda y citas', typeId: MODULE_TYPE.CLINIC }),
+          module({
+            id: 2,
+            key: 'appointments',
+            name: 'Agenda y citas',
+            typeId: MODULE_TYPE.CLINIC,
+          }),
         ]}
         canEdit
         onEdit={vi.fn()}
@@ -49,11 +54,7 @@ describe('ModulesTable', () => {
 
   it('shows only the groups that have modules', () => {
     render(
-      <ModulesTable
-        modules={[module({ typeId: MODULE_TYPE.CLINIC })]}
-        canEdit
-        onEdit={vi.fn()}
-      />,
+      <ModulesTable modules={[module({ typeId: MODULE_TYPE.CLINIC })]} canEdit onEdit={vi.fn()} />,
     );
 
     expect(screen.queryByText(/Sistema, pantallas del Backoffice/)).not.toBeInTheDocument();
@@ -132,7 +133,12 @@ describe('ModulesTable', () => {
       <ModulesTable
         modules={[
           module({ id: 1, key: 'users', name: 'Usuarios', typeId: MODULE_TYPE.SYSTEM }),
-          module({ id: 2, key: 'appointments', name: 'Agenda y citas', typeId: MODULE_TYPE.CLINIC }),
+          module({
+            id: 2,
+            key: 'appointments',
+            name: 'Agenda y citas',
+            typeId: MODULE_TYPE.CLINIC,
+          }),
         ]}
         canEdit
         onEdit={vi.fn()}

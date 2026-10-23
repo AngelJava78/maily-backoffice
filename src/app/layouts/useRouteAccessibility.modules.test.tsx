@@ -16,9 +16,12 @@ function Page() {
 
 describe('useRouteAccessibility: the route of Módulos (feature 013)', () => {
   it('titles the route after its page', () => {
-    renderWithProviders([{ path: '/modules', element: <Page />, handle: { titleKey: 'modules' } }], {
-      route: '/modules',
-    });
+    renderWithProviders(
+      [{ path: '/modules', element: <Page />, handle: { titleKey: 'modules' } }],
+      {
+        route: '/modules',
+      },
+    );
 
     expect(messages.titles.modules).toBe('Módulos');
     expect(document.title).toBe(`Módulos — ${messages.common.appName}`);

@@ -23,7 +23,12 @@ function module(overrides: Partial<SystemModule> = {}): SystemModule {
 
 describe('filterModules', () => {
   const users = module({ id: 1, key: 'users', name: 'Usuarios', typeId: MODULE_TYPE.SYSTEM });
-  const appointments = module({ id: 2, key: 'appointments', name: 'Agenda y citas', typeId: MODULE_TYPE.CLINIC });
+  const appointments = module({
+    id: 2,
+    key: 'appointments',
+    name: 'Agenda y citas',
+    typeId: MODULE_TYPE.CLINIC,
+  });
   const all = [users, appointments];
 
   it('keeps everything with type "all" and an empty search', () => {

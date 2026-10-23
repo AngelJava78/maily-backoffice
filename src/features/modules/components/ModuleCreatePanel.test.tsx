@@ -8,7 +8,9 @@ import { createModulesCatalogMock } from '@/test/handlers/modulesCatalog';
 
 import { ModuleCreatePanel } from './ModuleCreatePanel';
 
-function renderPanel(options: { readonly onCreated?: (moduleId: number) => void; readonly onCancel?: () => void } = {}) {
+function renderPanel(
+  options: { readonly onCreated?: (moduleId: number) => void; readonly onCancel?: () => void } = {},
+) {
   return renderWithProviders(
     <ModuleCreatePanel
       nextSortOrder={160}
@@ -28,7 +30,9 @@ describe('ModuleCreatePanel', () => {
     expect(clinic).toBeChecked();
     expect(screen.getByRole('textbox', { name: 'Clave' })).toBeInTheDocument();
     expect(
-      screen.getByText('No se puede cambiar después. Un módulo de Clínica solo se da a roles de Clínica.'),
+      screen.getByText(
+        'No se puede cambiar después. Un módulo de Clínica solo se da a roles de Clínica.',
+      ),
     ).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /Ver/ })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: /Crear/ })).toBeChecked();
@@ -62,9 +66,11 @@ describe('ModuleCreatePanel', () => {
     expect(onCreated).toHaveBeenCalledTimes(1);
     const created = mock.state.findActiveModuleByKey('audit');
     expect(created?.typeId).toBe(1);
-    expect(
-      mock.requestsTo('POST', '/api/v1/permissions').map((request) => request.body),
-    ).toEqual([{ name: 'audit:read' }, { name: 'audit:write' }, { name: 'audit:update' }]);
+    expect(mock.requestsTo('POST', '/api/v1/permissions').map((request) => request.body)).toEqual([
+      { name: 'audit:read' },
+      { name: 'audit:write' },
+      { name: 'audit:update' },
+    ]);
   });
 
   it('shows the key conflict on the Clave field and does not call onCreated (W7)', async () => {

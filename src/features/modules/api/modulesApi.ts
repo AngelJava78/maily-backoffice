@@ -6,7 +6,11 @@ import type { HttpClient } from '@/shared/api/httpClient';
 import type { ModuleActionKey } from '../schemas/moduleActionCatalog';
 import type { CreateModuleBody, UpdateModuleBody } from '../schemas/moduleForm';
 import { attachModuleActions, type ModulePermissionRef } from '../schemas/attachModuleActions';
-import { systemModuleSchema, type SystemModuleBase, type SystemModule } from '../schemas/systemModule';
+import {
+  systemModuleSchema,
+  type SystemModuleBase,
+  type SystemModule,
+} from '../schemas/systemModule';
 
 /**
  * The operations on modules and permissions of the users service (contracts/modules-service.md).
@@ -50,7 +54,13 @@ export function createModule(
   body: CreateModuleBody,
   { signal }: Cancellable = {},
 ): Promise<SystemModuleBase> {
-  return client.request({ path: MODULES_PATH, method: 'POST', body, schema: systemModuleSchema, signal });
+  return client.request({
+    path: MODULES_PATH,
+    method: 'POST',
+    body,
+    schema: systemModuleSchema,
+    signal,
+  });
 }
 
 /** `PATCH /api/v1/modules/{id}` with only the fields given (FR-014, FR-015: never `key` nor `type_id`). */
@@ -146,7 +156,12 @@ export function deleteModuleAction(
 ): Promise<void> {
   // The client validates every answer, even an empty one: an empty body is read as `undefined`.
   return client
-    .request({ path: `${PERMISSIONS_PATH}/${permissionId}`, method: 'DELETE', schema: z.undefined(), signal })
+    .request({
+      path: `${PERMISSIONS_PATH}/${permissionId}`,
+      method: 'DELETE',
+      schema: z.undefined(),
+      signal,
+    })
     .catch((error: unknown) => {
       if (error instanceof ApiError && error.code === 'permission_not_found') {
         return undefined;

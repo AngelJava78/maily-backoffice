@@ -13,7 +13,11 @@ import { createModule } from './modulesApi';
  * attempted.
  */
 export type CreateModuleOutcome =
-  | { readonly kind: 'created'; readonly module: SystemModuleBase; readonly assigned: readonly ModuleActionKey[] }
+  | {
+      readonly kind: 'created';
+      readonly module: SystemModuleBase;
+      readonly assigned: readonly ModuleActionKey[];
+    }
   | {
       readonly kind: 'partial';
       readonly module: SystemModuleBase;
@@ -35,5 +39,7 @@ export async function createModuleWithActions(
 ): Promise<CreateModuleOutcome> {
   const module = await createModule(client, body, { signal });
   const { assigned, failed } = await createModuleActions(client, module.key, actions, signal);
-  return failed.length === 0 ? { kind: 'created', module, assigned } : { kind: 'partial', module, assigned, failed };
+  return failed.length === 0
+    ? { kind: 'created', module, assigned }
+    : { kind: 'partial', module, assigned, failed };
 }

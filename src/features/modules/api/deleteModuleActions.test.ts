@@ -24,7 +24,10 @@ function permissionIds(
   actions: readonly ModuleActionKey[],
 ): Map<ModuleActionKey, number> {
   return new Map(
-    actions.map((action) => [action, mock.state.createPermission({ name: `${moduleKey}:${action}` }).id]),
+    actions.map((action) => [
+      action,
+      mock.state.createPermission({ name: `${moduleKey}:${action}` }).id,
+    ]),
   );
 }
 
@@ -58,7 +61,12 @@ describe('deleteModuleActions', () => {
   it('stops and marks the rest as failed after an infrastructure failure', async () => {
     const mock = createModulesCatalogMock();
     const ids = permissionIds(mock, 'inventory', ['read', 'write', 'update']);
-    mock.failNext({ method: 'DELETE', path: /\/api\/v1\/permissions\/\d+/, status: 500, code: 'internal_error' });
+    mock.failNext({
+      method: 'DELETE',
+      path: /\/api\/v1\/permissions\/\d+/,
+      status: 500,
+      code: 'internal_error',
+    });
 
     const result = await deleteModuleActions(client(), ['read', 'write', 'update'], ids);
 

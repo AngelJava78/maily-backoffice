@@ -17,7 +17,11 @@ describe('createModule', () => {
   it('sends POST /api/v1/modules with the body and gives the created module', async () => {
     const mock = createModulesCatalogMock();
 
-    const created = await createModule(client(), { key: 'inventory', name: 'Inventario', type_id: 2 });
+    const created = await createModule(client(), {
+      key: 'inventory',
+      name: 'Inventario',
+      type_id: 2,
+    });
 
     expect(created.key).toBe('inventory');
     expect(mock.requestsTo('POST', '/api/v1/modules')[0]?.body).toEqual({
@@ -36,6 +40,8 @@ describe('createModuleAction', () => {
     const permissionId = await createModuleAction(client(), 'inventory', 'write');
 
     expect(typeof permissionId).toBe('number');
-    expect(mock.requestsTo('POST', '/api/v1/permissions')[0]?.body).toEqual({ name: 'inventory:write' });
+    expect(mock.requestsTo('POST', '/api/v1/permissions')[0]?.body).toEqual({
+      name: 'inventory:write',
+    });
   });
 });

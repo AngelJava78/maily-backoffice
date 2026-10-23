@@ -19,7 +19,11 @@ export interface UpdateModuleVariables {
  * whether every action change also went through or which one did not (research D11). Never retried
  * on its own (constitution IV).
  */
-export function useUpdateModule(): UseMutationResult<UpdateModuleOutcome, Error, UpdateModuleVariables> {
+export function useUpdateModule(): UseMutationResult<
+  UpdateModuleOutcome,
+  Error,
+  UpdateModuleVariables
+> {
   const { users } = useHttpClients();
   const queryClient = useQueryClient();
 

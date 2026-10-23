@@ -39,7 +39,9 @@ describe('parseModulesSearchParams', () => {
   });
 
   it('reads new=1 as the create panel', () => {
-    expect(parseModulesSearchParams(new URLSearchParams('new=1')).panel).toEqual({ kind: 'create' });
+    expect(parseModulesSearchParams(new URLSearchParams('new=1')).panel).toEqual({
+      kind: 'create',
+    });
   });
 
   it('gives edit priority over new when both are present', () => {
@@ -50,14 +52,21 @@ describe('parseModulesSearchParams', () => {
   });
 
   it('ignores an edit id that is not a positive integer', () => {
-    expect(parseModulesSearchParams(new URLSearchParams('edit=abc')).panel).toEqual({ kind: 'none' });
+    expect(parseModulesSearchParams(new URLSearchParams('edit=abc')).panel).toEqual({
+      kind: 'none',
+    });
   });
 });
 
 describe('toModulesSearchParams', () => {
   it('omits every parameter at its default value', () => {
     expect(
-      toModulesSearchParams({ type: 'all', status: 'active', search: '', panel: { kind: 'none' } }).toString(),
+      toModulesSearchParams({
+        type: 'all',
+        status: 'active',
+        search: '',
+        panel: { kind: 'none' },
+      }).toString(),
     ).toBe('');
   });
 

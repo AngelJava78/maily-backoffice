@@ -51,7 +51,9 @@ describe('ModuleFormFields', () => {
     expect(screen.getByRole('textbox', { name: 'Descripción' })).toBeInTheDocument();
     expect(screen.getByText('Opcional. Hasta 500 caracteres.')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Orden' })).toBeInTheDocument();
-    expect(screen.getByText('Opcional. Si lo dejas vacío, queda al final (160).')).toBeInTheDocument();
+    expect(
+      screen.getByText('Opcional. Si lo dejas vacío, queda al final (160).'),
+    ).toBeInTheDocument();
   });
 
   it('shows whatever Orden help text the caller gives (alta and edición mean different things by empty)', () => {

@@ -60,7 +60,9 @@ export function readHandlers(model: ModulesCatalogModel, handle: Handle): HttpHa
     http.get(
       permissions,
       handle('modules:read', () =>
-        HttpResponse.json(model.listPermissions().map((permission) => model.toPermissionDto(permission))),
+        HttpResponse.json(
+          model.listPermissions().map((permission) => model.toPermissionDto(permission)),
+        ),
       ),
     ),
   ];

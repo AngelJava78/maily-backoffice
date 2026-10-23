@@ -28,7 +28,9 @@ describe('useModulesLocation', () => {
   it('setType keeps the other params', () => {
     const { result } = renderAt('/modules?q=agenda');
 
-    act(() => { result.current.setType('system'); });
+    act(() => {
+      result.current.setType('system');
+    });
 
     expect(result.current.location).toEqual({
       type: 'system',
@@ -41,7 +43,9 @@ describe('useModulesLocation', () => {
   it('setStatus keeps the other params', () => {
     const { result } = renderAt('/modules?type_id=2');
 
-    act(() => { result.current.setStatus('blocked'); });
+    act(() => {
+      result.current.setStatus('blocked');
+    });
 
     expect(result.current.location.status).toBe('blocked');
     expect(result.current.location.type).toBe('clinic');
@@ -50,7 +54,9 @@ describe('useModulesLocation', () => {
   it('setSearch keeps the other params', () => {
     const { result } = renderAt('/modules?type_id=1');
 
-    act(() => { result.current.setSearch('agenda'); });
+    act(() => {
+      result.current.setSearch('agenda');
+    });
 
     expect(result.current.location.search).toBe('agenda');
     expect(result.current.location.type).toBe('system');
@@ -59,7 +65,9 @@ describe('useModulesLocation', () => {
   it('openEdit opens the edit panel and closes "new"', () => {
     const { result } = renderAt('/modules?new=1');
 
-    act(() => { result.current.openEdit(42); });
+    act(() => {
+      result.current.openEdit(42);
+    });
 
     expect(result.current.location.panel).toEqual({ kind: 'edit', moduleId: 42 });
   });
@@ -67,7 +75,9 @@ describe('useModulesLocation', () => {
   it('openCreate opens the create panel and closes "edit"', () => {
     const { result } = renderAt('/modules?edit=42');
 
-    act(() => { result.current.openCreate(); });
+    act(() => {
+      result.current.openCreate();
+    });
 
     expect(result.current.location.panel).toEqual({ kind: 'create' });
   });
@@ -75,7 +85,9 @@ describe('useModulesLocation', () => {
   it('closePanel removes edit and new', () => {
     const { result } = renderAt('/modules?edit=42');
 
-    act(() => { result.current.closePanel(); });
+    act(() => {
+      result.current.closePanel();
+    });
 
     expect(result.current.location.panel).toEqual({ kind: 'none' });
   });

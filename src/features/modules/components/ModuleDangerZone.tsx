@@ -92,7 +92,9 @@ export function ModuleDangerZone({ module, capabilities, onDeleted }: ModuleDang
               loading={changeStatus.isPending}
               onClick={toggleStatus}
             >
-              {statusId === MODULE_STATUS.ACTIVE ? text.blockSection.block : text.blockSection.unblock}
+              {statusId === MODULE_STATUS.ACTIVE
+                ? text.blockSection.block
+                : text.blockSection.unblock}
             </Button>
           )}
           {capabilities.canDelete && (

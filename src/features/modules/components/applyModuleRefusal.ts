@@ -18,7 +18,11 @@ export function applyModuleRefusal(
 ): string | undefined {
   if (outcome.kind === 'field') {
     FORM_FIELDS.filter((field) => outcome.fields[field] !== undefined).forEach((field, index) => {
-      setError(field, { type: 'server', message: outcome.fields[field] }, { shouldFocus: index === 0 });
+      setError(
+        field,
+        { type: 'server', message: outcome.fields[field] },
+        { shouldFocus: index === 0 },
+      );
     });
     return undefined;
   }

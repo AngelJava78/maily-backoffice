@@ -69,7 +69,9 @@ describe('moduleFormSchema', () => {
   });
 
   it('rejects a description longer than 500 characters', () => {
-    expect(moduleFormSchema.safeParse({ ...valid, description: 'a'.repeat(501) }).success).toBe(false);
+    expect(moduleFormSchema.safeParse({ ...valid, description: 'a'.repeat(501) }).success).toBe(
+      false,
+    );
   });
 
   it.each(['abc', '-1', '1.5'])('rejects a sortOrder that is not digits only: %s', (sortOrder) => {
@@ -145,7 +147,12 @@ describe('toUpdateModuleBody', () => {
 
   it('never includes key or type_id, even though the form carries them', () => {
     const initial = module();
-    const values = { ...toFormValues(initial), name: 'Agenda', key: 'changed', type: MODULE_TYPE.SYSTEM };
+    const values = {
+      ...toFormValues(initial),
+      name: 'Agenda',
+      key: 'changed',
+      type: MODULE_TYPE.SYSTEM,
+    };
     const body = toUpdateModuleBody(initial, values);
     expect(body).not.toHaveProperty('key');
     expect(body).not.toHaveProperty('type_id');

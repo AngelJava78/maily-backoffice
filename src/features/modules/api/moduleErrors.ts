@@ -5,14 +5,7 @@ const text = messages.modules.errors;
 
 /** What was being done when it failed. */
 export type ModuleOperation =
-  | 'list'
-  | 'create'
-  | 'update'
-  | 'block'
-  | 'unblock'
-  | 'delete'
-  | 'createAction'
-  | 'deleteAction';
+  'list' | 'create' | 'update' | 'block' | 'unblock' | 'delete' | 'createAction' | 'deleteAction';
 
 /** The inputs of the form that the API can complain about. */
 export type ModuleFormField = 'type' | 'key' | 'name' | 'description' | 'sortOrder';
@@ -67,7 +60,10 @@ function fromValidation(fieldErrors: readonly FieldError[]): ModuleErrorOutcome 
  * reached (the action is already gone, contracts/modules-service.md); here it still maps like
  * `module_not_found` defensively.
  */
-export function describeModuleError(error: unknown, operation: ModuleOperation): ModuleErrorOutcome {
+export function describeModuleError(
+  error: unknown,
+  operation: ModuleOperation,
+): ModuleErrorOutcome {
   if (!(error instanceof ApiError)) {
     return { kind: 'unexpected', message: messages.errors.unexpected };
   }

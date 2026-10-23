@@ -8,7 +8,13 @@ import { createModulesCatalogMock } from '@/test/handlers/modulesCatalog';
 
 import { ModulesPage } from './ModulesPage';
 
-const FULL_ACCESS = { canCreate: true, canEdit: true, canBlock: true, canUnblock: true, canDelete: true };
+const FULL_ACCESS = {
+  canCreate: true,
+  canEdit: true,
+  canBlock: true,
+  canUnblock: true,
+  canDelete: true,
+};
 
 function renderPage() {
   return renderWithProviders(<ModulesPage capabilities={FULL_ACCESS} />, { route: '/modules' });
@@ -45,9 +51,11 @@ describe('ModulesPage', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: 'Bloqueados' }));
 
     await waitFor(() => {
-      expect(mock.requestsTo('GET', '/api/v1/modules').some((request) => request.search === '?status_id=2')).toBe(
-        true,
-      );
+      expect(
+        mock
+          .requestsTo('GET', '/api/v1/modules')
+          .some((request) => request.search === '?status_id=2'),
+      ).toBe(true);
     });
     expect(await screen.findByText('No hay módulos bloqueados.')).toBeInTheDocument();
   });
@@ -100,7 +108,9 @@ describe('ModulesPage', () => {
 
     await screen.findByText('23 módulos activos');
 
-    expect(screen.getByText('Selecciona un módulo para editarlo, o crea uno nuevo.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Selecciona un módulo para editarlo, o crea uno nuevo.'),
+    ).toBeInTheDocument();
   });
 
   it('opens the create panel from "+ Nuevo módulo" (US2)', async () => {
@@ -129,10 +139,9 @@ describe('ModulesPage', () => {
 
   it('hides "+ Nuevo módulo" without canCreate', async () => {
     createModulesCatalogMock();
-    renderWithProviders(
-      <ModulesPage capabilities={{ ...FULL_ACCESS, canCreate: false }} />,
-      { route: '/modules' },
-    );
+    renderWithProviders(<ModulesPage capabilities={{ ...FULL_ACCESS, canCreate: false }} />, {
+      route: '/modules',
+    });
     await screen.findByText('23 módulos activos');
 
     expect(screen.queryByRole('button', { name: '+ Nuevo módulo' })).not.toBeInTheDocument();

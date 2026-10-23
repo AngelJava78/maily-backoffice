@@ -17,7 +17,11 @@ export interface CreateModuleVariables {
  * error; if it was created, even when some action was not, it succeeds and the outcome says which
  * ones are pending (research D11). It is never retried on its own (constitution IV).
  */
-export function useCreateModule(): UseMutationResult<CreateModuleOutcome, Error, CreateModuleVariables> {
+export function useCreateModule(): UseMutationResult<
+  CreateModuleOutcome,
+  Error,
+  CreateModuleVariables
+> {
   const { users } = useHttpClients();
   const queryClient = useQueryClient();
 

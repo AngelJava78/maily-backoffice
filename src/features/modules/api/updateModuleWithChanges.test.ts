@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import { ApiError } from '@/shared/api/ApiError';
 import { createHttpClient } from '@/shared/api/httpClient';
-import { createModulesCatalogMock, USERS_API_BASE_URL, type ModulesCatalogMock } from '@/test/handlers/modulesCatalog';
+import {
+  createModulesCatalogMock,
+  USERS_API_BASE_URL,
+  type ModulesCatalogMock,
+} from '@/test/handlers/modulesCatalog';
 
 import { MODULE_ACTION_ID } from '../schemas/moduleActionCatalog';
 import { getChangedActions } from '../schemas/moduleForm';
@@ -72,7 +76,9 @@ describe('updateModuleWithChanges', () => {
 
     expect(outcome).toEqual({ kind: 'saved' });
     expect(mock.requestsTo('PATCH', '/api/v1/modules/50')[0]?.body).toEqual({ name: 'Almacén' });
-    expect(mock.requestsTo('POST', '/api/v1/permissions')[0]?.body).toEqual({ name: 'inventory:update' });
+    expect(mock.requestsTo('POST', '/api/v1/permissions')[0]?.body).toEqual({
+      name: 'inventory:update',
+    });
     expect(mock.requestsTo('DELETE', '/api/v1/permissions/501')).toHaveLength(1);
   });
 
@@ -81,7 +87,12 @@ describe('updateModuleWithChanges', () => {
     seedInventory(mock);
     const module = await inventoryModule();
 
-    await updateModuleWithChanges(client(), module, null, getChangedActions(module.actions, new Set(['read'])));
+    await updateModuleWithChanges(
+      client(),
+      module,
+      null,
+      getChangedActions(module.actions, new Set(['read'])),
+    );
 
     expect(mock.requestsTo('PATCH', '/api/v1/modules/50')).toHaveLength(0);
     expect(mock.requestsTo('DELETE', '/api/v1/permissions/501')).toHaveLength(1);

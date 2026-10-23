@@ -163,7 +163,13 @@ describe('the dashboard resource (feature 007)', () => {
   it('is a permission resource without a section: the Panel is always in the navigation', () => {
     expect(PERMISSION_RESOURCES).toContain('dashboard');
     expect(SECTION_RESOURCES).not.toContain('dashboard');
-    expect([...SECTION_RESOURCES]).toEqual(['modules', 'users', 'subscriptions', 'tenants', 'token']);
+    expect([...SECTION_RESOURCES]).toEqual([
+      'modules',
+      'users',
+      'subscriptions',
+      'tenants',
+      'token',
+    ]);
   });
 
   it('lets read the indicators if and only if dashboard:read is there', () => {

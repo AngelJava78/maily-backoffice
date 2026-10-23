@@ -78,7 +78,9 @@ export function ModulesPage({ capabilities }: ModulesPageProps) {
       return <EmptyState message={emptyMessage()} />;
     }
     const countLabel =
-      location.status === 'blocked' ? text.count.blocked(filtered.length) : text.count.active(filtered.length);
+      location.status === 'blocked'
+        ? text.count.blocked(filtered.length)
+        : text.count.active(filtered.length);
     return (
       <Stack spacing={2}>
         <Typography color="text.secondary">{countLabel}</Typography>
@@ -109,7 +111,9 @@ export function ModulesPage({ capabilities }: ModulesPageProps) {
       // own to open the panel.
       const editing = (query.data ?? []).find((module) => module.id === panelState.moduleId);
       if (editing !== undefined) {
-        return <ModuleEditPanel module={editing} capabilities={capabilities} onDeleted={closePanel} />;
+        return (
+          <ModuleEditPanel module={editing} capabilities={capabilities} onDeleted={closePanel} />
+        );
       }
       return loaded ? <EmptyState message={text.errors.notFound} /> : <PageLoader />;
     }
@@ -130,7 +134,11 @@ export function ModulesPage({ capabilities }: ModulesPageProps) {
           <Typography color="text.secondary">{text.subtitle}</Typography>
         </Stack>
         {capabilities.canCreate && (
-          <Button variant="contained" startIcon={<Icon name="add" decorative />} onClick={openCreate}>
+          <Button
+            variant="contained"
+            startIcon={<Icon name="add" decorative />}
+            onClick={openCreate}
+          >
             {text.newAction}
           </Button>
         )}

@@ -62,7 +62,12 @@ function ModuleGroup({
                 </Typography>
                 {isProtectedModule(module.key) && <Chip size="small" label={text.baseBadge} />}
               </Stack>
-              <Typography component="span" variant="caption" color="text.secondary" sx={{ fontFamily: 'monospace' }}>
+              <Typography
+                component="span"
+                variant="caption"
+                color="text.secondary"
+                sx={{ fontFamily: 'monospace' }}
+              >
                 {module.key}
               </Typography>
             </Stack>

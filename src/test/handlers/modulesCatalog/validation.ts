@@ -104,7 +104,9 @@ export function moduleChangesFromBody(body: unknown): ModuleChanges {
   const data = objectBody(body);
   rejectUnknownFields(data, MODULE_UPDATE_FIELDS);
   if (Object.keys(data).length === 0) {
-    throw validationError([{ field: 'body', message: 'Debe enviar al menos un dato a modificar.' }]);
+    throw validationError([
+      { field: 'body', message: 'Debe enviar al menos un dato a modificar.' },
+    ]);
   }
   return {
     ...(typeof data.name === 'string' ? { name: data.name } : {}),

@@ -56,10 +56,7 @@ describe('attachModuleActions', () => {
   });
 
   it('ignores a legacy permission without a module or an action', () => {
-    const [result] = attachModuleActions(
-      [module()],
-      [permission({ module: null, action: null })],
-    );
+    const [result] = attachModuleActions([module()], [permission({ module: null, action: null })]);
 
     expect(result?.actions.size).toBe(0);
   });

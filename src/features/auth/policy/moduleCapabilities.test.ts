@@ -12,7 +12,13 @@ describe('getModuleCapabilities', () => {
       getModuleCapabilities(
         accessWith('modules:read', 'modules:write', 'modules:update', 'modules:delete'),
       ),
-    ).toEqual({ canCreate: true, canEdit: true, canBlock: true, canUnblock: true, canDelete: true });
+    ).toEqual({
+      canCreate: true,
+      canEdit: true,
+      canBlock: true,
+      canUnblock: true,
+      canDelete: true,
+    });
   });
 
   it('canCreate needs modules:write', () => {
@@ -34,13 +40,21 @@ describe('getModuleCapabilities', () => {
   });
 
   it('canDelete needs modules:delete', () => {
-    expect(getModuleCapabilities(accessWith('modules:read', 'modules:delete')).canDelete).toBe(true);
+    expect(getModuleCapabilities(accessWith('modules:read', 'modules:delete')).canDelete).toBe(
+      true,
+    );
     expect(getModuleCapabilities(accessWith('modules:read')).canDelete).toBe(false);
   });
 
   it('gives nothing without modules:read, even with the other permissions', () => {
     expect(
       getModuleCapabilities(accessWith('modules:write', 'modules:update', 'modules:delete')),
-    ).toEqual({ canCreate: false, canEdit: false, canBlock: false, canUnblock: false, canDelete: false });
+    ).toEqual({
+      canCreate: false,
+      canEdit: false,
+      canBlock: false,
+      canUnblock: false,
+      canDelete: false,
+    });
   });
 });

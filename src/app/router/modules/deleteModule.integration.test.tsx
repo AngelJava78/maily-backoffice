@@ -2,7 +2,11 @@ import { configure, screen, waitFor, within } from '@testing-library/react';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { createModulesCatalogMock } from '@/test/handlers/modulesCatalog';
-import { ADMIN_SUB, createUsersDirectoryMock, defaultDirectory } from '@/test/handlers/usersDirectory';
+import {
+  ADMIN_SUB,
+  createUsersDirectoryMock,
+  defaultDirectory,
+} from '@/test/handlers/usersDirectory';
 import { renderApp } from '@/test/renderApp';
 
 beforeAll(async () => {

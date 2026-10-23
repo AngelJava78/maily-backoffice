@@ -46,7 +46,12 @@ describe('createModuleActions', () => {
   it('stops and marks the rest as failed after an infrastructure failure', async () => {
     const mock = createModulesCatalogMock();
     await createModule(client(), { key: 'inventory', name: 'Inventario', type_id: 2 });
-    mock.failNext({ method: 'POST', path: '/api/v1/permissions', status: 500, code: 'internal_error' });
+    mock.failNext({
+      method: 'POST',
+      path: '/api/v1/permissions',
+      status: 500,
+      code: 'internal_error',
+    });
 
     const result = await createModuleActions(client(), 'inventory', ['read', 'write', 'update']);
 

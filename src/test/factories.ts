@@ -252,7 +252,12 @@ export function permissionDto(overrides: Partial<PermissionDto> = {}): Permissio
     description: null,
     created_at: '2026-10-22T00:00:00Z',
     status: { id: 1, name: 'Activo' },
-    module: { id: 2, key: 'appointments', name: 'Agenda y citas', type: { id: 2, name: 'Clínica' } },
+    module: {
+      id: 2,
+      key: 'appointments',
+      name: 'Agenda y citas',
+      type: { id: 2, name: 'Clínica' },
+    },
     action: { id: 1, key: 'read', name: 'Ver' },
     ...overrides,
   };

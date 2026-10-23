@@ -6,7 +6,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { createHttpClient } from '@/shared/api/httpClient';
 import { messages } from '@/shared/messages/es';
 import { renderWithProviders } from '@/test/renderWithProviders';
-import { createModulesCatalogMock, USERS_API_BASE_URL, type ModulesCatalogMock } from '@/test/handlers/modulesCatalog';
+import {
+  createModulesCatalogMock,
+  USERS_API_BASE_URL,
+  type ModulesCatalogMock,
+} from '@/test/handlers/modulesCatalog';
 
 import { listModules } from '../api/modulesApi';
 import type { SystemModule } from '../schemas/systemModule';
@@ -33,7 +37,9 @@ function client() {
 /** "Expediente clínico": has read/write/update but not delete, so a test can both mark a new
  * action and unmark one it already has. */
 async function medicalRecords(): Promise<SystemModule> {
-  const found = (await listModules(client())).find((candidate) => candidate.key === 'medical_records');
+  const found = (await listModules(client())).find(
+    (candidate) => candidate.key === 'medical_records',
+  );
   if (found === undefined) {
     throw new Error('setup error: missing the medical_records module');
   }
@@ -152,7 +158,10 @@ describe('ModuleEditPanel', () => {
     renderPanel(module);
 
     await user.clear(screen.getByRole('textbox', { name: 'Descripción' }));
-    await user.type(screen.getByRole('textbox', { name: 'Descripción' }), 'Historia clínica completa.');
+    await user.type(
+      screen.getByRole('textbox', { name: 'Descripción' }),
+      'Historia clínica completa.',
+    );
     await user.click(screen.getByRole('checkbox', { name: /Eliminar/ }));
     await user.click(screen.getByRole('checkbox', { name: /Modificar/ }));
     await screen.findByRole('dialog');
@@ -196,7 +205,9 @@ describe('ModuleEditPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
     expect(
-      await screen.findByText('Cambios guardados, pero no se pudo aplicar: Eliminar. Puedes reintentarlo.'),
+      await screen.findByText(
+        'Cambios guardados, pero no se pudo aplicar: Eliminar. Puedes reintentarlo.',
+      ),
     ).toBeInTheDocument();
   });
 
@@ -286,7 +297,9 @@ describe('ModuleEditPanel: blocking and unblocking (US4)', () => {
     renderPanel(module, { ...FULL_ACCESS, canBlock: false, canUnblock: false });
 
     expect(screen.getByText(messagesBlockSection.help)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^(Bloquear|Desbloquear) módulo/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /^(Bloquear|Desbloquear) módulo/ }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Eliminar módulo' })).toBeInTheDocument();
   });
 
@@ -316,7 +329,9 @@ describe('ModuleEditPanel: blocking and unblocking (US4)', () => {
     const user = userEvent.setup();
     const mock = createModulesCatalogMock();
     mock.state.blockModule(23);
-    const module = (await listModules(client(), { statusId: 2 })).find((candidate) => candidate.id === 23);
+    const module = (await listModules(client(), { statusId: 2 })).find(
+      (candidate) => candidate.id === 23,
+    );
     if (module === undefined) {
       throw new Error('setup error: missing module 23');
     }
@@ -337,7 +352,9 @@ describe('ModuleEditPanel: blocking and unblocking (US4)', () => {
 
     await user.click(screen.getByRole('button', { name: 'Bloquear módulo' }));
 
-    expect(await screen.findByText('El estatus de este módulo ya cambió; vuelve a intentarlo.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('El estatus de este módulo ya cambió; vuelve a intentarlo.'),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Bloquear módulo' })).toBeInTheDocument();
   });
 
@@ -346,7 +363,9 @@ describe('ModuleEditPanel: blocking and unblocking (US4)', () => {
     const module = await usersModule();
     renderPanel(module);
 
-    expect(screen.queryByRole('button', { name: /^(Bloquear|Desbloquear) módulo/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /^(Bloquear|Desbloquear) módulo/ }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Eliminar módulo' })).not.toBeInTheDocument();
     expect(screen.getByText(messagesBlockSection.protectedNotice)).toBeInTheDocument();
   });

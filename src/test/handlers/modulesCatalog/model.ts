@@ -18,7 +18,11 @@ const ACTIVE = 1;
 const BLOCKED = 2;
 const DELETED = 3;
 
-const STATUS_NAME: Readonly<Record<number, string>> = { [ACTIVE]: 'Activo', [BLOCKED]: 'Bloqueado', [DELETED]: 'Eliminado' };
+const STATUS_NAME: Readonly<Record<number, string>> = {
+  [ACTIVE]: 'Activo',
+  [BLOCKED]: 'Bloqueado',
+  [DELETED]: 'Eliminado',
+};
 const TYPE_NAME: Readonly<Record<number, string>> = {
   [MODULE_TYPE.SYSTEM]: 'Sistema',
   [MODULE_TYPE.CLINIC]: 'Clínica',
@@ -182,7 +186,9 @@ function resolveActionId(actionKey: string): number | null {
  * from the real production code (research D4/D9 of 012), never a copy.
  */
 export function createModulesCatalogModel(initial: CatalogInitial = {}) {
-  const modules = new Map<number, CatalogModule>((initial.modules ?? []).map((item) => [item.id, item]));
+  const modules = new Map<number, CatalogModule>(
+    (initial.modules ?? []).map((item) => [item.id, item]),
+  );
   const permissions = new Map<number, CatalogPermission>(
     (initial.permissions ?? []).map((item) => [item.id, item]),
   );
@@ -234,7 +240,8 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
     // research D13: the default is the greatest sort_order among ALL non-deleted modules (every
     // type together), never scoped to the type being created.
     const sortOrder =
-      input.sort_order ?? Math.max(0, ...nonDeletedModules().map((module) => module.sortOrder)) + 10;
+      input.sort_order ??
+      Math.max(0, ...nonDeletedModules().map((module) => module.sortOrder)) + 10;
     const id = nextModuleId;
     nextModuleId += 1;
     const created: CatalogModule = {
@@ -354,7 +361,9 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
     if (nameFieldError !== null) {
       throw validationError([nameFieldError]);
     }
-    const nonDeleted = [...permissions.values()].filter((permission) => permission.statusId !== DELETED);
+    const nonDeleted = [...permissions.values()].filter(
+      (permission) => permission.statusId !== DELETED,
+    );
     if (nonDeleted.some((permission) => permission.name === input.name)) {
       throw new ModuleCatalogError(
         409,
@@ -409,7 +418,8 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
 
   function toPermissionDto(permission: CatalogPermission) {
     const module = permission.moduleId === null ? null : modules.get(permission.moduleId);
-    const actionKey = permission.actionId === null ? null : (ACTION_KEY_BY_ID.get(permission.actionId) ?? null);
+    const actionKey =
+      permission.actionId === null ? null : (ACTION_KEY_BY_ID.get(permission.actionId) ?? null);
     return {
       id: permission.id,
       name: permission.name,

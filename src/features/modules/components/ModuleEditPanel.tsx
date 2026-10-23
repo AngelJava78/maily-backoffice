@@ -156,7 +156,9 @@ export function ModuleEditPanel({ module, capabilities, onDeleted }: ModuleEditP
                 <Typography variant="caption" color="text.secondary">
                   {text.form.fields.type}
                 </Typography>
-                <Typography>{module.typeId === MODULE_TYPE.SYSTEM ? text.type.system : text.type.clinic}</Typography>
+                <Typography>
+                  {module.typeId === MODULE_TYPE.SYSTEM ? text.type.system : text.type.clinic}
+                </Typography>
               </Stack>
             </Stack>
             <Typography variant="caption" color="text.secondary">

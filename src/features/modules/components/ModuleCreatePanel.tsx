@@ -81,7 +81,9 @@ export function ModuleCreatePanel({ nextSortOrder, onCreated, onCancel }: Module
       if (outcome.kind === 'created') {
         notify({ severity: 'success', message: text.notices.created });
       } else {
-        const failedLabels = outcome.failed.map((failure) => text.actions[failure.action]).join(', ');
+        const failedLabels = outcome.failed
+          .map((failure) => text.actions[failure.action])
+          .join(', ');
         notify({ severity: 'warning', message: text.notices.createdPartial(failedLabels) });
       }
       onCreated(outcome.module.id);
@@ -119,7 +121,10 @@ export function ModuleCreatePanel({ nextSortOrder, onCreated, onCancel }: Module
               row
               value={String(type)}
               onChange={(event) => {
-                const next = event.target.value === String(MODULE_TYPE.CLINIC) ? MODULE_TYPE.CLINIC : MODULE_TYPE.SYSTEM;
+                const next =
+                  event.target.value === String(MODULE_TYPE.CLINIC)
+                    ? MODULE_TYPE.CLINIC
+                    : MODULE_TYPE.SYSTEM;
                 setValue('type', next, { shouldDirty: true });
               }}
             >
@@ -135,7 +140,9 @@ export function ModuleCreatePanel({ nextSortOrder, onCreated, onCancel }: Module
                             {typeId === MODULE_TYPE.SYSTEM ? text.type.system : text.type.clinic}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {typeId === MODULE_TYPE.SYSTEM ? text.typeHelp.system : text.typeHelp.clinic}
+                            {typeId === MODULE_TYPE.SYSTEM
+                              ? text.typeHelp.system
+                              : text.typeHelp.clinic}
                           </Typography>
                         </Stack>
                       }
@@ -166,7 +173,9 @@ export function ModuleCreatePanel({ nextSortOrder, onCreated, onCancel }: Module
             orderHelp={text.form.fields.orderHelp(nextSortOrder)}
             actions={actions}
             onActionToggle={(action, checked) => {
-              setValue('actions', withActionChecked(actions, action, checked), { shouldDirty: true });
+              setValue('actions', withActionChecked(actions, action, checked), {
+                shouldDirty: true,
+              });
             }}
           />
 

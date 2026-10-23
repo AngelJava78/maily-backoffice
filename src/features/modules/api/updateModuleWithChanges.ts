@@ -38,8 +38,16 @@ export async function updateModuleWithChanges(
     await updateModule(client, module.id, changes, { signal });
   }
   const added = await createModuleActions(client, module.key, changedActions.toAdd, signal);
-  const removed = await deleteModuleActions(client, changedActions.toRemove, module.permissionIdByAction, signal);
-  const failed = [...added.failed.map((failure) => failure.action), ...removed.failed.map((failure) => failure.action)];
+  const removed = await deleteModuleActions(
+    client,
+    changedActions.toRemove,
+    module.permissionIdByAction,
+    signal,
+  );
+  const failed = [
+    ...added.failed.map((failure) => failure.action),
+    ...removed.failed.map((failure) => failure.action),
+  ];
   return failed.length === 0
     ? { kind: 'saved' }
     : { kind: 'partial', addedOk: added.assigned, removedOk: removed.removed, failed };

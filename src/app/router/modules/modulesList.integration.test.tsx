@@ -3,7 +3,11 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { messages } from '@/shared/messages/es';
 import { createModulesCatalogMock } from '@/test/handlers/modulesCatalog';
-import { ADMIN_SUB, createUsersDirectoryMock, defaultDirectory } from '@/test/handlers/usersDirectory';
+import {
+  ADMIN_SUB,
+  createUsersDirectoryMock,
+  defaultDirectory,
+} from '@/test/handlers/usersDirectory';
 import { renderApp } from '@/test/renderApp';
 
 // The screen is lazy, and the first visit renders MUI's Table for the first time, which takes a

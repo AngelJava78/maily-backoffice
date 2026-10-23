@@ -11,13 +11,16 @@ export function filterModules(
     if (type === 'all') {
       return true;
     }
-    return type === 'system' ? module.typeId === MODULE_TYPE.SYSTEM : module.typeId === MODULE_TYPE.CLINIC;
+    return type === 'system'
+      ? module.typeId === MODULE_TYPE.SYSTEM
+      : module.typeId === MODULE_TYPE.CLINIC;
   });
   const needle = search.trim().toLowerCase();
   if (needle === '') {
     return byType;
   }
   return byType.filter(
-    (module) => module.name.toLowerCase().includes(needle) || module.key.toLowerCase().includes(needle),
+    (module) =>
+      module.name.toLowerCase().includes(needle) || module.key.toLowerCase().includes(needle),
   );
 }

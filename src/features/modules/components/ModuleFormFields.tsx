@@ -9,7 +9,11 @@ import type { FieldErrors, UseFormRegister } from 'react-hook-form';
 
 import { messages } from '@/shared/messages/es';
 
-import { MODULE_ACTION_ORDER, REQUIRED_ACTION_KEY, type ModuleActionKey } from '../schemas/moduleActionCatalog';
+import {
+  MODULE_ACTION_ORDER,
+  REQUIRED_ACTION_KEY,
+  type ModuleActionKey,
+} from '../schemas/moduleActionCatalog';
 import type { ModuleFormValues } from '../schemas/moduleForm';
 
 const text = messages.modules.form;

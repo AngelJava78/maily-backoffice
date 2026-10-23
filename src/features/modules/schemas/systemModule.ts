@@ -39,7 +39,12 @@ export interface SystemModule extends SystemModuleBase {
 }
 
 /** The four modules the platform never lets block or delete (FR-003, FR-021, FR-024). */
-export const PROTECTED_MODULE_KEYS: readonly string[] = ['users', 'roles', 'permissions', 'modules'];
+export const PROTECTED_MODULE_KEYS: readonly string[] = [
+  'users',
+  'roles',
+  'permissions',
+  'modules',
+];
 
 export function isProtectedModule(key: string): boolean {
   return PROTECTED_MODULE_KEYS.includes(key);

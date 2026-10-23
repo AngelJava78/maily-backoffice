@@ -2,7 +2,11 @@ import { configure, screen, waitFor, within } from '@testing-library/react';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { createModulesCatalogMock } from '@/test/handlers/modulesCatalog';
-import { ADMIN_SUB, createUsersDirectoryMock, defaultDirectory } from '@/test/handlers/usersDirectory';
+import {
+  ADMIN_SUB,
+  createUsersDirectoryMock,
+  defaultDirectory,
+} from '@/test/handlers/usersDirectory';
 import { renderApp } from '@/test/renderApp';
 
 beforeAll(async () => {
@@ -44,7 +48,10 @@ describe('the modules section: editing (feature 013, user story 3)', () => {
     expect(screen.getByText('La clave y el tipo no cambian nunca.')).toBeInTheDocument();
 
     await user.clear(screen.getByRole('textbox', { name: 'Descripción' }));
-    await user.type(screen.getByRole('textbox', { name: 'Descripción' }), 'Agenda compartida por consultorio.');
+    await user.type(
+      screen.getByRole('textbox', { name: 'Descripción' }),
+      'Agenda compartida por consultorio.',
+    );
     await user.clear(screen.getByRole('textbox', { name: 'Orden' }));
     await user.type(screen.getByRole('textbox', { name: 'Orden' }), '25');
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));

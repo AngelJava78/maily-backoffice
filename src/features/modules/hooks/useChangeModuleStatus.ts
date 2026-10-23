@@ -37,7 +37,8 @@ export function useChangeModuleStatus(): UseMutationResult<
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ moduleId, action }: ChangeModuleStatusVariables) => OPERATIONS[action](users, moduleId),
+    mutationFn: ({ moduleId, action }: ChangeModuleStatusVariables) =>
+      OPERATIONS[action](users, moduleId),
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: moduleKeys.all });
     },

@@ -34,9 +34,9 @@ describe('systemModuleSchema', () => {
   });
 
   it('accepts a description', () => {
-    expect(systemModuleSchema.parse(dto({ description: 'Medicamentos y material.' })).description).toBe(
-      'Medicamentos y material.',
-    );
+    expect(
+      systemModuleSchema.parse(dto({ description: 'Medicamentos y material.' })).description,
+    ).toBe('Medicamentos y material.');
   });
 
   it.each(['Inventory', '1nventory', 'in ventory', 'a'.repeat(51)])(

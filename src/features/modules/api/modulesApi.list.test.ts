@@ -39,7 +39,8 @@ describe('listModules', () => {
       if (previous !== undefined && current !== undefined) {
         const inOrder =
           previous.sortOrder < current.sortOrder ||
-          (previous.sortOrder === current.sortOrder && previous.name.localeCompare(current.name) <= 0);
+          (previous.sortOrder === current.sortOrder &&
+            previous.name.localeCompare(current.name) <= 0);
         expect(inOrder).toBe(true);
       }
     }
