@@ -10,11 +10,15 @@ import {
 } from '@/test/handlers/subscriptionsCatalog';
 import { ADMIN_AUTH0, createUsersDirectoryMock } from '@/test/handlers/usersDirectory';
 import { renderWithProviders } from '@/test/renderWithProviders';
-import { NO_SUBSCRIPTION_CAPABILITIES } from '@/test/subscriptionCapabilities';
+import {
+  ALL_SUBSCRIPTION_CAPABILITIES,
+  NO_SUBSCRIPTION_CAPABILITIES,
+} from '@/test/subscriptionCapabilities';
 
 import { SubscriptionsListPage } from './SubscriptionsListPage';
 
 const text = messages.subscriptions.list;
+const comparison = messages.subscriptions.comparison;
 const CATALOG_PATH = '/api/v1/subscriptions';
 
 /** The default catalog and 12 more active plans: 19 subscriptions, two pages of 10. */
@@ -25,14 +29,15 @@ function start(subscriptions = [...defaultCatalog().subscriptions, ...makeSubscr
   });
 }
 
-function renderList(route = '/subscriptions') {
+function renderList(route = '/subscriptions', capabilities = NO_SUBSCRIPTION_CAPABILITIES) {
   return renderWithProviders(
     [
       {
         path: '/subscriptions',
-        element: <SubscriptionsListPage capabilities={NO_SUBSCRIPTION_CAPABILITIES} />,
+        element: <SubscriptionsListPage capabilities={capabilities} />,
       },
       { path: '/subscriptions/:subscriptionId', element: <p>Detalle</p> },
+      { path: '/subscriptions/:subscriptionId/edit', element: <p>Editar</p> },
     ],
     { auth0: ADMIN_AUTH0, route },
   );
@@ -165,5 +170,65 @@ describe('SubscriptionsListPage', () => {
     await screen.findByRole('link', { name: 'Enterprise' });
 
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  describe('tabs: Listado and Comparativo', () => {
+    it('shows Listado selected by default, and Comparativo next to it', async () => {
+      start();
+      renderList();
+      await screen.findByRole('link', { name: 'Enterprise' });
+
+      expect(
+        screen.getByRole('tab', { name: comparison.listTabLabel, selected: true }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('tab', { name: comparison.tabLabel, selected: false }),
+      ).toBeInTheDocument();
+    });
+
+    it('switches to the Comparativo panel without any new request to the catalog', async () => {
+      const catalog = start();
+      const { user } = renderList();
+      await screen.findByRole('link', { name: 'Enterprise' });
+
+      await user.click(screen.getByRole('tab', { name: comparison.tabLabel }));
+
+      expect(screen.getByRole('table', { name: comparison.tabLabel })).toBeInTheDocument();
+      expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+      expect(catalog.requestsTo('GET', CATALOG_PATH)).toHaveLength(1);
+    });
+
+    it('opens directly in the Comparativo tab from the address, without mounting the grid', async () => {
+      start();
+      renderList('/subscriptions?tab=comparison');
+
+      expect(await screen.findByRole('table', { name: comparison.tabLabel })).toBeInTheDocument();
+      expect(screen.queryByRole('grid')).not.toBeInTheDocument();
+    });
+
+    it('shows "Editar" in the Comparativo only with subscriptions:update', async () => {
+      start();
+      renderList('/subscriptions?tab=comparison', ALL_SUBSCRIPTION_CAPABILITIES);
+
+      await screen.findByRole('table', { name: comparison.tabLabel });
+      expect(screen.getAllByRole('link', { name: comparison.editAction }).length).toBeGreaterThan(
+        0,
+      );
+    });
+
+    it('shows the same empty state as Listado when the catalog has nothing', async () => {
+      start([]);
+      renderList('/subscriptions?tab=comparison');
+
+      expect(await screen.findByText(text.empty)).toBeInTheDocument();
+    });
+
+    it('has no accessibility violations in the Comparativo tab', async () => {
+      start();
+      const { container } = renderList('/subscriptions?tab=comparison');
+      await screen.findByRole('table', { name: comparison.tabLabel });
+
+      expect(await axe(container)).toHaveNoViolations();
+    });
   });
 });

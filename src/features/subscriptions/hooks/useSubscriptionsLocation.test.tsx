@@ -15,7 +15,13 @@ describe('useSubscriptionsLocation', () => {
   it('reads the page and the page size from the address', () => {
     const { result } = setup('/subscriptions?page=2&page_size=25');
 
-    expect(result.current.location).toEqual({ page: 2, pageSize: 25 });
+    expect(result.current.location).toEqual({ page: 2, pageSize: 25, tab: 'list' });
+  });
+
+  it('reads the Comparativo tab from the address', () => {
+    const { result } = setup('/subscriptions?tab=comparison');
+
+    expect(result.current.location.tab).toBe('comparison');
   });
 
   it('normalizes an address with invalid values, replacing it so the history gets no new entry', async () => {
@@ -25,7 +31,7 @@ describe('useSubscriptionsLocation', () => {
       expect(router.state.location.search).toBe('');
     });
     expect(router.state.historyAction).toBe('REPLACE');
-    expect(result.current.location).toEqual({ page: 1, pageSize: 10 });
+    expect(result.current.location).toEqual({ page: 1, pageSize: 10, tab: 'list' });
   });
 
   it('leaves an address that is already normal as it is', () => {
@@ -52,7 +58,7 @@ describe('useSubscriptionsLocation', () => {
 
       expect(router.state.location.search).toBe('?page=3&page_size=25');
       expect(router.state.historyAction).toBe('PUSH');
-      expect(result.current.location).toEqual({ page: 3, pageSize: 25 });
+      expect(result.current.location).toEqual({ page: 3, pageSize: 25, tab: 'list' });
     });
 
     it('can go to a page replacing the entry, as when the page asked for does not exist', () => {
@@ -74,7 +80,7 @@ describe('useSubscriptionsLocation', () => {
       });
 
       expect(router.state.location.search).toBe('?page_size=25');
-      expect(result.current.location).toEqual({ page: 1, pageSize: 25 });
+      expect(result.current.location).toEqual({ page: 1, pageSize: 25, tab: 'list' });
     });
 
     it('takes a page size that the list does not offer as the default one', () => {
@@ -85,6 +91,39 @@ describe('useSubscriptionsLocation', () => {
       });
 
       expect(router.state.location.search).toBe('');
+    });
+
+    it('goes to the Comparativo tab, adding an entry to the history', () => {
+      const { result, router } = setup('/subscriptions');
+
+      act(() => {
+        result.current.setTab('comparison');
+      });
+
+      expect(router.state.location.search).toBe('?tab=comparison');
+      expect(router.state.historyAction).toBe('PUSH');
+      expect(result.current.location).toEqual({ page: 1, pageSize: 10, tab: 'comparison' });
+    });
+
+    it('goes back to the Listado tab, which leaves no parameter in the address', () => {
+      const { result, router } = setup('/subscriptions?tab=comparison');
+
+      act(() => {
+        result.current.setTab('list');
+      });
+
+      expect(router.state.location.search).toBe('');
+    });
+
+    it('keeps the active tab when changing the page or the page size', () => {
+      const { result, router } = setup('/subscriptions?tab=comparison');
+
+      act(() => {
+        result.current.setPage(2);
+      });
+
+      expect(router.state.location.search).toBe('?page=2&tab=comparison');
+      expect(result.current.location.tab).toBe('comparison');
     });
   });
 });

@@ -181,3 +181,49 @@ describe(
     });
   },
 );
+
+describe(
+  'the subscriptions section: Comparativo (feature 012, user story 1)',
+  { timeout: 30_000 },
+  () => {
+    it('switches to Comparativo from Listado without a new request, and shows the catalog', async () => {
+      const { catalog } = start();
+      const { user } = open('/subscriptions');
+      await screen.findByText('1–10 de 20');
+      const requestsBefore = catalog.requestsTo('GET', '/api/v1/subscriptions').length;
+
+      await user.click(screen.getByRole('tab', { name: text.comparison.tabLabel }));
+
+      expect(
+        await screen.findByRole('table', { name: text.comparison.tabLabel }),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Pro')).toBeInTheDocument();
+      expect(catalog.requestsTo('GET', '/api/v1/subscriptions')).toHaveLength(requestsBefore);
+    });
+
+    it('changes the shown price with no request when Mensual/Anual is toggled', async () => {
+      const { catalog } = start();
+      const { user } = open('/subscriptions?tab=comparison');
+      await screen.findByRole('table', { name: text.comparison.tabLabel });
+      const requestsBefore = catalog.requestsTo('GET', '/api/v1/subscriptions').length;
+
+      expect(screen.getByText('$8,900.00/mes')).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: text.comparison.priceToggle.annual }));
+
+      expect(screen.getAllByText('$1,000.00/año').length).toBeGreaterThan(0);
+      expect(screen.queryByText('$8,900.00/mes')).not.toBeInTheDocument();
+      expect(catalog.requestsTo('GET', '/api/v1/subscriptions')).toHaveLength(requestsBefore);
+    });
+
+    it('offers "Editar" in the Comparativo only with subscriptions:update', async () => {
+      const { directory } = start();
+      directory.revoke('Administrator', 'subscriptions:update');
+      open('/subscriptions?tab=comparison');
+
+      await screen.findByRole('table', { name: text.comparison.tabLabel });
+      expect(
+        screen.queryByRole('link', { name: text.comparison.editAction }),
+      ).not.toBeInTheDocument();
+    });
+  },
+);

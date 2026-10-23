@@ -11,13 +11,14 @@ import { subscriptionSchema } from '../schemas/subscription';
 import { SubscriptionDetailFields } from './SubscriptionDetailFields';
 
 const text = messages.subscriptions.detail;
+const modules = messages.subscriptions.modules;
 
 function renderFields(overrides: Parameters<typeof subscriptionDto>[0] = {}) {
   return renderWithProviders(
     <SubscriptionDetailFields
       subscription={subscriptionSchema.parse(
         subscriptionDto({
-          features: ['Hasta 5 consultorios', 'Usuarios ilimitados', 'Agenda'],
+          other_features: ['Hasta 5 consultorios', 'Usuarios ilimitados', 'Agenda'],
           clinics_count: 3,
           created_at: '2026-10-17T15:00:00Z',
           updated_at: '2026-10-18T09:30:00Z',
@@ -57,10 +58,116 @@ describe('SubscriptionDetailFields', () => {
     );
   });
 
-  it('shows what it includes as a list, in the order received', () => {
+  it('shows the annual price with its saving', () => {
+    renderFields({ monthly_price: '1299.00', annual_price: '12990.00' });
+
+    const value = valueOf(text.fields.annualPrice);
+    expect(value).toHaveTextContent('$12,990.00/año');
+    expect(value).toHaveTextContent(messages.subscriptions.price.savingsBadge(17));
+  });
+
+  it('shows no saving badge or caption when the annual price does not save', () => {
+    renderFields({ monthly_price: '900.00', annual_price: '10800.00' });
+
+    expect(valueOf(text.fields.annualPrice)).not.toHaveTextContent('Ahorra');
+  });
+
+  it('shows the trial days when there are any, and nothing when there are none', () => {
+    renderFields({ trial_days: 14 });
+    expect(screen.getByText(messages.subscriptions.price.trialDays(14))).toBeInTheDocument();
+  });
+
+  it('shows nothing about the trial when it is 0', () => {
+    renderFields({ trial_days: 0 });
+
+    expect(screen.queryByText(/días de prueba/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [true, messages.subscriptions.badge.selfService],
+    [false, messages.subscriptions.badge.custom],
+  ])('shows the self-service badge %s as %s', (selfService, label) => {
+    renderFields({ self_service: selfService });
+
+    expect(screen.getByText(label)).toBeInTheDocument();
+  });
+
+  it('lists the included modules by name, in the fixed catalog order', () => {
+    renderFields({ module_keys: ['billing', 'patients', 'finance'] });
+
+    const list = within(valueOf(text.fields.modules)).getByRole('list');
+    expect(
+      within(list)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent),
+    ).toEqual([
+      modules.catalog.patients.name,
+      modules.catalog.finance.name,
+      modules.catalog.billing.name,
+    ]);
+  });
+
+  it('shows "No incluye" with the names of the modules that are missing', () => {
+    renderFields({
+      module_keys: [
+        'patients',
+        'scheduling',
+        'reminders',
+        'clinical_records',
+        'clinical_record_templates',
+        'prescriptions',
+      ],
+    });
+
+    expect(
+      screen.getByText(
+        text.notIncluded(
+          [
+            modules.catalog.finance.name,
+            modules.catalog.reports.name,
+            modules.catalog.billing.name,
+          ].join(', '),
+        ),
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('shows no "No incluye" line when all nine modules are included', () => {
+    renderFields({
+      module_keys: [
+        'patients',
+        'scheduling',
+        'reminders',
+        'clinical_records',
+        'clinical_record_templates',
+        'prescriptions',
+        'finance',
+        'reports',
+        'billing',
+      ],
+    });
+
+    expect(screen.queryByText(/No incluye/)).not.toBeInTheDocument();
+  });
+
+  it('shows the four clinic limits', () => {
+    renderFields({
+      consulting_rooms_limit: 2,
+      doctors_limit: 3,
+      assistants_limit: 2,
+      new_patients_per_year_limit: 15000,
+    });
+
+    expect(valueOf(text.fields.consultingRoomsLimit)).toHaveTextContent('2');
+    expect(valueOf(text.fields.doctorsLimit)).toHaveTextContent('3');
+    expect(valueOf(text.fields.assistantsLimit)).toHaveTextContent('2');
+    expect(valueOf(text.fields.newPatientsPerYearLimit)).toHaveTextContent('15000');
+  });
+
+  it('shows other features as a list, in the order received', () => {
     renderFields();
 
-    const list = within(valueOf(text.fields.features)).getByRole('list');
+    const list = within(valueOf(text.fields.otherFeatures)).getByRole('list');
     expect(
       within(list)
         .getAllByRole('listitem')
@@ -68,11 +175,11 @@ describe('SubscriptionDetailFields', () => {
     ).toEqual(['Hasta 5 consultorios', 'Usuarios ilimitados', 'Agenda']);
   });
 
-  it('says that it includes nothing when the list is empty', () => {
-    renderFields({ features: [] });
+  it('says that there are no other features when the list is empty', () => {
+    renderFields({ other_features: [] });
 
-    expect(valueOf(text.fields.features)).toHaveTextContent(text.noFeatures);
-    expect(within(valueOf(text.fields.features)).queryByRole('list')).not.toBeInTheDocument();
+    expect(valueOf(text.fields.otherFeatures)).toHaveTextContent(text.noOtherFeatures);
+    expect(within(valueOf(text.fields.otherFeatures)).queryByRole('list')).not.toBeInTheDocument();
   });
 
   it('shows a dash for a subscription without description', () => {

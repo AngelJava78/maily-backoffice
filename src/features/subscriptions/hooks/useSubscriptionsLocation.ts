@@ -5,10 +5,11 @@ import {
   parseSubscriptionsSearchParams,
   toSubscriptionsSearchParams,
   type SubscriptionsLocation,
+  type SubscriptionsTab,
 } from '../schemas/subscriptionsLocation';
 
 export interface SubscriptionsLocationApi {
-  /** What the address asks for: a page of the list and its size. */
+  /** What the address asks for: a page of the list, its size and the active tab. */
   readonly location: SubscriptionsLocation;
   /**
    * The search of the address as the list writes it (`?page=2&page_size=25`, or an empty text), to
@@ -19,6 +20,8 @@ export interface SubscriptionsLocationApi {
   readonly setPage: (page: number, options?: { readonly replace?: boolean }) => void;
   /** Changes the page size, which takes the list back to the first page (US1-2). */
   readonly setPageSize: (pageSize: number) => void;
+  /** Switches between Listado and Comparativo, keeping the page and its size (research D8). */
+  readonly setTab: (tab: SubscriptionsTab) => void;
 }
 
 /**
@@ -54,6 +57,9 @@ export function useSubscriptionsLocation(): SubscriptionsLocationApi {
         new URLSearchParams({ page_size: String(nextPageSize) }),
       );
       setSearchParams(toSubscriptionsSearchParams({ page: 1, pageSize, tab: location.tab }));
+    },
+    setTab: (tab) => {
+      setSearchParams(toSubscriptionsSearchParams({ ...location, tab }));
     },
   };
 }

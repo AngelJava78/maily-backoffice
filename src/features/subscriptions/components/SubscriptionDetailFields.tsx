@@ -1,13 +1,16 @@
 import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import Paper from '@mui/material/Paper';
+import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import type { ReactNode } from 'react';
 
-import { formatMxn } from '@/shared/lib/formatCurrency';
 import { formatDateTime } from '@/shared/lib/formatDateTime';
 import { messages } from '@/shared/messages/es';
 
+import { CLINIC_MODULE_ORDER, type ClinicModuleKey } from '../schemas/clinicModuleCatalog';
 import type { Subscription } from '../schemas/subscription';
+import { SubscriptionPriceDisplay } from './SubscriptionPriceDisplay';
 import { SubscriptionStatusChip } from './SubscriptionStatusChip';
 
 const text = messages.subscriptions;
@@ -40,22 +43,47 @@ function Field({
   );
 }
 
-/** What it includes, in the order it was saved, as a list (`ul`) a screen reader counts. */
-function Features({ features }: { readonly features: readonly string[] }) {
-  if (features.length === 0) {
-    return text.detail.noFeatures;
+/** A list (`ul`) of texts, in the order received, or a placeholder when it is empty. */
+function TextList({ items, empty }: { readonly items: readonly string[]; readonly empty: string }) {
+  if (items.length === 0) {
+    return empty;
   }
   return (
     <Box component="ul" sx={{ m: 0, pl: 3 }}>
-      {features.map((feature, index) => (
+      {items.map((item, index) => (
         // The texts can repeat and have no id: their place in the saved order is what they are.
-        <li key={index}>{feature}</li>
+        <li key={index}>{item}</li>
       ))}
     </Box>
   );
 }
 
-/** Everything the platform keeps about a subscription (FR-003). */
+/** The modules a plan includes, by name, and a line naming what is missing (FR-003). */
+function Modules({ moduleKeys }: { readonly moduleKeys: readonly string[] }) {
+  const selected = new Set(moduleKeys);
+  const included: ClinicModuleKey[] = [];
+  const excluded: ClinicModuleKey[] = [];
+  for (const key of CLINIC_MODULE_ORDER) {
+    (selected.has(key) ? included : excluded).push(key);
+  }
+  return (
+    <>
+      <TextList
+        items={included.map((key) => text.modules.catalog[key].name)}
+        empty={text.detail.emptyValue}
+      />
+      {excluded.length > 0 && (
+        <Typography variant="body2" color="text.secondary">
+          {text.detail.notIncluded(
+            excluded.map((key) => text.modules.catalog[key].name).join(', '),
+          )}
+        </Typography>
+      )}
+    </>
+  );
+}
+
+/** Everything the platform keeps about a subscription (FR-002, FR-003, FR-004). */
 export function SubscriptionDetailFields({
   subscription,
 }: {
@@ -65,6 +93,12 @@ export function SubscriptionDetailFields({
 
   return (
     <Paper variant="outlined" sx={{ p: 3 }}>
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 2 }}>
+        <Chip
+          size="small"
+          label={subscription.selfService ? text.badge.selfService : text.badge.custom}
+        />
+      </Stack>
       <Box
         component="dl"
         sx={{
@@ -80,16 +114,37 @@ export function SubscriptionDetailFields({
           {subscription.description ?? text.detail.emptyValue}
         </Field>
         <Field label={fields.monthlyPrice}>
-          {text.price.perMonth(formatMxn(subscription.monthlyPrice))}
+          <SubscriptionPriceDisplay
+            cycle="monthly"
+            monthlyPrice={subscription.monthlyPrice}
+            annualPrice={subscription.annualPrice}
+          />
         </Field>
+        <Field label={fields.annualPrice}>
+          <SubscriptionPriceDisplay
+            cycle="annual"
+            monthlyPrice={subscription.monthlyPrice}
+            annualPrice={subscription.annualPrice}
+          />
+        </Field>
+        {subscription.trialDays > 0 && (
+          <Field label={fields.trialDays}>{text.price.trialDays(subscription.trialDays)}</Field>
+        )}
         <Field label={fields.status}>
           <SubscriptionStatusChip status={subscription.status} />
         </Field>
         <Field label={fields.clinics}>
           {subscription.clinicsCount ?? text.clinics.notAvailable}
         </Field>
-        <Field label={fields.features}>
-          <Features features={subscription.features} />
+        <Field label={fields.modules}>
+          <Modules moduleKeys={subscription.moduleKeys} />
+        </Field>
+        <Field label={fields.consultingRoomsLimit}>{subscription.consultingRoomsLimit}</Field>
+        <Field label={fields.doctorsLimit}>{subscription.doctorsLimit}</Field>
+        <Field label={fields.assistantsLimit}>{subscription.assistantsLimit}</Field>
+        <Field label={fields.newPatientsPerYearLimit}>{subscription.newPatientsPerYearLimit}</Field>
+        <Field label={fields.otherFeatures}>
+          <TextList items={subscription.otherFeatures} empty={text.detail.noOtherFeatures} />
         </Field>
         <Field label={fields.createdAt}>{formatDateTime(subscription.createdAt)}</Field>
         <Field label={fields.updatedAt}>{formatDateTime(subscription.updatedAt)}</Field>
