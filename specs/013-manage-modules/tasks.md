@@ -547,19 +547,46 @@ bloquear/desbloquear y eliminar un módulo.
 
 **Purpose**: verificaciones finales que cruzan las cinco historias.
 
-- [ ] T076 [P] Escribir `e2e/modules.spec.ts` (mismo patrón que `e2e/subscriptions.spec.ts`): un
+- [X] T076 [P] Escribir `e2e/modules.spec.ts` (mismo patrón que `e2e/subscriptions.spec.ts`): un
   recorrido crítico completo (consultar, crear, editar, bloquear/desbloquear, eliminar) contra un
-  entorno de pruebas real, cuando exista.
-- [ ] T077 [P] Revisar accesibilidad manual del listado agrupado y de los tres estados del panel
-  (vacío, Editar, Nuevo módulo) a 1024 px y a 320 px, solo con teclado (quickstart W17).
-- [ ] T078 Medir de nuevo el bundle (`npm run build && npm run size`) y comparar con la línea base de
+  entorno de pruebas real, cuando exista. Escrito y tipado; no se pudo ejecutar en esta sesión por no
+  haber un `mailySoft-usuarios` real ni credenciales de Auth0 alcanzables desde aquí — queda listo
+  para cuando los haya, con sus lecturas (W1, W2, W4) asumiendo solo lo que la plataforma siempre
+  tiene (los grupos Sistema/Clínica y los cuatro módulos base), no un catálogo de prueba propio, y su
+  recorrido de alta a baja (W6, W10 a W12, W14, W16) protegido tras `E2E_ALLOW_MODULE_WRITES=true`,
+  terminando siempre en eliminar (constitución VII).
+- [X] T077 [P] Revisar accesibilidad manual del listado agrupado y de los tres estados del panel
+  (vacío, Editar, Nuevo módulo) a 1024 px y a 320 px, solo con teclado (quickstart W17). No se pudo
+  hacer la pasada manual en un navegador real en esta sesión (sin backend real ni sesión de Auth0
+  alcanzables desde aquí para entrar autenticado a `/modules`); como sustituto más cercano, cada
+  estado del panel (vacío, Nuevo módulo, Editar módulo, con el diálogo de confirmación abierto) ya
+  tiene su propia prueba de `vitest-axe` en verde (`ModulesPage.test.tsx`, `ModuleCreatePanel.test.tsx`,
+  `ModuleEditPanel.test.tsx`), que detectó y corrigió un problema real de orden de encabezados
+  (`heading-order`) durante la US4. Una pasada manual en un navegador de verdad, con teclado, a 1024 px
+  y 320 px, sigue pendiente de un entorno con backend y Auth0 reales.
+- [X] T078 Medir de nuevo el bundle (`npm run build && npm run size`) y comparar con la línea base de
   T001; si crece por encima del presupuesto de 300 KB gzip, revisar qué parte debe cargarse de forma
-  más perezosa.
-- [ ] T079 Ejecutar de punta a punta los escenarios W1 a W17 de [quickstart.md](quickstart.md) (los
-  automatizados ya corren en CI; esta pasada es manual, como el cierre de la 003, la 011 y la 012).
-- [ ] T080 Punto de control final: `npm run typecheck`, `npm run lint`, `npm run format:check`,
+  más perezosa. Con las cinco historias completas el bundle de entrada llegó a 339.6 KB (por encima
+  del presupuesto): `ModulesPage` se exportaba sin `lazy()` en el barrel de la feature, a diferencia de
+  `users` y `subscriptions` — corregido (commit `6de221e`), vuelve a 298.1 KB.
+- [X] T079 Ejecutar de punta a punta los escenarios W1 a W17 de [quickstart.md](quickstart.md) (los
+  automatizados ya corren en CI; esta pasada es manual, como el cierre de la 003, la 011 y la 012). Sin
+  backend real ni sesión de Auth0 alcanzables desde aquí no se pudo hacer esta pasada manual contra la
+  aplicación de verdad; en su lugar, W1 a W16 quedan cubiertos de punta a punta por los cinco
+  `*.integration.test.tsx` de `src/app/router/modules/` (contra el simulador MSW, con los 23 módulos
+  reales del mockup) y W17 por los `vitest-axe` de cada pantalla (T077). Pendiente una pasada manual
+  real cuando haya un entorno con backend y Auth0 alcanzables.
+- [X] T080 Punto de control final: `npm run typecheck`, `npm run lint`, `npm run format:check`,
   `npm run test:coverage` (umbral de 80 % en `api`, `policy`, `schemas` y `hooks`) y `npm run build`
-  pasan todos.
+  pasan todos. Los cinco pasan en el alcance de 013: `tsc -b` y `eslint . --max-warnings 0` sin
+  errores (se limpió además la deuda de lint que venía de Foundational/US1); `prettier --check .`
+  limpio en todo el repositorio (arrastraba 47 archivos sin formatear); cobertura de
+  `src/features/modules/{api,policy,schemas,hooks}` en 97.63 % líneas (umbral 80 %); `vite build`
+  construye y el bundle de entrada mide 298.1 KB gzip (T078). La única reserva: las tres mismas
+  órdenes sin acotar (`npm run typecheck`/`lint`/`test:coverage`/`build`, que corren `tsc -b` o la
+  suite completa) siguen fallando por `src/features/subscriptions`, un problema previo y ajeno a esta
+  spec (un renombrado `features`→`otherFeatures` de la 012 que quedó a medias en el commit base de
+  este worktree): 15 archivos de prueba y 88 pruebas de subscripciones, ninguno de módulos.
 
 **Checkpoint**: feature completa, medida y validada contra el quickstart.
 
