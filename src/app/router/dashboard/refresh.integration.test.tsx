@@ -6,6 +6,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { messages } from '@/shared/messages/es';
 import { createPlatformDashboardMock } from '@/test/handlers/platformDashboard';
 import { ADMIN_AUTH0, ADMIN_SUB, createUsersDirectoryMock } from '@/test/handlers/usersDirectory';
+import { logOutFromHeader } from '@/test/profileMenu';
 import { renderApp, type RenderAppOptions } from '@/test/renderApp';
 import { renderWithProviders } from '@/test/renderWithProviders';
 
@@ -195,7 +196,7 @@ describe('the Panel keeps itself up to date (user story 3)', { timeout: 30_000 }
     await untilIndicators();
     expect(sessionStorageTexts()).not.toContain('Clínica Santa Aurora');
 
-    await user.click(screen.getByRole('button', { name: messages.common.logout }));
+    await logOutFromHeader(user);
     await screen.findByRole('heading', { level: 1, name: messages.access.title });
     expect(sessionStorageTexts()).not.toContain('Clínica Santa Aurora');
 

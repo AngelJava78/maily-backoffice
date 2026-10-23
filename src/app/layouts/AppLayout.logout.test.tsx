@@ -2,10 +2,10 @@ import { screen, within } from '@testing-library/react';
 import type { RouteObject } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
-import { messages } from '@/shared/messages/es';
 import { auth0User } from '@/test/auth0Double';
 import { roleDto, userDto } from '@/test/factories';
 import { createUsersServiceMock } from '@/test/handlers/usersService';
+import { logOutFromHeader } from '@/test/profileMenu';
 import { renderWithProviders } from '@/test/renderWithProviders';
 
 import { ProtectedRoute } from '../router/ProtectedRoute';
@@ -47,7 +47,7 @@ describe('log out from the layout', () => {
     const { user, auth0, queryClient } = await openTab();
     queryClient.setQueryData(['anything'], 'cached data');
 
-    await user.click(screen.getByRole('button', { name: messages.common.logout }));
+    await logOutFromHeader(user);
 
     expect(auth0.logout).toHaveBeenCalledExactlyOnceWith({
       logoutParams: { returnTo: `${window.location.origin}/access` },
@@ -71,9 +71,7 @@ describe('log out from the layout', () => {
       return Promise.resolve();
     });
 
-    await first.user.click(
-      within(first.container).getByRole('button', { name: messages.common.logout }),
-    );
+    await logOutFromHeader(first.user, within(first.container));
 
     await within(second.container).findByText('Access screen');
     expect(second.router.state.location.pathname).toBe('/access');

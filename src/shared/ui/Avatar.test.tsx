@@ -53,4 +53,16 @@ describe('Avatar', () => {
 
     expect(screen.getByText('AP')).toBeInTheDocument();
   });
+
+  it('hides itself from assistive tech when decorative, with or without a photo', () => {
+    render(<Avatar name="Ana Pérez" id="user-1" decorative />);
+    expect(screen.getByText('AP').closest('[aria-hidden="true"]')).not.toBeNull();
+
+    render(
+      <Avatar name="Ana Pérez" id="user-1" photoUrl="https://example.com/ana.jpg" decorative />,
+    );
+    expect(
+      screen.getByRole('img', { hidden: true }).closest('[aria-hidden="true"]'),
+    ).not.toBeNull();
+  });
 });

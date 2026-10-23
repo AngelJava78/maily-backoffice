@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { messages } from '../src/shared/messages/es';
 import { account, hasAccounts } from './fixtures/accounts';
+import { goToProfile } from './fixtures/profileMenu';
 import { signIn } from './fixtures/signIn';
 
 /**
@@ -61,7 +62,7 @@ test.describe('the Token tool (A1, an Administrator with token:read)', () => {
     expect(await tokenField(page).inputValue()).not.toBe(first);
 
     // V7: leaving the page and coming back starts again from the empty page.
-    await page.getByRole('link', { name: messages.nav.profile }).click();
+    await goToProfile(page);
     await expect(
       page.getByRole('heading', { level: 1, name: messages.profile.title }),
     ).toBeVisible();

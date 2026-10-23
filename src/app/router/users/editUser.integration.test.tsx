@@ -171,14 +171,19 @@ describe('the users section: editing (feature 002, user story 3)', { timeout: 30
     const mock = start();
     const { user } = open(`/users/${uuidOf(1)}/edit`);
     const header = await screen.findByRole('banner');
-    expect(await within(header).findByText('Admin Sistema')).toBeInTheDocument();
+    // The display name lives in the avatar button's accessible name (011-profile-avatar-menu).
+    expect(
+      await within(header).findByRole('button', { name: /Admin Sistema/ }),
+    ).toBeInTheDocument();
     await typeFirstName(user, 'Nuevo');
 
     await user.click(save());
 
     expect(await screen.findByText(text.edit.saved)).toBeInTheDocument();
     expect(mock.state.findUser(uuidOf(1))?.firstName).toBe('Nuevo');
-    expect(await within(header).findByText('Nuevo Sistema')).toBeInTheDocument();
+    expect(
+      await within(header).findByRole('button', { name: /Nuevo Sistema/ }),
+    ).toBeInTheDocument();
   });
 
   it('does not ask for the access again when what is changed is the name of somebody else', async () => {

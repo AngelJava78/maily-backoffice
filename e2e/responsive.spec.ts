@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { messages } from '../src/shared/messages/es';
 import { account, hasAccounts } from './fixtures/accounts';
+import { goToProfile, profileMenuButton } from './fixtures/profileMenu';
 import { signIn } from './fixtures/signIn';
 
 const SIZES = [
@@ -17,11 +18,9 @@ async function expectNoHorizontalScroll(page: Page): Promise<void> {
   expect(overflow).toBeLessThanOrEqual(0);
 }
 
-/** SC-005: the profile and the way out are always at hand in the header. */
+/** SC-005: the profile menu (its "Mi perfil" and "Cerrar sesión") is always at hand in the header. */
 async function expectHeaderShortcuts(page: Page): Promise<void> {
-  const header = page.getByRole('banner');
-  await expect(header.getByRole('link', { name: messages.nav.profile })).toBeVisible();
-  await expect(header.getByRole('button', { name: messages.common.logout })).toBeVisible();
+  await expect(profileMenuButton(page)).toBeVisible();
 }
 
 for (const size of SIZES) {
@@ -62,7 +61,7 @@ for (const size of SIZES) {
       await expectHeaderShortcuts(page);
 
       // Same-page navigation keeps the tokens, which live in memory.
-      await page.getByRole('link', { name: messages.nav.profile }).click();
+      await goToProfile(page);
       await expect(
         page.getByRole('heading', { level: 1, name: messages.profile.title }),
       ).toBeVisible();

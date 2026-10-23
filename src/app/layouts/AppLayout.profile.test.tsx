@@ -3,13 +3,14 @@ import { describe, expect, it } from 'vitest';
 
 import { messages } from '@/shared/messages/es';
 import { operatorAccess } from '@/test/factories';
+import { goToProfileFromHeader, openProfileMenu } from '@/test/profileMenu';
 import { renderWithProviders } from '@/test/renderWithProviders';
 
 import { AppLayout } from './AppLayout';
 
 describe('the header of AppLayout', () => {
-  it('has the profile and the log out button together, whatever the screen (SC-005, FR-008)', () => {
-    renderWithProviders(
+  it('opens to "Mi perfil" and "Cerrar sesión" together, whatever the screen (SC-005, FR-008, 011-profile-avatar-menu)', async () => {
+    const { user } = renderWithProviders(
       [
         {
           path: '/',
@@ -23,13 +24,14 @@ describe('the header of AppLayout', () => {
       { access: operatorAccess(), route: '/deep/inside' },
     );
 
-    const header = screen.getByRole('banner');
-    expect(within(header).getByRole('link', { name: messages.nav.profile })).toHaveAttribute(
+    const menu = await openProfileMenu(user);
+
+    expect(within(menu).getByRole('menuitem', { name: messages.profile.title })).toHaveAttribute(
       'href',
       '/profile',
     );
     expect(
-      within(header).getByRole('button', { name: messages.common.logout }),
+      within(menu).getByRole('menuitem', { name: messages.common.logout }),
     ).toBeInTheDocument();
   });
 
@@ -48,9 +50,7 @@ describe('the header of AppLayout', () => {
       { access: operatorAccess() },
     );
 
-    await user.click(
-      within(screen.getByRole('banner')).getByRole('link', { name: messages.nav.profile }),
-    );
+    await goToProfileFromHeader(user);
 
     expect(router.state.location.pathname).toBe('/profile');
     expect(await screen.findByRole('heading', { name: 'Profile page' })).toBeInTheDocument();

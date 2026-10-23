@@ -1,4 +1,4 @@
-import { act, screen } from '@testing-library/react';
+import { act, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ACCESS_RECHECK_INTERVAL_MS } from '@/features/auth/config/session';
@@ -52,7 +52,10 @@ describe('access flow with the real routes', () => {
     ).toBeInTheDocument();
     expect(await screen.findByText(messages.home.greeting('Ana Pérez'))).toBeInTheDocument();
     expect(router.state.location.pathname).toBe('/');
-    expect(screen.getByRole('banner')).toHaveTextContent('Ana Pérez');
+    // The display name lives in the avatar button's accessible name (011-profile-avatar-menu).
+    expect(
+      within(screen.getByRole('banner')).getByRole('button', { name: /Ana Pérez/ }),
+    ).toBeInTheDocument();
     expect(usersService.requestCount).toBe(1);
   });
 
@@ -291,6 +294,10 @@ describe('access flow with the real routes', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: messages.home.title }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('banner')).toHaveTextContent('Beatriz');
+    // The display name now lives in the avatar button's accessible name, not as banner text
+    // (011-profile-avatar-menu): the closed menu renders no name as plain text.
+    expect(
+      within(screen.getByRole('banner')).getByRole('button', { name: /Beatriz/ }),
+    ).toBeInTheDocument();
   });
 });

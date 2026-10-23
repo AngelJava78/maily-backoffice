@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { messages } from '../src/shared/messages/es';
 import { account, hasAccounts, type AccountKey } from './fixtures/accounts';
+import { logOut, profileMenuButton } from './fixtures/profileMenu';
 import { signIn, startSignIn, submitCredentials } from './fixtures/signIn';
 
 /** SC-001: from the credentials being sent to the home page being shown. */
@@ -60,7 +61,7 @@ test.describe('access with an authorized account (A1)', () => {
       page.getByRole('heading', { level: 1, name: messages.profile.title }),
     ).toBeVisible();
 
-    await page.getByRole('button', { name: messages.common.logout }).click();
+    await logOut(page);
     await expect(page).toHaveURL(/\/access$/);
 
     await page.goBack();
@@ -100,7 +101,7 @@ test.describe('accounts that may not enter', () => {
       await expect(page.getByRole('alert')).toContainText(messages.denied.message);
       await expect(page.getByText(messages.denied.signedInAs(email.toLowerCase()))).toBeVisible();
       await expect(page.getByRole('banner')).toBeHidden();
-      await expect(page.getByRole('link', { name: messages.nav.profile })).toBeHidden();
+      await expect(profileMenuButton(page)).toBeHidden();
     });
   }
 

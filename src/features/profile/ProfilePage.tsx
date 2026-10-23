@@ -1,5 +1,5 @@
-import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
@@ -7,6 +7,9 @@ import type { ReactNode } from 'react';
 
 import { useOperatorIdentity } from '@/features/auth';
 import { messages } from '@/shared/messages/es';
+import { Avatar } from '@/shared/ui/Avatar';
+import { Icon } from '@/shared/ui/Icon';
+import { useNotify } from '@/shared/ui/Notifications';
 import { useFocusOnMount } from '@/shared/ui/useFocusOnMount';
 
 /** A label and its value; they reflow to one column on narrow screens. */
@@ -25,18 +28,28 @@ function Field({ label, children }: { readonly label: string; readonly children:
 
 /**
  * The profile of the operator, read only (FR-012): the data the platform keeps about them, their
- * initials and their active roles. The platform stores no image, so the avatar shows the initials.
+ * initials and their active roles. The same avatar as the header's (FR-005, 011-profile-avatar-menu).
  */
 export function ProfilePage() {
   const identity = useOperatorIdentity();
   const headingRef = useFocusOnMount<HTMLHeadingElement>();
+  const notify = useNotify();
 
   return (
     <Stack spacing={3}>
       <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-        <Avatar aria-hidden sx={{ bgcolor: 'primary.main' }}>
-          {identity.initials}
-        </Avatar>
+        <Stack spacing={0.5} sx={{ alignItems: 'center' }}>
+          <Avatar name={identity.displayName} id={identity.id} decorative />
+          <Button
+            size="small"
+            startIcon={<Icon name="change-photo" decorative />}
+            onClick={() => {
+              notify({ severity: 'info', message: messages.profile.changePhotoUnavailable });
+            }}
+          >
+            {messages.profile.changePhoto}
+          </Button>
+        </Stack>
         <Typography variant="h4" component="h1" ref={headingRef} tabIndex={-1}>
           {messages.profile.title}
         </Typography>

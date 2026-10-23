@@ -6,6 +6,7 @@ import { operatorAccess } from '@/test/factories';
 import { createWrapper } from '@/test/renderWithProviders';
 import { platformUserSchema } from '@/features/users';
 import { userDto } from '@/test/factories';
+import { uuidOf } from '@/test/ids';
 
 import { useOperatorIdentity } from './useOperatorIdentity';
 
@@ -33,12 +34,12 @@ describe('useOperatorIdentity', () => {
     const { result } = renderHook(() => useOperatorIdentity(), { wrapper });
 
     expect(result.current).toEqual({
+      id: uuidOf(121),
       displayName: 'María José García',
       firstName: 'María José',
       paternalLastName: 'García',
       maternalLastName: 'López',
       email: 'maria@clinica.com',
-      initials: 'MJ',
       roles: [
         {
           id: 4,
@@ -59,15 +60,12 @@ describe('useOperatorIdentity', () => {
     expect(result.current.maternalLastName).toBeNull();
   });
 
-  it('builds the initials from the first letters of the display name', () => {
-    const { wrapper } = createWrapper({
-      access: accessFor({ first_name: 'ana', paternal_last_name: 'pérez' }),
-    });
+  it("carries the platform user's own id, for Avatar's deterministic tone (011-profile-avatar-menu)", () => {
+    const { wrapper } = createWrapper({ access: accessFor({ id: uuidOf(7) }) });
 
     const { result } = renderHook(() => useOperatorIdentity(), { wrapper });
 
-    expect(result.current.displayName).toBe('ana pérez');
-    expect(result.current.initials).toBe('AP');
+    expect(result.current.id).toBe(uuidOf(7));
   });
 
   it('ignores the name, e-mail and picture of the Auth0 account', () => {

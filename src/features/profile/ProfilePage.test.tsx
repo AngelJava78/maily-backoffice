@@ -60,7 +60,7 @@ describe('ProfilePage', () => {
     );
   });
 
-  it('shows the initials in a decorative avatar, not as an image', () => {
+  it('shows the initials in the same decorative avatar as the header, not as an image (FR-005, 011-profile-avatar-menu)', () => {
     renderProfile({ first_name: 'María José', paternal_last_name: 'García' });
 
     const initials = screen.getByText('MJ');
@@ -82,12 +82,26 @@ describe('ProfilePage', () => {
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
   });
 
-  it('offers nothing to edit (US5-2)', () => {
+  it('offers nothing to edit except the (not yet working) photo (US5-2, FR-006)', () => {
     const { container } = renderProfile();
 
     expect(container.querySelector('input, textarea, select')).toBeNull();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toEqual([
+      screen.getByRole('button', { name: messages.profile.changePhoto }),
+    ]);
+  });
+
+  it('offers to change the photo and says plainly it is not available yet (FR-006, SC-004, 011-profile-avatar-menu)', async () => {
+    const { user, router } = renderProfile();
+    const pathBefore = router.state.location.pathname;
+
+    await user.click(screen.getByRole('button', { name: messages.profile.changePhoto }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      messages.profile.changePhotoUnavailable,
+    );
+    expect(router.state.location.pathname).toBe(pathBefore);
   });
 
   it('has no accessibility violations', async () => {

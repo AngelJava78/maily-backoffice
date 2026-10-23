@@ -8,11 +8,12 @@ import { renderWithProviders } from '@/test/renderWithProviders';
 import { HeaderUserMenu } from './HeaderUserMenu';
 
 describe('HeaderUserMenu', () => {
-  it('reserves an empty slot to the right for the profile icon (Spec 5) and the language switcher (Spec 7)', () => {
+  it('renders the profile menu (Spec 5) and reserves an empty slot for the language switcher (Spec 7, 011-profile-avatar-menu)', () => {
     renderWithProviders(<HeaderUserMenu />, { access: operatorAccess() });
 
-    expect(screen.getByTestId('header-reserved-slot')).toBeInTheDocument();
-    expect(screen.getByTestId('header-reserved-slot')).toBeEmptyDOMElement();
+    expect(screen.getByRole('button', { name: /^Menú de / })).toBeInTheDocument();
+    expect(screen.getByTestId('language-reserved-slot')).toBeInTheDocument();
+    expect(screen.getByTestId('language-reserved-slot')).toBeEmptyDOMElement();
   });
 
   it('offers a theme toggle, operable by keyboard, that switches the whole app (009-dark-mode-toggle)', async () => {
@@ -31,9 +32,9 @@ describe('HeaderUserMenu', () => {
     ).toBeInTheDocument();
   });
 
-  it('keeps the reserved slot empty next to the new theme toggle (Spec 5/7 untouched)', () => {
+  it('keeps the reserved slot empty next to the new theme toggle (Spec 7 untouched)', () => {
     renderWithProviders(<HeaderUserMenu />, { access: operatorAccess() });
 
-    expect(screen.getByTestId('header-reserved-slot')).toBeEmptyDOMElement();
+    expect(screen.getByTestId('language-reserved-slot')).toBeEmptyDOMElement();
   });
 });

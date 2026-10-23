@@ -8,6 +8,7 @@ import { createSessionChannel } from '@/shared/lib/sessionChannel';
 import { messages } from '@/shared/messages/es';
 import { roleDto, userDto } from '@/test/factories';
 import { createUsersServiceMock, type MockAccount } from '@/test/handlers/usersService';
+import { logOutFromHeader } from '@/test/profileMenu';
 import { renderApp } from '@/test/renderApp';
 
 // These tests put the real Auth0Provider, router, guard and providers together, around a fake
@@ -220,7 +221,7 @@ describe('logging out from the header', () => {
     await screen.findByRole('heading', { level: 1, name: messages.profile.title });
     const requestsBefore = service.requestCount;
 
-    await app.user.click(screen.getByRole('button', { name: messages.common.logout }));
+    await logOutFromHeader(app.user);
     await settle();
 
     expect(app.logout).toHaveBeenCalledExactlyOnceWith({

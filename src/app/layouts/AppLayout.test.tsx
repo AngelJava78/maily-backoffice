@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { messages } from '@/shared/messages/es';
 import { operatorAccess } from '@/test/factories';
+import { openProfileMenu } from '@/test/profileMenu';
 import { renderWithProviders } from '@/test/renderWithProviders';
 import { sampleSections } from '@/test/sampleSections';
 
@@ -28,13 +29,14 @@ function renderLayout(access = accessWith('tenants:read')) {
 }
 
 describe('AppLayout', () => {
-  it('shows the operator name and the log out button in the header (US1-5)', () => {
-    renderLayout();
+  it('shows the operator identity and offers to log out from the header (US1-5, 011-profile-avatar-menu)', async () => {
+    const { user } = renderLayout();
 
     const header = screen.getByRole('banner');
-    expect(within(header).getByText('Ana Pérez')).toBeInTheDocument();
+    expect(within(header).getByRole('button', { name: /Ana Pérez/ })).toBeInTheDocument();
+    const menu = await openProfileMenu(user);
     expect(
-      within(header).getByRole('button', { name: messages.common.logout }),
+      within(menu).getByRole('menuitem', { name: messages.common.logout }),
     ).toBeInTheDocument();
   });
 

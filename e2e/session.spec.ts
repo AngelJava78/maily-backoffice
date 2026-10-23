@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { messages } from '../src/shared/messages/es';
 import { account, hasAccounts } from './fixtures/accounts';
+import { logOut } from './fixtures/profileMenu';
 import { signIn } from './fixtures/signIn';
 
 /** The answer of the `me` operation, kept as loose as needed to change the status of the user. */
@@ -64,7 +65,7 @@ test.describe('the life of the session', () => {
     }
     await expect(otherPanel).toBeVisible();
 
-    await page.getByRole('button', { name: messages.common.logout }).click();
+    await logOut(page);
 
     await expect(otherTab).toHaveURL(/\/access$/);
     await expect(

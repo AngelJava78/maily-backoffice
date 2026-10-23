@@ -41,13 +41,20 @@ interface AvatarProps {
   readonly name: string;
   readonly id: string;
   readonly photoUrl?: string;
+  /** True when an adjacent label already names the person (same convention as Icon's `decorative`). */
+  readonly decorative?: boolean;
 }
 
 /** With a photo, shows it; without one, the initials over a deterministic tint (FR-010). */
-export function Avatar({ name, id, photoUrl }: AvatarProps) {
+export function Avatar({ name, id, photoUrl, decorative }: AvatarProps) {
+  const hidden = decorative === true ? true : undefined;
   if (photoUrl !== undefined) {
-    return <MuiAvatar src={photoUrl} alt={name} />;
+    return <MuiAvatar src={photoUrl} alt={name} aria-hidden={hidden} />;
   }
   const { bg, fg } = TONE_COLORS[getAvatarTone(id)];
-  return <MuiAvatar sx={{ bgcolor: bg, color: fg }}>{getInitials(name)}</MuiAvatar>;
+  return (
+    <MuiAvatar sx={{ bgcolor: bg, color: fg }} aria-hidden={hidden}>
+      {getInitials(name)}
+    </MuiAvatar>
+  );
 }

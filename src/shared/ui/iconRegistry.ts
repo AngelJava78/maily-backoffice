@@ -2,6 +2,7 @@ import {
   ArrowLeft,
   Ban,
   Building2,
+  Camera,
   ChevronDown,
   CreditCard,
   Eye,
@@ -44,6 +45,7 @@ export const iconRegistry = {
   loading: Loader2,
   'theme-light': Sun,
   'theme-dark': Moon,
+  'change-photo': Camera,
 } as const satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof iconRegistry;

@@ -91,7 +91,6 @@ export const messages = {
     mobileLabel: 'Navegación móvil',
     skipLink: 'Saltar al contenido',
     home: 'Panel',
-    profile: 'Perfil',
     appLabel: 'Backoffice',
     // Accessible name of the light/dark toggle (009-dark-mode-toggle): names the theme it switches
     // *to*, like a light switch does, not the one currently active.
@@ -99,6 +98,8 @@ export const messages = {
       switchToDark: 'Cambiar a tema oscuro',
       switchToLight: 'Cambiar a tema claro',
     },
+    // Accessible name of the avatar button that opens the profile menu (011-profile-avatar-menu).
+    profileMenu: (displayName: string) => `Menú de ${displayName}`,
     sections: {
       users: 'Usuarios',
       subscriptions: 'Suscripciones',
@@ -120,6 +121,9 @@ export const messages = {
     roles: 'Roles',
     noRoles: 'Sin roles activos',
     emptyValue: '—',
+    // 011-profile-avatar-menu, US3: la API de usuarios todavía no soporta subir una fotografía.
+    changePhoto: 'Cambiar foto',
+    changePhotoUnavailable: 'Cambiar la fotografía todavía no está disponible.',
   },
   users: {
     title: 'Usuarios',
