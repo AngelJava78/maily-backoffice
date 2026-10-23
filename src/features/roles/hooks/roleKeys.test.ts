@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { modulesCatalogKeys, permissionsCatalogKeys, roleKeys, roleTypesCatalogKeys } from './roleKeys';
+import {
+  modulesCatalogKeys,
+  permissionsCatalogKeys,
+  roleKeys,
+  roleTypesCatalogKeys,
+} from './roleKeys';
 
 describe('roleKeys', () => {
   it('nests list, detail and permissions under a common root, each distinct', () => {

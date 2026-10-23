@@ -25,7 +25,12 @@ function namesOf(body: unknown): string[] {
   }
   const names: string[] = [];
   for (const item of body) {
-    if (typeof item === 'object' && item !== null && 'name' in item && typeof item.name === 'string') {
+    if (
+      typeof item === 'object' &&
+      item !== null &&
+      'name' in item &&
+      typeof item.name === 'string'
+    ) {
       names.push(item.name);
     }
   }

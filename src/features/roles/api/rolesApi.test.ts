@@ -41,7 +41,9 @@ describe('listRoles', () => {
   });
 
   it('passes a 403 on as an ApiError', async () => {
-    server.use(http.get(ROLES_URL, () => HttpResponse.json(errorBody('permission_denied'), { status: 403 })));
+    server.use(
+      http.get(ROLES_URL, () => HttpResponse.json(errorBody('permission_denied'), { status: 403 })),
+    );
     const { client } = createUsersClient();
 
     const failure: unknown = await listRoles(client).catch((error: unknown) => error);
@@ -57,9 +59,12 @@ describe('createRole', () => {
     server.use(
       http.post(ROLES_URL, async ({ request }) => {
         body = await request.json();
-        return HttpResponse.json(roleDto({ id: 10, name: 'Auditor', type: { id: 1, name: 'Sistema' } }), {
-          status: 201,
-        });
+        return HttpResponse.json(
+          roleDto({ id: 10, name: 'Auditor', type: { id: 1, name: 'Sistema' } }),
+          {
+            status: 201,
+          },
+        );
       }),
     );
     const { client } = createUsersClient();
@@ -72,13 +77,17 @@ describe('createRole', () => {
 
   it('passes a 409 role_name_already_exists on as an ApiError', async () => {
     server.use(
-      http.post(ROLES_URL, () => HttpResponse.json(errorBody('role_name_already_exists'), { status: 409 })),
+      http.post(ROLES_URL, () =>
+        HttpResponse.json(errorBody('role_name_already_exists'), { status: 409 }),
+      ),
     );
     const { client } = createUsersClient();
 
-    const failure: unknown = await createRole(client, { name: 'Doctor', description: null, typeId: 2 }).catch(
-      (error: unknown) => error,
-    );
+    const failure: unknown = await createRole(client, {
+      name: 'Doctor',
+      description: null,
+      typeId: 2,
+    }).catch((error: unknown) => error);
 
     expect(failure).toMatchObject({ status: 409, code: 'role_name_already_exists' });
   });

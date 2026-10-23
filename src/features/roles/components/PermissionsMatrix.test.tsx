@@ -60,7 +60,9 @@ function Harness({ initial }: { readonly initial: Matrix }) {
       }}
       onToggleAll={(moduleId, checked) => {
         setMatrix(
-          matrix.map((row) => (row.module.id === moduleId ? withAllPermissionsToggled(row, checked) : row)),
+          matrix.map((row) =>
+            row.module.id === moduleId ? withAllPermissionsToggled(row, checked) : row,
+          ),
         );
       }}
     />
@@ -88,7 +90,7 @@ describe('PermissionsMatrix', () => {
     expect(headers).toEqual(['Módulo', 'Ver', 'Modificar', 'Todo el módulo']);
   });
 
-  it("leaves a cell empty for a module that does not have that action (Recordatorios: no Crear/Eliminar)", () => {
+  it('leaves a cell empty for a module that does not have that action (Recordatorios: no Crear/Eliminar)', () => {
     render(<Harness initial={richMatrix()} />);
 
     const remindersRow = screen.getByRole('row', { name: /Recordatorios/ });
@@ -101,7 +103,9 @@ describe('PermissionsMatrix', () => {
     );
 
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
-    expect(screen.getByText('Este tipo todavía no tiene módulos en el catálogo.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Este tipo todavía no tiene módulos en el catálogo.'),
+    ).toBeInTheDocument();
   });
 
   it('toggling a cell updates the matrix through the callbacks (Ver-prerequisite still applies)', async () => {

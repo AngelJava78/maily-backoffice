@@ -9,7 +9,8 @@ const ADMIN_SUB = 'auth0|roles-admin';
 const ADMIN_ID = uuidOf(1);
 
 const ALL_ACTIONS = ['read', 'write', 'update', 'delete'];
-const permissionsOf = (resource: string): string[] => ALL_ACTIONS.map((action) => `${resource}:${action}`);
+const permissionsOf = (resource: string): string[] =>
+  ALL_ACTIONS.map((action) => `${resource}:${action}`);
 
 const SYSTEM_MODULES: readonly ModuleRecord[] = [
   { id: 1, key: 'users', name: 'Usuarios', typeId: SYSTEM_TYPE, sortOrder: 10, statusId: 1 },

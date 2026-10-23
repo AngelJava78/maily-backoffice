@@ -2,7 +2,11 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { auth0User } from '@/test/auth0Double';
-import { createRolesCatalogMock, richClinicModulesScenario, rolesCatalogScenario } from '@/test/handlers/rolesCatalog';
+import {
+  createRolesCatalogMock,
+  richClinicModulesScenario,
+  rolesCatalogScenario,
+} from '@/test/handlers/rolesCatalog';
 import { createUsersDirectoryMock } from '@/test/handlers/usersDirectory';
 import { createWrapper } from '@/test/renderWithProviders';
 

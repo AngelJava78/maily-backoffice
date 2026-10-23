@@ -47,7 +47,13 @@ export function updateRole(
   if (changes.description !== undefined) {
     body.description = changes.description;
   }
-  return client.request({ path: detailPath(roleId), method: 'PATCH', body, schema: roleSchema, signal });
+  return client.request({
+    path: detailPath(roleId),
+    method: 'PATCH',
+    body,
+    schema: roleSchema,
+    signal,
+  });
 }
 
 /** Logical deletion; allowed even if the role is assigned to someone (`roles:delete`). */
@@ -56,5 +62,10 @@ export async function deleteRole(
   roleId: number,
   { signal }: Cancellable = {},
 ): Promise<void> {
-  await client.request({ path: detailPath(roleId), method: 'DELETE', schema: z.undefined(), signal });
+  await client.request({
+    path: detailPath(roleId),
+    method: 'DELETE',
+    schema: z.undefined(),
+    signal,
+  });
 }

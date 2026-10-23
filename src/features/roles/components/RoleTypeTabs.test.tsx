@@ -10,14 +10,20 @@ describe('RoleTypeTabs', () => {
   it('shows Clínica selected by default, and both tabs by their label', () => {
     renderWithProviders(<RoleTypeTabs />, { route: '/roles' });
 
-    expect(screen.getByRole('tab', { name: messages.roles.tabs.clinica, selected: true })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: messages.roles.tabs.sistema, selected: false })).toBeInTheDocument();
+    expect(
+      screen.getByRole('tab', { name: messages.roles.tabs.clinica, selected: true }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('tab', { name: messages.roles.tabs.sistema, selected: false }),
+    ).toBeInTheDocument();
   });
 
   it('reads the active tab from the URL', () => {
     renderWithProviders(<RoleTypeTabs />, { route: '/roles?type=sistema' });
 
-    expect(screen.getByRole('tab', { name: messages.roles.tabs.sistema, selected: true })).toBeInTheDocument();
+    expect(
+      screen.getByRole('tab', { name: messages.roles.tabs.sistema, selected: true }),
+    ).toBeInTheDocument();
   });
 
   it('changing the tab writes it to the URL and clears any selected role', async () => {

@@ -4,7 +4,11 @@ import { describe, expect, it } from 'vitest';
 import { server } from '@/test/server';
 import { createUsersClient, errorBody, usersUrl } from '@/test/usersClient';
 
-import { associateRolePermission, disassociateRolePermission, listRolePermissions } from './rolePermissionsApi';
+import {
+  associateRolePermission,
+  disassociateRolePermission,
+  listRolePermissions,
+} from './rolePermissionsApi';
 
 const PERMISSIONS_URL = usersUrl('/api/v1/roles/6/permissions');
 
@@ -46,7 +50,10 @@ describe('associateRolePermission', () => {
       http.post(PERMISSIONS_URL, async ({ request }) => {
         body = await request.json();
         return HttpResponse.json(
-          { role: { id: 6, name: 'Doctor', type: { id: 2 } }, permission: { id: 25, name: 'patients:read' } },
+          {
+            role: { id: 6, name: 'Doctor', type: { id: 2 } },
+            permission: { id: 25, name: 'patients:read' },
+          },
           { status: 201 },
         );
       }),
@@ -66,7 +73,9 @@ describe('associateRolePermission', () => {
     );
     const { client } = createUsersClient();
 
-    const failure: unknown = await associateRolePermission(client, 6, 25).catch((error: unknown) => error);
+    const failure: unknown = await associateRolePermission(client, 6, 25).catch(
+      (error: unknown) => error,
+    );
 
     expect(failure).toMatchObject({ status: 409, code: 'role_permission_module_type_conflict' });
   });

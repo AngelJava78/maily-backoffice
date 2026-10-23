@@ -34,7 +34,9 @@ export function catalogHandlers(catalog: RolesCatalogModel, handle: Handle): Htt
   return [
     http.get(
       `${base}/permissions`,
-      handle('permissions:read', () => HttpResponse.json(catalog.listPermissions().map(toPermissionReadDto))),
+      handle('permissions:read', () =>
+        HttpResponse.json(catalog.listPermissions().map(toPermissionReadDto)),
+      ),
     ),
     http.get(
       `${base}/modules`,

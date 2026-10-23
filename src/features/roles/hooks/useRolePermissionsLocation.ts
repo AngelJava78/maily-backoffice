@@ -14,6 +14,9 @@ export interface RolePermissionsLocationApi {
   readonly setType: (type: RoleTypeTab) => void;
   /** Selects a role within the active tab, or clears the selection with `null`. */
   readonly setRoleId: (roleId: number | null) => void;
+  /** Switches to `type` and selects `roleId` within it, in one navigation (a role just created or
+   * duplicated may be of a different type than the one currently active). */
+  readonly selectInType: (type: RoleTypeTab, roleId: number) => void;
 }
 
 /**
@@ -40,6 +43,9 @@ export function useRolePermissionsLocation(): RolePermissionsLocationApi {
     },
     setRoleId: (roleId) => {
       setSearchParams(toRolePermissionsSearchParams({ type: location.type, roleId }));
+    },
+    selectInType: (type, roleId) => {
+      setSearchParams(toRolePermissionsSearchParams({ type, roleId }));
     },
   };
 }

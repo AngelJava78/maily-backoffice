@@ -701,6 +701,7 @@ export const messages = {
       permissionsCount: (granted: number, total: number) => `${granted} de ${total} permisos`,
       duplicate: 'Duplicar',
       save: 'Guardar cambios',
+      saved: 'Cambios guardados.',
       discard: 'Descartar cambios',
       matrixTitle: (roleName: string) => `Permisos de ${roleName} por módulo y acción`,
       matrixHelper:

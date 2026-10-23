@@ -8,7 +8,11 @@ import TableRow from '@mui/material/TableRow';
 import { messages } from '@/shared/messages/es';
 import { EmptyState } from '@/shared/ui/EmptyState';
 
-import { ACTION_KEYS, type ActionKey, type PermissionMatrix as Matrix } from '../schemas/permissionMatrix';
+import {
+  ACTION_KEYS,
+  type ActionKey,
+  type PermissionMatrix as Matrix,
+} from '../schemas/permissionMatrix';
 import { PermissionsMatrixRow } from './PermissionsMatrixRow';
 
 const text = messages.roles.detail;
@@ -25,7 +29,12 @@ interface PermissionsMatrixProps {
  * table works the same with 0 rows as with many (edge case of spec.md). A column only exists if at
  * least one module of this matrix actually has that action in the catalog.
  */
-export function PermissionsMatrix({ matrix, pending, onToggle, onToggleAll }: PermissionsMatrixProps) {
+export function PermissionsMatrix({
+  matrix,
+  pending,
+  onToggle,
+  onToggleAll,
+}: PermissionsMatrixProps) {
   if (matrix.length === 0) {
     return <EmptyState message={text.emptyModules} />;
   }

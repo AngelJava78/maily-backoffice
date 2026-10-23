@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { ApiError } from '@/shared/api/ApiError';
 import { messages } from '@/shared/messages/es';
 
-import { describeRoleError, describeRolePermissionAssociationError } from './roleErrors';
+import {
+  describeRoleError,
+  describeRolePermissionAssociationError,
+  realAssociationFailureIds,
+} from './roleErrors';
 
 function httpError(status: number, code: string, errors?: { field: string; message: string }[]) {
   return ApiError.fromResponse(status, { code, message: `Mensaje de ${code}`, errors });
@@ -61,7 +65,9 @@ describe('describeRolePermissionAssociationError', () => {
 
   it('maps role_permission_module_type_conflict to conflict', () => {
     expect(
-      describeRolePermissionAssociationError(httpError(409, 'role_permission_module_type_conflict')),
+      describeRolePermissionAssociationError(
+        httpError(409, 'role_permission_module_type_conflict'),
+      ),
     ).toMatchObject({ kind: 'conflict' });
   });
 
@@ -69,5 +75,28 @@ describe('describeRolePermissionAssociationError', () => {
     expect(describeRolePermissionAssociationError(httpError(403, 'permission_denied')).kind).toBe(
       'forbidden',
     );
+  });
+});
+
+describe('realAssociationFailureIds', () => {
+  const fulfilled: PromiseFulfilledResult<void> = { status: 'fulfilled', value: undefined };
+  const rejected = (reason: unknown): PromiseRejectedResult => ({ status: 'rejected', reason });
+
+  it('keeps only the ids whose call really failed', () => {
+    const ids = [1, 2, 3];
+    const outcomes = [fulfilled, rejected(httpError(500, 'internal_error')), fulfilled];
+
+    expect(realAssociationFailureIds(ids, outcomes)).toEqual([2]);
+  });
+
+  it('does not count a 409 that only means the desired state was already real', () => {
+    const ids = [1, 2];
+    const outcomes = [rejected(httpError(409, 'role_permission_already_associated')), fulfilled];
+
+    expect(realAssociationFailureIds(ids, outcomes)).toEqual([]);
+  });
+
+  it('is empty when every call succeeded', () => {
+    expect(realAssociationFailureIds([1, 2], [fulfilled, fulfilled])).toEqual([]);
   });
 });

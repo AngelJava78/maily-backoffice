@@ -68,6 +68,26 @@ export function describeRoleError(error: unknown): RoleErrorOutcome {
   return { kind: 'unexpected', message: messages.errors.unexpected };
 }
 
+/**
+ * Of `ids` (each paired by position with the matching entry of `outcomes`), the ones whose
+ * associate/disassociate call really failed: a 409 that only means the desired state was already
+ * the real one (research D6) does not count, so the caller never reports it among the failures.
+ * Shared by every hook that associates/disassociates several permissions at once (`useSaveRoleDetail`,
+ * `useCreateRole`).
+ */
+export function realAssociationFailureIds(
+  ids: readonly number[],
+  outcomes: readonly PromiseSettledResult<void>[],
+): number[] {
+  return ids.filter((_id, index) => {
+    const outcome = outcomes[index];
+    return (
+      outcome?.status === 'rejected' &&
+      describeRolePermissionAssociationError(outcome.reason).kind !== 'alreadyDesired'
+    );
+  });
+}
+
 /** Classifies a failure of associating/disassociating a permission (research D6, D8). */
 export function describeRolePermissionAssociationError(
   error: unknown,

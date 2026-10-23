@@ -149,6 +149,13 @@ describe('ConfirmDialog', () => {
     });
   });
 
+  it('names the safe action "Cancelar" by default, or `cancelLabel` when given', () => {
+    renderDialog({ cancelLabel: 'Quedarme' });
+
+    expect(screen.getByRole('button', { name: 'Quedarme' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: messages.common.cancel })).not.toBeInTheDocument();
+  });
+
   it('has no accessibility violations', async () => {
     const { baseElement } = renderDialog();
 

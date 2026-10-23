@@ -80,7 +80,12 @@ describe('useSaveRoleDetail', () => {
 
   it('lists the permissions that failed, without rejecting, when some associations fail', async () => {
     const { roles } = start();
-    roles.failNext({ method: 'POST', path: /\/roles\/2\/permissions$/, status: 500, code: 'internal_error' });
+    roles.failNext({
+      method: 'POST',
+      path: /\/roles\/2\/permissions$/,
+      status: 500,
+      code: 'internal_error',
+    });
     const { wrapper } = wrapperFor();
     const { result } = renderHook(() => useSaveRoleDetail(), { wrapper });
 

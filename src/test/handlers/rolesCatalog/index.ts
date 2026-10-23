@@ -22,7 +22,10 @@ export type { ModuleRecord, PermissionRecord, ResolvedPermission } from './model
  */
 export function createRolesCatalogMock(
   directoryModel: DirectoryModel,
-  scenario: { readonly modules: readonly ModuleRecord[]; readonly permissions: readonly PermissionRecord[] },
+  scenario: {
+    readonly modules: readonly ModuleRecord[];
+    readonly permissions: readonly PermissionRecord[];
+  },
 ) {
   const catalog = createRolesCatalogModel(scenario.modules, scenario.permissions);
   const behaviors = createBehaviors();

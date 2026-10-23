@@ -4,7 +4,11 @@ import TableRow from '@mui/material/TableRow';
 
 import { messages } from '@/shared/messages/es';
 
-import { ACTION_KEYS, type ActionKey, type PermissionMatrixRow as Row } from '../schemas/permissionMatrix';
+import {
+  ACTION_KEYS,
+  type ActionKey,
+  type PermissionMatrixRow as Row,
+} from '../schemas/permissionMatrix';
 
 const columns = messages.roles.detail.columns;
 
@@ -28,7 +32,8 @@ export function PermissionsMatrixRow({
   onToggleAll,
 }: PermissionsMatrixRowProps) {
   const presentKeys = ACTION_KEYS.filter((key) => row.cells[key] !== undefined);
-  const allGranted = presentKeys.length > 0 && presentKeys.every((key) => row.cells[key]?.granted === true);
+  const allGranted =
+    presentKeys.length > 0 && presentKeys.every((key) => row.cells[key]?.granted === true);
 
   return (
     <TableRow>

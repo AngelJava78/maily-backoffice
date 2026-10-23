@@ -9,6 +9,11 @@ export type RoleTypeTab = (typeof ROLE_TYPE_TABS)[number];
 /** The `type.id` the API uses for each tab (1 Sistema, 2 Clínica). */
 export const ROLE_TYPE_ID_OF_TAB: Record<RoleTypeTab, 1 | 2> = { clinica: 2, sistema: 1 };
 
+/** The inverse of `ROLE_TYPE_ID_OF_TAB`: which tab shows a role of this type. */
+export function tabOfRoleTypeId(typeId: 1 | 2): RoleTypeTab {
+  return typeId === 1 ? 'sistema' : 'clinica';
+}
+
 /**
  * What the address of `/roles` asks for (constitution III; research D5): which tab is active and
  * which role is selected within it. There is no list to paginate, so this is all there is.

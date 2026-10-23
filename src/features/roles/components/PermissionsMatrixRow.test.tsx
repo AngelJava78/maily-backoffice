@@ -22,7 +22,9 @@ const MODULE: Module = {
   type: { id: 2, name: 'Clínica' },
 };
 
-function fullRow(granted: Partial<Record<'read' | 'write' | 'update' | 'delete', boolean>> = {}): Row {
+function fullRow(
+  granted: Partial<Record<'read' | 'write' | 'update' | 'delete', boolean>> = {},
+): Row {
   return {
     module: MODULE,
     cells: {
@@ -35,7 +37,13 @@ function fullRow(granted: Partial<Record<'read' | 'write' | 'update' | 'delete',
 }
 
 /** A stateful harness: applies the same pure rules `RoleDetailPanel` will use. */
-function Harness({ initial, pending = false }: { readonly initial: Row; readonly pending?: boolean }) {
+function Harness({
+  initial,
+  pending = false,
+}: {
+  readonly initial: Row;
+  readonly pending?: boolean;
+}) {
   const [row, setRow] = useState(initial);
   return (
     <Table>

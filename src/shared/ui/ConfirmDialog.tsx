@@ -14,6 +14,9 @@ interface ConfirmDialogProps {
   /** What is about to happen. It names the affected resource, as the constitution asks (VI). */
   readonly message: string;
   readonly confirmLabel: string;
+  /** Defaults to "Cancelar"; a dialog that is not itself cancelling something (e.g. a warning
+   * about to discard unsaved changes) can name its safe action instead (e.g. "Quedarme"). */
+  readonly cancelLabel?: string;
   /** The action is running: nothing can be clicked and the dialog cannot be dismissed. */
   readonly pending?: boolean;
   /** `danger` paints the confirm button as a destructive action; the label still says what it does. */
@@ -35,6 +38,7 @@ export function ConfirmDialog({
   title,
   message,
   confirmLabel,
+  cancelLabel = messages.common.cancel,
   pending = false,
   tone = 'default',
   onConfirm,
@@ -66,7 +70,7 @@ export function ConfirmDialog({
         {/* The focus starts on the safe action (WAI-ARIA authoring practices for dialogs). */}
         {/* eslint-disable-next-line jsx-a11y/no-autofocus */}
         <Button onClick={onCancel} disabled={pending} autoFocus>
-          {messages.common.cancel}
+          {cancelLabel}
         </Button>
         <Button
           variant="contained"

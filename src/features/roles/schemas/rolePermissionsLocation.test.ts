@@ -4,6 +4,7 @@ import {
   DEFAULT_ROLE_TYPE_TAB,
   parseRolePermissionsSearchParams,
   ROLE_TYPE_ID_OF_TAB,
+  tabOfRoleTypeId,
   toRolePermissionsSearchParams,
 } from './rolePermissionsLocation';
 
@@ -55,5 +56,12 @@ describe('ROLE_TYPE_ID_OF_TAB', () => {
   it('maps clinica to 2 and sistema to 1', () => {
     expect(ROLE_TYPE_ID_OF_TAB[DEFAULT_ROLE_TYPE_TAB]).toBe(2);
     expect(ROLE_TYPE_ID_OF_TAB.sistema).toBe(1);
+  });
+});
+
+describe('tabOfRoleTypeId', () => {
+  it('is the inverse of ROLE_TYPE_ID_OF_TAB', () => {
+    expect(tabOfRoleTypeId(1)).toBe('sistema');
+    expect(tabOfRoleTypeId(2)).toBe('clinica');
   });
 });

@@ -183,7 +183,10 @@ export function createRolesCatalogModel(
         );
       }
       directoryModel.grant(role.name, permission.name);
-      return { role: { ...role, permissions: [...role.permissions, permission.name] }, permission: resolved };
+      return {
+        role: { ...role, permissions: [...role.permissions, permission.name] },
+        permission: resolved,
+      };
     },
 
     /** Revokes permission `permissionId` from the active role `roleId`, via the directory model's
@@ -206,7 +209,9 @@ export function createRolesCatalogModel(
 
     // --- Helpers to prepare the data of a test, which apply no rule ---
 
-    addModule: (overrides: Partial<ModuleRecord> & Pick<ModuleRecord, 'key' | 'name'>): ModuleRecord => {
+    addModule: (
+      overrides: Partial<ModuleRecord> & Pick<ModuleRecord, 'key' | 'name'>,
+    ): ModuleRecord => {
       const module: ModuleRecord = {
         id: overrides.id ?? nextId(modules),
         typeId: 1,
@@ -218,8 +223,13 @@ export function createRolesCatalogModel(
       return module;
     },
 
-    addPermission: (overrides: Partial<PermissionRecord> & Pick<PermissionRecord, 'name'>): PermissionRecord => {
-      const permission: PermissionRecord = { id: overrides.id ?? nextId(permissions), ...overrides };
+    addPermission: (
+      overrides: Partial<PermissionRecord> & Pick<PermissionRecord, 'name'>,
+    ): PermissionRecord => {
+      const permission: PermissionRecord = {
+        id: overrides.id ?? nextId(permissions),
+        ...overrides,
+      };
       permissions = [...permissions, permission];
       return permission;
     },

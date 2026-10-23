@@ -4,7 +4,7 @@ import { useHttpClients } from '@/shared/api/httpClientsContext';
 import { atMost, REFRESH_WAIT_MS } from '@/shared/lib/atMost';
 
 import { associateRolePermission, disassociateRolePermission } from '../api/rolePermissionsApi';
-import { describeRolePermissionAssociationError } from '../api/roleErrors';
+import { realAssociationFailureIds } from '../api/roleErrors';
 import { updateRole } from '../api/rolesApi';
 import { roleKeys } from './roleKeys';
 
@@ -20,19 +20,6 @@ export interface SaveRoleDetailResult {
   /** Permission ids whose associate/disassociate call failed for real (research D6, FR-018):
    * empty means everything that was asked for is now as it should be. */
   readonly failedPermissionIds: readonly number[];
-}
-
-function rejectedIds(
-  ids: readonly number[],
-  outcomes: readonly PromiseSettledResult<void>[],
-): number[] {
-  return ids.filter((_id, index) => {
-    const outcome = outcomes[index];
-    return (
-      outcome?.status === 'rejected' &&
-      describeRolePermissionAssociationError(outcome.reason).kind !== 'alreadyDesired'
-    );
-  });
 }
 
 /**
@@ -75,8 +62,8 @@ export function useSaveRoleDetail(): UseMutationResult<
 
       return {
         failedPermissionIds: [
-          ...rejectedIds(toAssociate, associations),
-          ...rejectedIds(toDisassociate, disassociations),
+          ...realAssociationFailureIds(toAssociate, associations),
+          ...realAssociationFailureIds(toDisassociate, disassociations),
         ],
       };
     },

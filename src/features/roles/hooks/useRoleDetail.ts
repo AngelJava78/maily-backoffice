@@ -63,7 +63,9 @@ export function useRoleDetail(roleId: number | null): UseRoleDetailResult {
   return {
     data: {
       role,
-      grantedPermissionIds: new Set((permissionsQuery.data ?? []).map((permission) => permission.id)),
+      grantedPermissionIds: new Set(
+        (permissionsQuery.data ?? []).map((permission) => permission.id),
+      ),
     },
     isLoading: false,
     isError: false,

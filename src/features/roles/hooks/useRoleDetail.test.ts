@@ -59,7 +59,12 @@ describe('useRoleDetail', () => {
 
   it('surfaces a failure to load the permissions of an existing role as an error', async () => {
     const { roles } = start();
-    roles.failNext({ method: 'GET', path: '/api/v1/roles/1/permissions', status: 500, code: 'internal_error' });
+    roles.failNext({
+      method: 'GET',
+      path: '/api/v1/roles/1/permissions',
+      status: 500,
+      code: 'internal_error',
+    });
     const { wrapper } = wrapperFor();
 
     const { result } = renderHook(() => useRoleDetail(1), { wrapper });

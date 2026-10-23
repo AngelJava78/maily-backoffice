@@ -81,6 +81,7 @@ Se entra con A1, salvo que se indique otra cuenta.
 | W13 | US3-1, US3-2, FR-015 | Abrir el duplicado de W12 y pulsar "Eliminar role"; confirmar. | Aviso de que la acción no se puede deshacer antes de confirmar; tras confirmar, el role desaparece de la lista. |
 | W14 | US3-3, FR-015, edge case | Abrir la confirmación de eliminar de cualquier role y cerrarla sin confirmar. | No se elimina nada. |
 | W15 | SC-005, FR-001 | Cerrar sesión y entrar con A4 (sin permisos). Intentar ir a `/roles` escribiendo la URL. | "Roles y permisos" no aparece en el menú; la ruta no muestra su contenido (redirección de `RequirePermission`, igual que en Usuarios/Suscripciones). |
+| W16 | FR-017, edge case | Elegir un role, cambiar su nombre sin guardar. Cambiar de pestaña, elegir otro role de la lista, y por último pulsar "Usuarios" en el menú principal — probar los tres por separado. | Las tres acciones muestran el mismo aviso de cambios sin guardar; "Quedarme" cancela la acción y conserva el cambio sin guardar; "Descartar y continuar" la completa y pierde el cambio. |
 
 ## Lo que esta guía no cubre manualmente
 

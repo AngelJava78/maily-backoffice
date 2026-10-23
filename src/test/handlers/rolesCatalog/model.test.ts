@@ -36,7 +36,12 @@ describe('resolving the catalog of permissions', () => {
       {
         id: 1,
         name: 'patients:read',
-        module: { id: 1, key: 'patients', name: 'Pacientes', type: { id: CLINIC_TYPE, name: 'Clínica' } },
+        module: {
+          id: 1,
+          key: 'patients',
+          name: 'Pacientes',
+          type: { id: CLINIC_TYPE, name: 'Clínica' },
+        },
         action: { id: 1, key: 'read', name: 'Ver' },
       },
     ]);
@@ -63,7 +68,10 @@ describe('resolving the catalog of permissions', () => {
       permissions(['patients:export']),
     );
 
-    expect(catalog.listPermissions()[0]).toMatchObject({ module: { key: 'patients' }, action: null });
+    expect(catalog.listPermissions()[0]).toMatchObject({
+      module: { key: 'patients' },
+      action: null,
+    });
   });
 
   it('sorts the catalog by name', () => {
@@ -118,7 +126,10 @@ describe('associate', () => {
       associations: [],
     });
     const catalog = createRolesCatalogModel(
-      modules([{ key: 'patients', typeId: CLINIC_TYPE }, { key: 'users', typeId: SYSTEM_TYPE }]),
+      modules([
+        { key: 'patients', typeId: CLINIC_TYPE },
+        { key: 'users', typeId: SYSTEM_TYPE },
+      ]),
       permissions(['patients:read', 'users:read']),
     );
     return { directory, catalog };
@@ -174,7 +185,10 @@ describe('disassociate', () => {
       roles: [directoryRole({ id: 6, name: 'Doctor', permissions: ['patients:read'] })],
       associations: [],
     });
-    const catalog = createRolesCatalogModel(modules([{ key: 'patients' }]), permissions(['patients:read']));
+    const catalog = createRolesCatalogModel(
+      modules([{ key: 'patients' }]),
+      permissions(['patients:read']),
+    );
 
     catalog.disassociate(directory, 6, 1);
 
@@ -187,7 +201,10 @@ describe('disassociate', () => {
       roles: [directoryRole({ id: 6, name: 'Doctor', permissions: [] })],
       associations: [],
     });
-    const catalog = createRolesCatalogModel(modules([{ key: 'patients' }]), permissions(['patients:read']));
+    const catalog = createRolesCatalogModel(
+      modules([{ key: 'patients' }]),
+      permissions(['patients:read']),
+    );
 
     expect(() => {
       catalog.disassociate(directory, 6, 1);

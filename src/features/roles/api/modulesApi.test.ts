@@ -32,6 +32,14 @@ describe('listModules', () => {
     const modules = await listModules(client, 2);
 
     expect(search).toBe('?type_id=2&status_id=1');
-    expect(modules).toEqual([{ id: 5, key: 'patients', name: 'Pacientes', sortOrder: 50, type: { id: 2, name: 'Clínica' } }]);
+    expect(modules).toEqual([
+      {
+        id: 5,
+        key: 'patients',
+        name: 'Pacientes',
+        sortOrder: 50,
+        type: { id: 2, name: 'Clínica' },
+      },
+    ]);
   });
 });

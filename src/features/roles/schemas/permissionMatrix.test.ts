@@ -14,11 +14,7 @@ function makeModule(overrides: Partial<Module> & Pick<Module, 'id' | 'key' | 'na
   return { sortOrder: 0, type: { id: 2, name: 'Clínica' }, ...overrides };
 }
 
-function permission(
-  id: number,
-  moduleRef: Module | null,
-  actionKey: string | null,
-): Permission {
+function permission(id: number, moduleRef: Module | null, actionKey: string | null): Permission {
   return {
     id,
     name: `permission-${id}`,
@@ -29,16 +25,21 @@ function permission(
 
 describe('buildPermissionMatrix', () => {
   const patients = makeModule({ id: 5, key: 'patients', name: 'Pacientes', sortOrder: 50 });
-  const appointments = makeModule({ id: 6, key: 'appointments', name: 'Agenda y citas', sortOrder: 60 });
-  const users = makeModule({ id: 1, key: 'users', name: 'Usuarios', type: { id: 1, name: 'Sistema' } });
+  const appointments = makeModule({
+    id: 6,
+    key: 'appointments',
+    name: 'Agenda y citas',
+    sortOrder: 60,
+  });
+  const users = makeModule({
+    id: 1,
+    key: 'users',
+    name: 'Usuarios',
+    type: { id: 1, name: 'Sistema' },
+  });
 
   it('includes only modules of roleTypeId, ordered by sortOrder then name', () => {
-    const matrix = buildPermissionMatrix(
-      [appointments, patients, users],
-      [],
-      new Set(),
-      2,
-    );
+    const matrix = buildPermissionMatrix([appointments, patients, users], [], new Set(), 2);
 
     expect(matrix.map((row) => row.module.key)).toEqual(['patients', 'appointments']);
   });
@@ -112,7 +113,10 @@ describe('withPermissionToggled (FR-008)', () => {
   });
 
   it('does nothing extra when read was already granted', () => {
-    const readGranted = { ...row, cells: { ...row.cells, read: { permissionId: 1, granted: true } } };
+    const readGranted = {
+      ...row,
+      cells: { ...row.cells, read: { permissionId: 1, granted: true } },
+    };
 
     const result = withPermissionToggled(readGranted, 'update', true);
 

@@ -64,6 +64,15 @@ describe('RolesList', () => {
     expect(await screen.findByRole('button', { name: /Nuevo role/ })).toBeInTheDocument();
   });
 
+  it('offers "Nuevo role" above the list even when it is not empty', async () => {
+    start();
+
+    renderList('/roles');
+
+    await screen.findByText('Owner');
+    expect(screen.getByRole('button', { name: /Nuevo role/ })).toBeInTheDocument();
+  });
+
   it('does not offer "Nuevo role" in the empty state without permission to create', async () => {
     const { users } = start();
     for (const role of [...users.state.roles()]) {

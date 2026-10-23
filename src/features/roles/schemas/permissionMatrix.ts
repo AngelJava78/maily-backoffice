@@ -102,7 +102,10 @@ export function withPermissionToggled(
 }
 
 /** "Todo el módulo" (FR-009): grants or revokes every action the row has, in one call. */
-export function withAllPermissionsToggled(row: PermissionMatrixRow, checked: boolean): PermissionMatrixRow {
+export function withAllPermissionsToggled(
+  row: PermissionMatrixRow,
+  checked: boolean,
+): PermissionMatrixRow {
   return { ...row, cells: mapCells(row.cells, (cell) => ({ ...cell, granted: checked })) };
 }
 

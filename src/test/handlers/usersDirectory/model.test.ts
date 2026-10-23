@@ -561,7 +561,11 @@ describe('the catalog of roles', () => {
 
 describe('createRole (feature 014)', () => {
   it('stores an active role with the name trimmed and no permissions', () => {
-    const role = build().createRole({ name: '  Auditor  ', description: null, typeId: SYSTEM_TYPE });
+    const role = build().createRole({
+      name: '  Auditor  ',
+      description: null,
+      typeId: SYSTEM_TYPE,
+    });
 
     expect(role).toMatchObject({
       name: 'Auditor',

@@ -29,12 +29,22 @@ function isUnknownArray(value: unknown): value is readonly unknown[] {
 
 /** The `field` of each entry of a `validation_error` body's `errors`, without casting it. */
 function fieldsOf(body: unknown): string[] {
-  if (typeof body !== 'object' || body === null || !('errors' in body) || !isUnknownArray(body.errors)) {
+  if (
+    typeof body !== 'object' ||
+    body === null ||
+    !('errors' in body) ||
+    !isUnknownArray(body.errors)
+  ) {
     return [];
   }
   const fields: string[] = [];
   for (const entry of body.errors) {
-    if (typeof entry === 'object' && entry !== null && 'field' in entry && typeof entry.field === 'string') {
+    if (
+      typeof entry === 'object' &&
+      entry !== null &&
+      'field' in entry &&
+      typeof entry.field === 'string'
+    ) {
       fields.push(entry.field);
     }
   }
@@ -59,7 +69,11 @@ describe('POST /api/v1/roles', () => {
   it('creates an active role and answers 201 with its address', async () => {
     start();
 
-    const answer = await post({ name: '  Auditor  ', description: 'Revisa registros.', type_id: 1 });
+    const answer = await post({
+      name: '  Auditor  ',
+      description: 'Revisa registros.',
+      type_id: 1,
+    });
 
     expect(answer.status).toBe(201);
     expect(answer.headers.get('location')).toMatch(/\/api\/v1\/roles\/10$/);
