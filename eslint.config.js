@@ -133,6 +133,7 @@ export default defineConfig(
     ignores: [
       'src/shared/api/httpClient.ts',
       'src/features/auth/session/returnPathStorage.ts',
+      'src/app/providers/ThemeModeProvider.tsx',
       ...TEST_FILES,
       'e2e/**',
     ],
@@ -146,7 +147,17 @@ export default defineConfig(
     files: ['src/features/auth/session/returnPathStorage.ts'],
     rules: restrictGlobals(['localStorage', 'fetch']),
   },
-  { files: [...TEST_FILES, 'e2e/**'], rules: restrictGlobals(['localStorage']) },
+  {
+    // Only the theme-mode preference (009-dark-mode-toggle) goes here: a non-sensitive UI setting,
+    // which constitution V allows in the browser, unlike the tokens the other rules above guard.
+    files: ['src/app/providers/ThemeModeProvider.tsx'],
+    rules: restrictGlobals(['sessionStorage', 'fetch']),
+  },
+  {
+    files: [...TEST_FILES, 'e2e/**'],
+    ignores: ['src/app/providers/ThemeModeProvider.test.tsx', 'src/test/setup.ts'],
+    rules: restrictGlobals(['localStorage']),
+  },
 
   // No raw HTML injection and no class components (constitution I and V).
   {

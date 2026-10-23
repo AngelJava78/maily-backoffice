@@ -23,6 +23,24 @@ Object.assign(globalThis, {
   jest: { advanceTimersByTime: (ms: number) => vi.advanceTimersByTime(ms) },
 });
 
+// jsdom does not implement `matchMedia` at all (009-dark-mode-toggle: `ThemeModeProvider` reads it
+// on every mount to resolve the system's light/dark preference, research.md D4) — without a stub,
+// every test that renders the app would throw "window.matchMedia is not a function" on mount, not
+// just the tests about theming. Reports "no preference" (light) by default; tests that care about
+// the system preference itself (`ThemeModeProvider.test.tsx`) replace it with their own double.
+Object.assign(window, {
+  matchMedia: (media: string) => ({
+    matches: false,
+    media,
+    onchange: null,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+    dispatchEvent: () => true,
+    addListener: () => undefined, // deprecated MediaQueryList API
+    removeListener: () => undefined,
+  }),
+});
+
 beforeAll(() => {
   server.listen({ onUnhandledFrame: 'error' });
 });
@@ -38,6 +56,7 @@ afterEach(async () => {
   });
   server.resetHandlers();
   sessionStorage.clear();
+  localStorage.clear();
 });
 
 afterAll(() => {

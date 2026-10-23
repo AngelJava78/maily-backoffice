@@ -1,5 +1,4 @@
 import { Auth0Context } from '@auth0/auth0-react';
-import { ThemeProvider } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -21,7 +20,7 @@ import { RouterProvider } from 'react-router/dom';
 import { vi } from 'vitest';
 
 import { AppSettingsProvider } from '@/app/providers/AppSettingsProvider';
-import { theme } from '@/app/theme/theme';
+import { ThemeModeProvider } from '@/app/providers/ThemeModeProvider';
 import { accessKeys } from '@/features/auth/hooks/accessKeys';
 import { SessionProvider } from '@/features/auth/hooks/sessionContext';
 import type { AccessDecision, OperatorAccess } from '@/features/auth/policy/types';
@@ -113,7 +112,7 @@ function createHarness(options: HarnessOptions) {
       <AppSettingsProvider env={{ VITE_DASHBOARD_REFRESH_MINUTES: 5 }}>
         <Auth0Context.Provider value={auth0Value}>
           <QueryClientProvider client={queryClient}>
-            <ThemeProvider theme={theme}>
+            <ThemeModeProvider>
               <NotificationsProvider>
                 <SessionProvider>
                   <HttpClientsContext.Provider value={clients}>
@@ -121,7 +120,7 @@ function createHarness(options: HarnessOptions) {
                   </HttpClientsContext.Provider>
                 </SessionProvider>
               </NotificationsProvider>
-            </ThemeProvider>
+            </ThemeModeProvider>
           </QueryClientProvider>
         </Auth0Context.Provider>
       </AppSettingsProvider>

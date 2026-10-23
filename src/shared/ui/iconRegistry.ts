@@ -9,9 +9,11 @@ import {
   KeyRound,
   LayoutDashboard,
   Loader2,
+  Moon,
   Pencil,
   Plus,
   RotateCcw,
+  Sun,
   Trash2,
   Unlock,
   Users,
@@ -40,6 +42,8 @@ export const iconRegistry = {
   'lock-open': Unlock,
   restore: RotateCcw,
   loading: Loader2,
+  'theme-light': Sun,
+  'theme-dark': Moon,
 } as const satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof iconRegistry;

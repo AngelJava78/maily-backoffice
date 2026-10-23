@@ -38,6 +38,46 @@ export const colorTokens = {
   peligroBorde: '#F1B9B4',
 } as const;
 
+/**
+ * Segundo "Set de valores" que specs/008-design-system/data-model.md anticipó para el modo
+ * oscuro (regla de extensión US5-1): mismas claves que `colorTokens`, valores propios — web-soft
+ * no tiene modo oscuro que replicar (docs/DESIGN.md), así que estos valores se definen desde cero,
+ * ajustados a contraste WCAG 2.1 AA (`theme.test.ts` los verifica igual que a `colorTokens`).
+ * `accion` se aclara respecto del claro (no se reutiliza el mismo valor) porque también se usa
+ * como color directo de icono/texto sobre superficies oscuras (contraste insuficiente si
+ * quedara tan oscuro como en el set claro).
+ */
+export const colorTokensOscuro = {
+  marca: '#D9B64A',
+  marcaOscuro: '#A8871F',
+  marcaTinte: '#2B2410',
+  marcaBorde: '#4A3F1C',
+  accion: '#5B9BD9',
+  accionHover: '#8FC0EC',
+  accionTinte: '#17242F',
+  accionBorde: '#355871',
+  tinta: '#0A1931',
+  cuerpo: '#E7EDF4',
+  suave: '#AEB9C7',
+  tenue: '#8793A3',
+  fondo: '#0E151D',
+  superficie: '#17212C',
+  superficieSutil: '#1D2834',
+  borde: '#2B3744',
+  bordeFuerte: '#6FA3D1',
+  exito: '#49C98B',
+  exitoTinte: '#13291E',
+  exitoBorde: '#2C5A41',
+  aviso: '#E0B64C',
+  avisoIcono: '#E0B64C',
+  avisoTinte: '#2E2610',
+  avisoBorde: '#5C4A1D',
+  peligro: '#F2857C',
+  peligroHover: '#F6A89F',
+  peligroTinte: '#301613',
+  peligroBorde: '#623129',
+} as const satisfies Record<keyof typeof colorTokens, string>;
+
 export const typographyTokens = {
   fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
   weights: { regular: 400, medium: 500, semibold: 600, bold: 700 },

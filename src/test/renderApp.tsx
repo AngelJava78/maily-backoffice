@@ -1,6 +1,5 @@
 import { Auth0Provider, ResponseType, type User } from '@auth0/auth0-react';
 import { Auth0Client } from '@auth0/auth0-spa-js';
-import { ThemeProvider } from '@mui/material/styles';
 import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createBrowserRouter } from 'react-router';
@@ -9,8 +8,8 @@ import { vi } from 'vitest';
 import type { AppEnv } from '@/app/config/env';
 import { redirectToReturnPath } from '@/app/providers/AppAuth0Provider';
 import { AppRuntime } from '@/app/providers/AppRuntime';
+import { ThemeModeProvider } from '@/app/providers/ThemeModeProvider';
 import { appRoutes } from '@/app/router/routes';
-import { theme } from '@/app/theme/theme';
 import { NotificationsProvider } from '@/shared/ui/Notifications';
 
 import { SUBSCRIPTIONS_API_BASE_URL } from './handlers/subscriptionsCatalog/baseUrl';
@@ -103,13 +102,13 @@ export function renderApp(options: RenderAppOptions = {}) {
   });
 
   const view = render(
-    <ThemeProvider theme={theme}>
+    <ThemeModeProvider>
       <NotificationsProvider>
         <Auth0Provider client={client} onRedirectCallback={redirectToReturnPath(router)}>
           <AppRuntime env={env} router={router} />
         </Auth0Provider>
       </NotificationsProvider>
-    </ThemeProvider>,
+    </ThemeModeProvider>,
   );
 
   return {

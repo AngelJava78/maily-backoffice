@@ -93,6 +93,12 @@ export const messages = {
     home: 'Panel',
     profile: 'Perfil',
     appLabel: 'Backoffice',
+    // Accessible name of the light/dark toggle (009-dark-mode-toggle): names the theme it switches
+    // *to*, like a light switch does, not the one currently active.
+    theme: {
+      switchToDark: 'Cambiar a tema oscuro',
+      switchToLight: 'Cambiar a tema claro',
+    },
     sections: {
       users: 'Usuarios',
       subscriptions: 'Suscripciones',

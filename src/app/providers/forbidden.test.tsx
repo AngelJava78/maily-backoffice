@@ -1,5 +1,4 @@
 import { Auth0Context } from '@auth0/auth0-react';
-import { ThemeProvider } from '@mui/material/styles';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -11,8 +10,8 @@ import { messages } from '@/shared/messages/es';
 import { NotificationsProvider } from '@/shared/ui/Notifications';
 import { createAuth0Double } from '@/test/auth0Double';
 
-import { theme } from '../theme/theme';
 import { AppQueryProvider } from './AppQueryProvider';
+import { ThemeModeProvider } from './ThemeModeProvider';
 
 function forbidden() {
   return ApiError.fromResponse(403, { code: 'forbidden', message: 'Sin permiso' });
@@ -41,11 +40,11 @@ function renderInsideApp(child: ReactElement) {
   const auth0 = createAuth0Double({ isAuthenticated: true });
   render(
     <Auth0Context.Provider value={auth0}>
-      <ThemeProvider theme={theme}>
+      <ThemeModeProvider>
         <NotificationsProvider>
           <AppQueryProvider>{child}</AppQueryProvider>
         </NotificationsProvider>
-      </ThemeProvider>
+      </ThemeModeProvider>
     </Auth0Context.Provider>,
   );
   return auth0;

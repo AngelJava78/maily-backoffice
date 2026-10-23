@@ -1,11 +1,10 @@
 import { render, screen, waitForElementToBeRemoved } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ThemeProvider } from '@mui/material/styles';
 import { useState, type ReactElement } from 'react';
 import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
 
-import { theme } from '@/app/theme/theme';
+import { ThemeModeProvider } from '@/app/providers/ThemeModeProvider';
 
 import { NotificationsProvider, useNotify } from './Notifications';
 
@@ -25,9 +24,9 @@ function Trigger({ message }: { readonly message: string }) {
 
 function renderWithNotifications(ui: ReactElement) {
   return render(
-    <ThemeProvider theme={theme}>
+    <ThemeModeProvider>
       <NotificationsProvider>{ui}</NotificationsProvider>
-    </ThemeProvider>,
+    </ThemeModeProvider>,
   );
 }
 
