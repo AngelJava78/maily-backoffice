@@ -241,7 +241,7 @@ Proyecto único existente en la raíz del repositorio (`C:\Maily\code\maily-back
 - [ ] T062 [P] Revisar accesibilidad manual del `Tabs` Listado/Comparativo, del grupo de módulos y de la matriz del Comparativo a 1024 px y a 320 px, solo con teclado (quickstart W15; contracts/app-routes.md, «Accesibilidad»).
 - [X] T063 Medir de nuevo el bundle (`npm run build && npm run size`) y comparar con la línea base de T001; si crece por encima del presupuesto de 300 KB gzip, revisar qué pantalla nueva debe cargarse de forma perezosa.
 - [ ] T064 Ejecutar de punta a punta los escenarios W1 a W15 de [quickstart.md](quickstart.md) (los automatizados ya corren en CI; esta pasada es manual, como el cierre de la 003 y la 011).
-- [ ] T065 Punto de control final: `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run test:coverage` (umbral de 80 % en `api`, `policy`, `schemas`, `hooks` y `shared/api|lib`) y `npm run build` pasan todos.
+- [X] T065 Punto de control final: `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run test:coverage` (umbral de 80 % en `api`, `policy`, `schemas`, `hooks` y `shared/api|lib`) y `npm run build` pasan todos.
 
 **Checkpoint**: feature completa, medida y validada contra el quickstart.
 
