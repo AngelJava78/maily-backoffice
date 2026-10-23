@@ -168,10 +168,12 @@ export function catalogPermission(overrides: Partial<CatalogPermission> = {}): C
   };
 }
 
+function isModuleActionKey(value: string): value is ModuleActionKey {
+  return value in MODULE_ACTION_ID;
+}
+
 function resolveActionId(actionKey: string): number | null {
-  return (MODULE_ACTION_ORDER as readonly string[]).includes(actionKey)
-    ? (MODULE_ACTION_ID[actionKey as ModuleActionKey] ?? null)
-    : null;
+  return isModuleActionKey(actionKey) ? MODULE_ACTION_ID[actionKey] : null;
 }
 
 /**
@@ -251,7 +253,7 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
 
   function updateModule(id: number, changes: ModuleChanges): CatalogModule {
     const current = modules.get(id);
-    if (current === undefined || current.statusId !== ACTIVE) {
+    if (current?.statusId !== ACTIVE) {
       throw moduleNotFoundError(id);
     }
     const fieldErrors = [
@@ -379,7 +381,7 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
 
   function deletePermission(id: number): void {
     const current = permissions.get(id);
-    if (current === undefined || current.statusId !== ACTIVE) {
+    if (current?.statusId !== ACTIVE) {
       throw permissionNotFoundError(id);
     }
     permissions.set(id, { ...current, statusId: DELETED });
@@ -406,9 +408,7 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
   }
 
   function toPermissionDto(permission: CatalogPermission) {
-    const module = permission.moduleId === undefined || permission.moduleId === null
-      ? null
-      : modules.get(permission.moduleId);
+    const module = permission.moduleId === null ? null : modules.get(permission.moduleId);
     const actionKey = permission.actionId === null ? null : (ACTION_KEY_BY_ID.get(permission.actionId) ?? null);
     return {
       id: permission.id,

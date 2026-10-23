@@ -13,7 +13,7 @@ describe('createModule', () => {
 
     expect(() =>
       model.createModule({ key: 'audit', name: 'Otro', type_id: 2 }),
-    ).toThrowError(expect.objectContaining({ code: 'module_key_already_exists' }));
+    ).toThrow(expect.objectContaining({ code: 'module_key_already_exists' }));
   });
 
   it('rejects a name already used, without distinguishing case', () => {
@@ -23,13 +23,13 @@ describe('createModule', () => {
 
     expect(() =>
       model.createModule({ key: 'other', name: 'auditoría', type_id: 2 }),
-    ).toThrowError(expect.objectContaining({ code: 'module_name_already_exists' }));
+    ).toThrow(expect.objectContaining({ code: 'module_name_already_exists' }));
   });
 
   it('rejects a key with an invalid format', () => {
     const model = createModulesCatalogModel();
 
-    expect(() => model.createModule({ key: 'Audit', name: 'Auditoría', type_id: 2 })).toThrowError(
+    expect(() => model.createModule({ key: 'Audit', name: 'Auditoría', type_id: 2 })).toThrow(
       expect.objectContaining({ code: 'validation_error' }),
     );
   });
@@ -73,7 +73,7 @@ describe('updateModule', () => {
       modules: [catalogModule({ id: 1, statusId: 2 })],
     });
 
-    expect(() => model.updateModule(1, { name: 'Nuevo nombre' })).toThrowError(
+    expect(() => model.updateModule(1, { name: 'Nuevo nombre' })).toThrow(
       expect.objectContaining({ code: 'module_not_found' }),
     );
   });
@@ -93,7 +93,7 @@ describe('updateModule', () => {
       modules: [catalogModule({ id: 1, name: 'Uno' }), catalogModule({ id: 2, name: 'Dos' })],
     });
 
-    expect(() => model.updateModule(2, { name: 'uno' })).toThrowError(
+    expect(() => model.updateModule(2, { name: 'uno' })).toThrow(
       expect.objectContaining({ code: 'module_name_already_exists' }),
     );
   });
@@ -109,14 +109,14 @@ describe('blockModule / unblockModule', () => {
   it('rejects a protected module', () => {
     const model = createModulesCatalogModel({ modules: [catalogModule({ id: 1, key: 'users' })] });
 
-    expect(() => model.blockModule(1)).toThrowError(expect.objectContaining({ code: 'module_protected' }));
+    expect(() => model.blockModule(1)).toThrow(expect.objectContaining({ code: 'module_protected' }));
   });
 
   it('blocks an active module and rejects blocking it again', () => {
     const model = createModulesCatalogModel({ modules: [catalogModule({ id: 1, key: 'inventory' })] });
 
     expect(model.blockModule(1).statusId).toBe(2);
-    expect(() => model.blockModule(1)).toThrowError(
+    expect(() => model.blockModule(1)).toThrow(
       expect.objectContaining({ code: 'module_already_blocked' }),
     );
   });
@@ -127,7 +127,7 @@ describe('blockModule / unblockModule', () => {
     });
 
     expect(model.unblockModule(1).statusId).toBe(1);
-    expect(() => model.unblockModule(1)).toThrowError(
+    expect(() => model.unblockModule(1)).toThrow(
       expect.objectContaining({ code: 'module_already_active' }),
     );
   });
@@ -149,7 +149,7 @@ describe('deleteModule', () => {
   it('rejects a protected module', () => {
     const model = createModulesCatalogModel({ modules: [catalogModule({ id: 1, key: 'roles' })] });
 
-    expect(() => model.deleteModule(1)).toThrowError(
+    expect(() => { model.deleteModule(1); }).toThrow(
       expect.objectContaining({ code: 'module_protected' }),
     );
   });
@@ -245,7 +245,7 @@ describe('createPermission', () => {
       permissions: [catalogPermission({ id: 1, name: 'inventory:read' })],
     });
 
-    expect(() => model.createPermission({ name: 'inventory:read' })).toThrowError(
+    expect(() => model.createPermission({ name: 'inventory:read' })).toThrow(
       expect.objectContaining({ code: 'permission_name_already_exists' }),
     );
   });
@@ -253,7 +253,7 @@ describe('createPermission', () => {
   it('rejects a name with an invalid format', () => {
     const model = createModulesCatalogModel();
 
-    expect(() => model.createPermission({ name: 'Inventory:Read' })).toThrowError(
+    expect(() => model.createPermission({ name: 'Inventory:Read' })).toThrow(
       expect.objectContaining({ code: 'validation_error' }),
     );
   });
@@ -263,7 +263,7 @@ describe('deletePermission', () => {
   it('rejects a permission that no longer exists', () => {
     const model = createModulesCatalogModel();
 
-    expect(() => model.deletePermission(99)).toThrowError(
+    expect(() => { model.deletePermission(99); }).toThrow(
       expect.objectContaining({ code: 'permission_not_found' }),
     );
   });

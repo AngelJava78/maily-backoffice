@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 
 import { isProtectedModule, PROTECTED_MODULE_KEYS, systemModuleSchema } from './systemModule';
 
-function dto(overrides: Partial<Parameters<typeof systemModuleSchema.parse>[0]> = {}) {
+function dto(overrides: Partial<z.input<typeof systemModuleSchema>> = {}) {
   return {
     id: 5,
     key: 'inventory',

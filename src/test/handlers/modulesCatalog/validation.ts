@@ -43,11 +43,20 @@ export function permissionNameError(name: unknown): CatalogFieldError | null {
     : null;
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 function objectBody(body: unknown): Record<string, unknown> {
-  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+  if (!isPlainObject(body)) {
     throw validationError([{ field: 'body', message: 'El cuerpo de la solicitud no es válido.' }]);
   }
-  return body as Record<string, unknown>;
+  return body;
+}
+
+/** `null` clears the description; anything that is not a string nor `null` is treated as `null`. */
+function readDescription(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
 }
 
 function rejectUnknownFields(data: Record<string, unknown>, allowed: readonly string[]): void {
@@ -84,7 +93,7 @@ export function moduleInputFromBody(body: unknown): ModuleInput {
     key: typeof data.key === 'string' ? data.key : '',
     name: typeof data.name === 'string' ? data.name : '',
     type_id: typeof data.type_id === 'number' ? data.type_id : -1,
-    ...(data.description === undefined ? {} : { description: data.description as string | null }),
+    ...(data.description === undefined ? {} : { description: readDescription(data.description) }),
     ...(typeof data.sort_order === 'number' ? { sort_order: data.sort_order } : {}),
   };
 }
@@ -99,7 +108,7 @@ export function moduleChangesFromBody(body: unknown): ModuleChanges {
   }
   return {
     ...(typeof data.name === 'string' ? { name: data.name } : {}),
-    ...(data.description === undefined ? {} : { description: data.description as string | null }),
+    ...(data.description === undefined ? {} : { description: readDescription(data.description) }),
     ...(typeof data.sort_order === 'number' ? { sort_order: data.sort_order } : {}),
   };
 }
@@ -111,6 +120,6 @@ export function permissionInputFromBody(body: unknown): PermissionInput {
   rejectUnknownFields(data, PERMISSION_CREATE_FIELDS);
   return {
     name: typeof data.name === 'string' ? data.name : '',
-    ...(data.description === undefined ? {} : { description: data.description as string | null }),
+    ...(data.description === undefined ? {} : { description: readDescription(data.description) }),
   };
 }
