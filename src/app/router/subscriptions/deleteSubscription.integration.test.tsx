@@ -125,14 +125,15 @@ describe(
 
       await user.click(await screen.findByRole('link', { name: text.list.createAction }));
       await screen.findByRole('heading', { level: 1, name: text.form.createTitle });
-      await user.type(
-        screen.getByRole('textbox', { name: new RegExp(`^${text.form.fields.name}`) }),
-        'Pro',
-      );
-      await user.type(
-        screen.getByRole('textbox', { name: new RegExp(`^${text.form.fields.monthlyPrice}`) }),
-        '4500',
-      );
+      const field = (label: string) =>
+        screen.getByRole('textbox', { name: new RegExp(`^${label}`) });
+      await user.type(field(text.form.fields.name), 'Pro');
+      await user.type(field(text.form.fields.monthlyPrice), '4500');
+      await user.type(field(text.form.fields.annualPrice), '45000');
+      await user.type(field(text.form.fields.consultingRoomsLimit), '2');
+      await user.type(field(text.form.fields.doctorsLimit), '3');
+      await user.type(field(text.form.fields.assistantsLimit), '2');
+      await user.type(field(text.form.fields.newPatientsPerYearLimit), '15000');
       await user.click(
         screen.getByRole('button', { name: new RegExp(`^${messages.common.save}`) }),
       );

@@ -15,6 +15,15 @@ function setup() {
 
 const create = (body: unknown) => callSubscriptions(PATH, { method: 'POST', body });
 
+/** Every field the API requires on create, besides `name` and `monthly_price`. */
+const REQUIRED_FIELDS = {
+  annual_price: '32000.5',
+  consulting_rooms_limit: 3,
+  doctors_limit: 4,
+  assistants_limit: 2,
+  new_patients_per_year_limit: 8000,
+};
+
 describe('POST /api/v1/subscriptions', () => {
   it('creates an active subscription without clinics, and answers with it and its address', async () => {
     const { catalog } = setup();
@@ -23,7 +32,8 @@ describe('POST /api/v1/subscriptions', () => {
       name: '  Clínica Plus ',
       description: 'Para clínicas medianas.',
       monthly_price: '3200.5',
-      features: [' Hasta 3 consultorios ', 'Agenda'],
+      other_features: [' Hasta 3 consultorios ', 'Agenda'],
+      ...REQUIRED_FIELDS,
     });
 
     expect(answer.status).toBe(201);
@@ -32,7 +42,15 @@ describe('POST /api/v1/subscriptions', () => {
       name: 'Clínica Plus',
       description: 'Para clínicas medianas.',
       monthly_price: '3200.50',
-      features: ['Hasta 3 consultorios', 'Agenda'],
+      annual_price: '32000.50',
+      trial_days: 0,
+      self_service: false,
+      module_keys: ['patients'],
+      other_features: ['Hasta 3 consultorios', 'Agenda'],
+      consulting_rooms_limit: 3,
+      doctors_limit: 4,
+      assistants_limit: 2,
+      new_patients_per_year_limit: 8000,
       status: { id: 1, name: 'Activa' },
       clinics_count: 0,
     });
@@ -42,13 +60,59 @@ describe('POST /api/v1/subscriptions', () => {
     expect(Array.isArray(listed.body) && listed.body.length).toBe(8);
   });
 
-  it('accepts a price as a number and leaves what it includes empty when it is not sent', async () => {
+  it('accepts a price as a number, defaults trial_days/self_service and leaves other_features empty', async () => {
     setup();
 
-    expect(await create({ name: 'Nuevo', monthly_price: 0 })).toMatchObject({
+    expect(await create({ name: 'Nuevo', monthly_price: 0, ...REQUIRED_FIELDS })).toMatchObject({
       status: 201,
-      body: { monthly_price: '0.00', features: [], description: null },
+      body: {
+        monthly_price: '0.00',
+        other_features: [],
+        description: null,
+        trial_days: 0,
+        self_service: false,
+        module_keys: ['patients'],
+      },
     });
+  });
+
+  it('always includes "patients" in module_keys, whether or not it is sent', async () => {
+    setup();
+
+    expect(
+      await create({
+        name: 'Con módulos',
+        monthly_price: '1',
+        module_keys: ['scheduling'],
+        ...REQUIRED_FIELDS,
+      }),
+    ).toMatchObject({ status: 201, body: { module_keys: ['patients', 'scheduling'] } });
+  });
+
+  it('refuses a module key outside the fixed catalog of nine, with its own code', async () => {
+    setup();
+
+    expect(
+      await create({
+        name: 'Con módulo raro',
+        monthly_price: '1',
+        module_keys: ['facturacion'],
+        ...REQUIRED_FIELDS,
+      }),
+    ).toMatchObject({ status: 422, body: { code: 'subscription_module_not_found' } });
+  });
+
+  it('refuses a dependent module without its prerequisite, with its own code', async () => {
+    setup();
+
+    expect(
+      await create({
+        name: 'Sin requisito',
+        monthly_price: '1',
+        module_keys: ['billing'],
+        ...REQUIRED_FIELDS,
+      }),
+    ).toMatchObject({ status: 409, body: { code: 'subscription_module_prerequisite_missing' } });
   });
 
   it.each(['pro', ' PRO ', 'Pro'])(
@@ -56,7 +120,7 @@ describe('POST /api/v1/subscriptions', () => {
     async (name) => {
       setup();
 
-      expect(await create({ name, monthly_price: '1' })).toMatchObject({
+      expect(await create({ name, monthly_price: '1', ...REQUIRED_FIELDS })).toMatchObject({
         status: 409,
         body: { code: 'subscription_name_already_exists' },
       });
@@ -67,7 +131,9 @@ describe('POST /api/v1/subscriptions', () => {
     const { catalog } = setup();
     catalog.addSubscription(catalogSubscription({ id: 30, name: 'Antiguo', statusId: 4 }));
 
-    expect((await create({ name: 'Antiguo', monthly_price: '1' })).status).toBe(201);
+    expect((await create({ name: 'Antiguo', monthly_price: '1', ...REQUIRED_FIELDS })).status).toBe(
+      201,
+    );
   });
 
   it.each(['id', 'status', 'status_id', 'clinics_count', 'created_at', 'updated_at'])(
@@ -75,7 +141,9 @@ describe('POST /api/v1/subscriptions', () => {
     async (field) => {
       setup();
 
-      expect(await create({ name: 'Nuevo', monthly_price: '1', [field]: 1 })).toMatchObject({
+      expect(
+        await create({ name: 'Nuevo', monthly_price: '1', ...REQUIRED_FIELDS, [field]: 1 }),
+      ).toMatchObject({
         status: 422,
         body: {
           code: 'validation_error',
@@ -88,58 +156,127 @@ describe('POST /api/v1/subscriptions', () => {
   it.each([
     [
       'an empty name',
-      { name: '   ', monthly_price: '1' },
+      { name: '   ', monthly_price: '1', ...REQUIRED_FIELDS },
       'name',
       'El nombre de la suscripción es obligatorio.',
     ],
     [
       'a name of 101 characters',
-      { name: 'a'.repeat(101), monthly_price: '1' },
+      { name: 'a'.repeat(101), monthly_price: '1', ...REQUIRED_FIELDS },
       'name',
       'El nombre de la suscripción no puede tener más de 100 caracteres.',
     ],
     [
       'a description of 501 characters',
-      { name: 'A', description: 'a'.repeat(501), monthly_price: '1' },
+      { name: 'A', description: 'a'.repeat(501), monthly_price: '1', ...REQUIRED_FIELDS },
       'description',
       'La descripción no puede tener más de 500 caracteres.',
     ],
-    ['no price', { name: 'A' }, 'monthly_price', 'El precio mensual es obligatorio.'],
     [
-      'a negative price',
-      { name: 'A', monthly_price: '-1' },
+      'no monthly price',
+      { name: 'A', ...REQUIRED_FIELDS },
+      'monthly_price',
+      'El precio mensual es obligatorio.',
+    ],
+    [
+      'a negative monthly price',
+      { name: 'A', monthly_price: '-1', ...REQUIRED_FIELDS },
       'monthly_price',
       'El precio mensual debe ser un importe de 0 a 99 999 999,99 con hasta dos decimales.',
     ],
     [
-      'a price with three decimals',
-      { name: 'A', monthly_price: '12.345' },
+      'a monthly price with three decimals',
+      { name: 'A', monthly_price: '12.345', ...REQUIRED_FIELDS },
       'monthly_price',
       'El precio mensual debe ser un importe de 0 a 99 999 999,99 con hasta dos decimales.',
     ],
     [
-      'a price that is too big',
-      { name: 'A', monthly_price: 100_000_000 },
-      'monthly_price',
-      'El precio mensual debe ser un importe de 0 a 99 999 999,99 con hasta dos decimales.',
+      'no annual price',
+      { name: 'A', monthly_price: '1', ...REQUIRED_FIELDS, annual_price: undefined },
+      'annual_price',
+      'El precio anual es obligatorio.',
     ],
     [
-      '21 elements',
-      { name: 'A', monthly_price: '1', features: Array.from({ length: 21 }, (_, n) => `E${n}`) },
-      'features',
-      'Lo que incluye la suscripción no puede tener más de 20 elementos.',
+      'an invalid annual price',
+      { name: 'A', monthly_price: '1', ...REQUIRED_FIELDS, annual_price: '4,500' },
+      'annual_price',
+      'El precio anual debe ser un importe de 0 a 99 999 999,99 con hasta dos decimales.',
     ],
     [
-      'an empty element',
-      { name: 'A', monthly_price: '1', features: ['Uno', '  '] },
-      'features',
-      'Cada elemento de lo que incluye la suscripción debe tener de 1 a 150 caracteres.',
+      'invalid trial_days',
+      { name: 'A', monthly_price: '1', ...REQUIRED_FIELDS, trial_days: 3651 },
+      'trial_days',
+      'Los días de prueba deben ser un número entero de 0 a 3650.',
     ],
     [
-      'an element that is not a text',
-      { name: 'A', monthly_price: '1', features: [1] },
-      'features',
-      'Lo que incluye la suscripción debe ser una lista de textos.',
+      'an invalid self_service',
+      { name: 'A', monthly_price: '1', ...REQUIRED_FIELDS, self_service: 'true' },
+      'self_service',
+      'El autoconsumo debe ser verdadero o falso.',
+    ],
+    [
+      'module_keys that is not a list',
+      { name: 'A', monthly_price: '1', ...REQUIRED_FIELDS, module_keys: 'patients' },
+      'module_keys',
+      'Las claves de módulos deben ser una lista de textos.',
+    ],
+    [
+      'no consulting_rooms_limit',
+      { name: 'A', monthly_price: '1', ...REQUIRED_FIELDS, consulting_rooms_limit: undefined },
+      'consulting_rooms_limit',
+      'El campo «consulting_rooms_limit» es obligatorio.',
+    ],
+    [
+      'a consulting_rooms_limit over 1,000,000',
+      { name: 'A', monthly_price: '1', ...REQUIRED_FIELDS, consulting_rooms_limit: 1_000_001 },
+      'consulting_rooms_limit',
+      'El campo «consulting_rooms_limit» debe ser un número entero de 0 a 1 000 000.',
+    ],
+    [
+      'no doctors_limit',
+      { name: 'A', monthly_price: '1', ...REQUIRED_FIELDS, doctors_limit: undefined },
+      'doctors_limit',
+      'El campo «doctors_limit» es obligatorio.',
+    ],
+    [
+      'no assistants_limit',
+      { name: 'A', monthly_price: '1', ...REQUIRED_FIELDS, assistants_limit: undefined },
+      'assistants_limit',
+      'El campo «assistants_limit» es obligatorio.',
+    ],
+    [
+      'no new_patients_per_year_limit',
+      {
+        name: 'A',
+        monthly_price: '1',
+        ...REQUIRED_FIELDS,
+        new_patients_per_year_limit: undefined,
+      },
+      'new_patients_per_year_limit',
+      'El campo «new_patients_per_year_limit» es obligatorio.',
+    ],
+    [
+      '21 other features',
+      {
+        name: 'A',
+        monthly_price: '1',
+        ...REQUIRED_FIELDS,
+        other_features: Array.from({ length: 21 }, (_, n) => `E${n}`),
+      },
+      'other_features',
+      'Otras funcionalidades no puede tener más de 20 elementos.',
+    ],
+    [
+      'an empty other feature',
+      { name: 'A', monthly_price: '1', ...REQUIRED_FIELDS, other_features: ['Uno', '  '] },
+      'other_features',
+      'Cada elemento de otras funcionalidades debe tener de 1 a 150 caracteres.',
+    ],
+    [
+      'an other feature that is not a text',
+      { name: 'A', monthly_price: '1', ...REQUIRED_FIELDS, other_features: [1] },
+      'other_features',
+      'Otras funcionalidades debe ser una lista de textos.',
     ],
   ])('refuses %s with an error in that field', async (_case, body, field, message) => {
     setup();
@@ -159,6 +296,11 @@ describe('POST /api/v1/subscriptions', () => {
       errors: [
         { field: 'name', message: 'El nombre de la suscripción es obligatorio.' },
         { field: 'monthly_price' },
+        { field: 'annual_price' },
+        { field: 'consulting_rooms_limit' },
+        { field: 'doctors_limit' },
+        { field: 'assistants_limit' },
+        { field: 'new_patients_per_year_limit' },
       ],
     });
   });

@@ -35,6 +35,14 @@ const field = (label: string) => screen.getByRole('textbox', { name: new RegExp(
 const save = () => screen.getByRole('button', { name: new RegExp(`^${messages.common.save}`) });
 const grid = () => screen.getByRole('grid', { name: text.list.gridLabel });
 
+/** The four clinic limits, which are always required (FR-010). */
+async function fillRequiredLimits(user: ReturnType<typeof open>['user']) {
+  await user.type(field(text.form.fields.consultingRoomsLimit), '2');
+  await user.type(field(text.form.fields.doctorsLimit), '3');
+  await user.type(field(text.form.fields.assistantsLimit), '2');
+  await user.type(field(text.form.fields.newPatientsPerYearLimit), '15000');
+}
+
 describe(
   'the subscriptions section: creating (feature 003, user story 2)',
   { timeout: 30_000 },
@@ -70,12 +78,14 @@ describe(
 
       await user.type(field(text.form.fields.name), 'Clínica Plus');
       await user.type(field(text.form.fields.monthlyPrice), '1000');
-      const add = screen.getByRole('button', { name: text.form.addFeature });
+      await user.type(field(text.form.fields.annualPrice), '10000');
+      await fillRequiredLimits(user);
+      const add = screen.getByRole('button', { name: text.form.addOtherFeature });
       for (const value of ['Hasta 3 consultorios', 'Agenda', 'Recordatorios']) {
         await user.click(add);
         await user.keyboard(value);
       }
-      await user.click(screen.getByRole('button', { name: text.form.removeFeature(2) }));
+      await user.click(screen.getByRole('button', { name: text.form.removeOtherFeature(2) }));
       await user.click(save());
 
       expect(
@@ -90,9 +100,17 @@ describe(
 
       // Only what can be written travels: no id, status, clinics nor dates (FR-021).
       expect(Object.keys(catalog.requestsTo('POST', PATH)[0]?.body ?? {}).sort()).toEqual([
-        'features',
+        'annual_price',
+        'assistants_limit',
+        'consulting_rooms_limit',
+        'doctors_limit',
+        'module_keys',
         'monthly_price',
         'name',
+        'new_patients_per_year_limit',
+        'other_features',
+        'self_service',
+        'trial_days',
       ]);
 
       await user.click(screen.getByRole('link', { name: text.detail.backToList }));
@@ -120,6 +138,8 @@ describe(
 
       await user.type(field(text.form.fields.name), ' pro ');
       await user.type(field(text.form.fields.monthlyPrice), '100');
+      await user.type(field(text.form.fields.annualPrice), '1000');
+      await fillRequiredLimits(user);
       await user.click(save());
 
       await waitFor(() => {

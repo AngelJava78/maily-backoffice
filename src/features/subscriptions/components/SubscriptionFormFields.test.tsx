@@ -61,6 +61,8 @@ const description = () =>
   screen.getByRole('textbox', { name: new RegExp(`^${text.fields.description}`) });
 const price = () =>
   screen.getByRole('textbox', { name: new RegExp(`^${text.fields.monthlyPrice}`) });
+const annualPrice = () =>
+  screen.getByRole('textbox', { name: new RegExp(`^${text.fields.annualPrice}`) });
 
 describe('SubscriptionFormFields', () => {
   it('asks for the name, which is required', () => {
@@ -83,8 +85,59 @@ describe('SubscriptionFormFields', () => {
     expect(price()).toBeRequired();
     expect(price()).toHaveAttribute('inputmode', 'decimal');
     expect(price()).toHaveAccessibleDescription(text.priceHelper);
-    expect(screen.getByText(text.pricePrefix)).toBeInTheDocument();
+    expect(screen.getAllByText(text.pricePrefix).length).toBeGreaterThan(0);
     expect(screen.getByText(text.priceSuffix)).toBeInTheDocument();
+  });
+
+  it('asks for the annual price in pesos per year, with its help', () => {
+    setup();
+
+    expect(annualPrice()).toBeRequired();
+    expect(annualPrice()).toHaveAttribute('inputmode', 'decimal');
+    expect(annualPrice()).toHaveAccessibleDescription(text.annualPriceHelper);
+    expect(screen.getByText(text.annualPriceSuffix)).toBeInTheDocument();
+  });
+
+  it('tells an annual price written with a comma as an error of that field', async () => {
+    const { user } = setup();
+    await user.type(annualPrice(), '12,990');
+
+    await user.click(screen.getByRole('button', { name: 'Enviar' }));
+
+    expect(annualPrice()).toHaveAccessibleDescription(validation.annualPriceInvalid);
+  });
+
+  it('asks for autoconsumo and the trial days', () => {
+    setup();
+
+    expect(
+      screen.getByRole('switch', { name: new RegExp(`^${text.fields.selfService}`) }),
+    ).not.toBeChecked();
+    expect(
+      screen.getByRole('textbox', { name: new RegExp(`^${text.fields.trialDays}`) }),
+    ).toHaveValue('0');
+  });
+
+  it('asks for the nine clinic modules, with "Pacientes" always marked', () => {
+    setup();
+
+    expect(
+      screen.getByRole('checkbox', {
+        name: new RegExp(`^${messages.subscriptions.modules.catalog.patients.name}`),
+      }),
+    ).toBeChecked();
+    expect(screen.getByText(messages.subscriptions.modules.marked(1))).toBeInTheDocument();
+  });
+
+  it('asks for the four clinic limits', () => {
+    setup();
+
+    expect(
+      screen.getByRole('textbox', { name: new RegExp(`^${text.fields.consultingRoomsLimit}`) }),
+    ).toBeRequired();
+    expect(
+      screen.getByRole('textbox', { name: new RegExp(`^${text.fields.newPatientsPerYearLimit}`) }),
+    ).toBeRequired();
   });
 
   it('asks for other features', () => {

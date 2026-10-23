@@ -591,6 +591,8 @@ export const messages = {
     preview: {
       title: 'Vista previa',
       subtitle: 'Así verá el plan la clínica',
+      limitsTitle: 'Podrá dar de alta',
+      namePlaceholder: '[Nombre del plan]',
     },
   },
   // The Token tool of feature 005 (contracts/app-routes.md).

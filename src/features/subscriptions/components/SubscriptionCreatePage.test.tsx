@@ -51,16 +51,26 @@ const field = (label: string) => screen.getByRole('textbox', { name: new RegExp(
 const name = () => field(text.form.fields.name);
 const description = () => field(text.form.fields.description);
 const price = () => field(text.form.fields.monthlyPrice);
+const annualPrice = () => field(text.form.fields.annualPrice);
+const consultingRoomsLimit = () => field(text.form.fields.consultingRoomsLimit);
+const doctorsLimit = () => field(text.form.fields.doctorsLimit);
+const assistantsLimit = () => field(text.form.fields.assistantsLimit);
+const newPatientsPerYearLimit = () => field(text.form.fields.newPatientsPerYearLimit);
 const save = () => screen.getByRole('button', { name: new RegExp(`^${messages.common.save}`) });
 const cancel = () => screen.getByRole('link', { name: messages.common.cancel });
 
 async function fillIn(
   user: ReturnType<typeof renderCreate>['user'],
-  overrides: { name?: string; price?: string } = {},
+  overrides: { name?: string; price?: string; annualPrice?: string } = {},
 ) {
   await user.type(name(), overrides.name ?? 'Clínica Plus');
   await user.type(description(), 'Para clínicas medianas.');
   await user.type(price(), overrides.price ?? '3200.50');
+  await user.type(annualPrice(), overrides.annualPrice ?? '32000.50');
+  await user.type(consultingRoomsLimit(), '3');
+  await user.type(doctorsLimit(), '4');
+  await user.type(assistantsLimit(), '2');
+  await user.type(newPatientsPerYearLimit(), '8000');
 }
 
 describe('SubscriptionCreatePage', () => {
@@ -74,6 +84,18 @@ describe('SubscriptionCreatePage', () => {
     expect(name()).toHaveValue('');
     expect(price()).toHaveValue('');
     expect(screen.queryByLabelText(/estatus/i)).not.toBeInTheDocument();
+  });
+
+  it('shows the preview panel next to the form, updated live (FR-014)', async () => {
+    start();
+    const { user } = renderCreate();
+
+    expect(screen.getByText(messages.subscriptions.preview.title)).toBeInTheDocument();
+    expect(screen.getByText(messages.subscriptions.preview.namePlaceholder)).toBeInTheDocument();
+
+    await user.type(name(), 'Clínica Plus');
+
+    expect(screen.getAllByText('Clínica Plus').length).toBeGreaterThan(0);
   });
 
   describe('validating what is typed', () => {
@@ -109,14 +131,14 @@ describe('SubscriptionCreatePage', () => {
       const catalog = start();
       const { user, router } = renderCreate();
       await fillIn(user);
-      const add = screen.getByRole('button', { name: text.form.addFeature });
+      const add = screen.getByRole('button', { name: text.form.addOtherFeature });
       for (const value of ['Hasta 3 consultorios', 'Agenda', 'Recordatorios']) {
         await user.click(add);
         await user.keyboard(value);
       }
-      await user.clear(field(text.form.featureLabel(2)));
-      await user.type(field(text.form.featureLabel(2)), 'Agenda y pacientes');
-      await user.click(screen.getByRole('button', { name: text.form.removeFeature(3) }));
+      await user.clear(field(text.form.otherFeatureLabel(2)));
+      await user.type(field(text.form.otherFeatureLabel(2)), 'Agenda y pacientes');
+      await user.click(screen.getByRole('button', { name: text.form.removeOtherFeature(3) }));
 
       await user.click(save());
 
@@ -128,9 +150,47 @@ describe('SubscriptionCreatePage', () => {
         name: 'Clínica Plus',
         description: 'Para clínicas medianas.',
         monthly_price: '3200.50',
-        features: ['Hasta 3 consultorios', 'Agenda y pacientes'],
+        annual_price: '32000.50',
+        trial_days: 0,
+        self_service: false,
+        module_keys: ['patients'],
+        other_features: ['Hasta 3 consultorios', 'Agenda y pacientes'],
+        consulting_rooms_limit: 3,
+        doctors_limit: 4,
+        assistants_limit: 2,
+        new_patients_per_year_limit: 8000,
       });
       expect(catalog.state.find(8)).toMatchObject({ statusId: 1, clinicsCount: 0 });
+    });
+
+    it('creates it with autoconsumo, trial days and modules with a dependency (US2-4, W9)', async () => {
+      const catalog = start();
+      const { user } = renderCreate();
+      await fillIn(user);
+      await user.click(
+        screen.getByRole('switch', {
+          name: new RegExp(`^${text.form.fields.selfService}`),
+        }),
+      );
+      const trialDaysField = field(text.form.fields.trialDays);
+      await user.clear(trialDaysField);
+      await user.type(trialDaysField, '14');
+      // Marking Recordatorios (a dependent) also marks its prerequisite, Agenda y citas.
+      await user.click(
+        screen.getByRole('checkbox', {
+          name: new RegExp(`^${messages.subscriptions.modules.catalog.reminders.name}`),
+        }),
+      );
+
+      await user.click(save());
+
+      await screen.findByText(/^Detalle 8:/);
+      const body = catalog.requestsTo('POST', PATH)[0]?.body;
+      expect(body).toMatchObject({
+        trial_days: 14,
+        self_service: true,
+        module_keys: ['patients', 'reminders', 'scheduling'],
+      });
     });
 
     it('carries the search of the list it came from, to the detail and in «Cancelar»', async () => {
@@ -203,30 +263,51 @@ describe('SubscriptionCreatePage', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('shows a refusal of what it includes above the list, with an own text', async () => {
+    it('shows a refusal of other features above the list, with an own text', async () => {
       start();
       // The form never sends what the API would refuse here: the refusal is answered by hand.
       server.use(
         http.post(subscriptionsUrl(PATH), () =>
           HttpResponse.json(
-            errorBody('validation_error', [{ field: 'features', message: 'Un texto de la API' }]),
+            errorBody('validation_error', [
+              { field: 'other_features', message: 'Un texto de la API' },
+            ]),
             { status: 422 },
           ),
         ),
       );
       const { user } = renderCreate();
       await fillIn(user);
-      await user.click(screen.getByRole('button', { name: text.form.addFeature }));
+      await user.click(screen.getByRole('button', { name: text.form.addOtherFeature }));
       await user.keyboard('Agenda');
 
       await user.click(save());
 
-      const error = await screen.findByText(text.errors.fields.features);
+      const error = await screen.findByText(text.errors.fields.otherFeatures);
       expect(
-        error.compareDocumentPosition(field(text.form.featureLabel(1))) &
+        error.compareDocumentPosition(field(text.form.otherFeatureLabel(1))) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
       expect(screen.queryByText('Un texto de la API')).not.toBeInTheDocument();
+    });
+
+    it('shows a refusal of the modules next to the modules section, with an own text (research D10)', async () => {
+      start();
+      server.use(
+        http.post(subscriptionsUrl(PATH), () =>
+          HttpResponse.json(errorBody('subscription_module_prerequisite_missing'), {
+            status: 409,
+          }),
+        ),
+      );
+      const { user } = renderCreate();
+      await fillIn(user);
+
+      await user.click(save());
+
+      expect(await screen.findByText(text.errors.fields.moduleKeys)).toBeInTheDocument();
+      // The rest of what was typed is kept.
+      expect(name()).toHaveValue('Clínica Plus');
     });
 
     it('shows a refusal of a field the form does not have as a general error, with the focus', async () => {
