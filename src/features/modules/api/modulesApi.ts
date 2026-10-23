@@ -1,9 +1,10 @@
 import { z } from 'zod';
 
+import { ApiError } from '@/shared/api/ApiError';
 import type { HttpClient } from '@/shared/api/httpClient';
 
 import type { ModuleActionKey } from '../schemas/moduleActionCatalog';
-import type { CreateModuleBody } from '../schemas/moduleForm';
+import type { CreateModuleBody, UpdateModuleBody } from '../schemas/moduleForm';
 import { attachModuleActions, type ModulePermissionRef } from '../schemas/attachModuleActions';
 import { systemModuleSchema, type SystemModuleBase, type SystemModule } from '../schemas/systemModule';
 
@@ -52,6 +53,22 @@ export function createModule(
   return client.request({ path: MODULES_PATH, method: 'POST', body, schema: systemModuleSchema, signal });
 }
 
+/** `PATCH /api/v1/modules/{id}` with only the fields given (FR-014, FR-015: never `key` nor `type_id`). */
+export function updateModule(
+  client: HttpClient,
+  moduleId: number,
+  body: UpdateModuleBody,
+  { signal }: Cancellable = {},
+): Promise<SystemModuleBase> {
+  return client.request({
+    path: `${MODULES_PATH}/${moduleId}`,
+    method: 'PATCH',
+    body,
+    schema: systemModuleSchema,
+    signal,
+  });
+}
+
 const createdPermissionSchema = z.object({ id: z.number() });
 
 /**
@@ -73,4 +90,25 @@ export function createModuleAction(
       signal,
     })
     .then((created) => created.id);
+}
+
+/**
+ * Unmarks one action of a module: deletes the permission by its id (research D5). A `404
+ * permission_not_found` is resolved as success (contracts/modules-service.md): the result it asked
+ * for — that the permission not exist — already holds.
+ */
+export function deleteModuleAction(
+  client: HttpClient,
+  permissionId: number,
+  { signal }: Cancellable = {},
+): Promise<void> {
+  // The client validates every answer, even an empty one: an empty body is read as `undefined`.
+  return client
+    .request({ path: `${PERMISSIONS_PATH}/${permissionId}`, method: 'DELETE', schema: z.undefined(), signal })
+    .catch((error: unknown) => {
+      if (error instanceof ApiError && error.code === 'permission_not_found') {
+        return undefined;
+      }
+      throw error;
+    });
 }

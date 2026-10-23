@@ -11,13 +11,13 @@ import { ModuleFormFields } from './ModuleFormFields';
 
 function Harness({
   moduleKey = 'appointments',
-  nextSortOrder = 160,
+  orderHelp = 'Opcional. Si lo dejas vacío, queda al final (160).',
   actions = initialModuleFormValues.actions,
   onActionToggle = vi.fn(),
   withError = false,
 }: {
   readonly moduleKey?: string;
-  readonly nextSortOrder?: number;
+  readonly orderHelp?: string;
   readonly actions?: ReadonlySet<ModuleActionKey>;
   readonly onActionToggle?: (action: ModuleActionKey, checked: boolean) => void;
   readonly withError?: boolean;
@@ -36,7 +36,7 @@ function Harness({
       register={register}
       errors={formState.errors}
       moduleKey={moduleKey}
-      nextSortOrder={nextSortOrder}
+      orderHelp={orderHelp}
       actions={actions}
       onActionToggle={onActionToggle}
     />
@@ -52,6 +52,12 @@ describe('ModuleFormFields', () => {
     expect(screen.getByText('Opcional. Hasta 500 caracteres.')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Orden' })).toBeInTheDocument();
     expect(screen.getByText('Opcional. Si lo dejas vacío, queda al final (160).')).toBeInTheDocument();
+  });
+
+  it('shows whatever Orden help text the caller gives (alta and edición mean different things by empty)', () => {
+    render(<Harness orderHelp="Opcional. Si lo dejas vacío, queda como estaba." />);
+
+    expect(screen.getByText('Opcional. Si lo dejas vacío, queda como estaba.')).toBeInTheDocument();
   });
 
   it('shows the four actions, each with its permission name under the moduleKey given', () => {

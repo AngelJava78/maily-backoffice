@@ -10,15 +10,15 @@ import RadioGroup from '@mui/material/RadioGroup';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import { useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useRef, useState } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { messages } from '@/shared/messages/es';
 import { useNotify } from '@/shared/ui/Notifications';
 
 import { describeModuleError } from '../api/moduleErrors';
 import { useCreateModule } from '../hooks/useCreateModule';
-import { MODULE_TYPE, type ModuleTypeId } from '../schemas/moduleActionCatalog';
+import { MODULE_TYPE } from '../schemas/moduleActionCatalog';
 import {
   initialModuleFormValues,
   moduleFormSchema,
@@ -49,7 +49,7 @@ export function ModuleCreatePanel({ nextSortOrder, onCreated, onCancel }: Module
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     setValue,
     setError,
     formState: { errors, isSubmitting },
@@ -57,9 +57,19 @@ export function ModuleCreatePanel({ nextSortOrder, onCreated, onCancel }: Module
     resolver: zodResolver(moduleFormSchema),
     defaultValues: initialModuleFormValues,
   });
-  const type = watch('type');
-  const key = watch('key');
-  const actions = watch('actions');
+  // `useWatch`, not the `watch()` escape hatch `useForm()` returns: the latter cannot be memoized
+  // safely (React Compiler).
+  const type = useWatch({ control, name: 'type' });
+  const key = useWatch({ control, name: 'key' });
+  const actions = useWatch({ control, name: 'actions' });
+
+  // Same reason as `FormFrame`: the ref is read from an effect, never from inside the submit
+  // handler itself, so React (and its compiler) never sees it as a render-time read.
+  useEffect(() => {
+    if (generalError !== undefined) {
+      errorRef.current?.focus();
+    }
+  }, [generalError]);
 
   const save = handleSubmit(async (values) => {
     setGeneralError(undefined);
@@ -80,7 +90,6 @@ export function ModuleCreatePanel({ nextSortOrder, onCreated, onCancel }: Module
       const message = applyModuleRefusal(outcome, setError);
       if (message !== undefined) {
         setGeneralError(message);
-        errorRef.current?.focus();
       }
     }
   });
@@ -110,7 +119,8 @@ export function ModuleCreatePanel({ nextSortOrder, onCreated, onCancel }: Module
               row
               value={String(type)}
               onChange={(event) => {
-                setValue('type', Number(event.target.value) as ModuleTypeId, { shouldDirty: true });
+                const next = event.target.value === String(MODULE_TYPE.CLINIC) ? MODULE_TYPE.CLINIC : MODULE_TYPE.SYSTEM;
+                setValue('type', next, { shouldDirty: true });
               }}
             >
               <Stack direction="row" useFlexGap sx={{ gap: 2, flexWrap: 'wrap' }}>
@@ -153,7 +163,7 @@ export function ModuleCreatePanel({ nextSortOrder, onCreated, onCancel }: Module
             register={register}
             errors={errors}
             moduleKey={key}
-            nextSortOrder={nextSortOrder}
+            orderHelp={text.form.fields.orderHelp(nextSortOrder)}
             actions={actions}
             onActionToggle={(action, checked) => {
               setValue('actions', withActionChecked(actions, action, checked), { shouldDirty: true });

@@ -188,12 +188,15 @@ export const messages = {
         descriptionHelp: 'Opcional. Hasta 500 caracteres.',
         order: 'Orden',
         orderHelp: (n: number) => `Opcional. Si lo dejas vacío, queda al final (${n}).`,
+        orderHelpEdit: 'Opcional. Si lo dejas vacío, queda como estaba.',
         actionsLabel: 'Acciones del módulo',
       },
       actionsHelp:
         'Cada acción marcada es un permiso. Después se da a los roles en Roles y permisos.',
+      uncheckActionTitle: 'Quitar acción',
       uncheckActionConfirm: (action: string, moduleName: string) =>
         `¿Quitar la acción «${action}» del módulo «${moduleName}»? Quien ya la tenga por un role podría perder esa acción.`,
+      uncheckActionRemove: 'Quitar',
       save: 'Guardar cambios',
       discard: 'Descartar cambios',
       create: 'Crear módulo',
@@ -224,6 +227,8 @@ export const messages = {
       createdPartial: (failedLabels: string) =>
         `Módulo creado, pero no se pudo marcar: ${failedLabels}. Puedes reintentarlo desde Editar.`,
       saved: 'Cambios guardados.',
+      savedPartial: (failedLabels: string) =>
+        `Cambios guardados, pero no se pudo aplicar: ${failedLabels}. Puedes reintentarlo.`,
     },
     errors: {
       formInvalid: 'Revisa los datos del formulario.',

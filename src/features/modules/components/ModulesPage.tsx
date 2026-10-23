@@ -17,6 +17,7 @@ import { useModulesLocation } from '../hooks/useModulesLocation';
 import { filterModules } from '../policy/filterModules';
 import { MODULE_STATUS } from '../schemas/moduleActionCatalog';
 import { ModuleCreatePanel } from './ModuleCreatePanel';
+import { ModuleEditPanel } from './ModuleEditPanel';
 import { ModulesFilters } from './ModulesFilters';
 import { ModulesTable } from './ModulesTable';
 
@@ -93,7 +94,8 @@ export function ModulesPage({ capabilities }: ModulesPageProps) {
   }
 
   function panel() {
-    if (location.panel.kind === 'create') {
+    const panelState = location.panel;
+    if (panelState.kind === 'create') {
       return (
         <ModuleCreatePanel
           nextSortOrder={nextSortOrder}
@@ -101,6 +103,15 @@ export function ModulesPage({ capabilities }: ModulesPageProps) {
           onCancel={closePanel}
         />
       );
+    }
+    if (panelState.kind === 'edit') {
+      // The row already has the module loaded by the list query (research D10): no request of its
+      // own to open the panel.
+      const editing = (query.data ?? []).find((module) => module.id === panelState.moduleId);
+      if (editing !== undefined) {
+        return <ModuleEditPanel module={editing} />;
+      }
+      return loaded ? <EmptyState message={text.errors.notFound} /> : <PageLoader />;
     }
     return <EmptyState message={text.panel.emptyState} />;
   }

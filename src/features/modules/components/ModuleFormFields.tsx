@@ -19,8 +19,12 @@ interface ModuleFormFieldsProps {
   readonly errors: FieldErrors<ModuleFormValues>;
   /** The module's key, to show under each action its real permission name (`<key>:<acción>`). */
   readonly moduleKey: string;
-  /** What "Si lo dejas vacío, queda al final" resolves to right now (research D13: global, not per type). */
-  readonly nextSortOrder: number;
+  /**
+   * The help text under Orden: alta and edición mean something different when it is left empty
+   * (research D13: "goes to the end" vs. "stays as it was", FR-011), so the caller supplies the
+   * exact text instead of a number this component would have to interpret.
+   */
+  readonly orderHelp: string;
   readonly actions: ReadonlySet<ModuleActionKey>;
   /** The parent owns `actions` (US3 needs to confirm before applying an uncheck, research D9). */
   readonly onActionToggle: (action: ModuleActionKey, checked: boolean) => void;
@@ -35,7 +39,7 @@ export function ModuleFormFields({
   register,
   errors,
   moduleKey,
-  nextSortOrder,
+  orderHelp,
   actions,
   onActionToggle,
 }: ModuleFormFieldsProps) {
@@ -73,7 +77,7 @@ export function ModuleFormFields({
         slotProps={{ htmlInput: { inputMode: 'numeric' } }}
         sx={{ maxWidth: { sm: 240 } }}
         error={errors.sortOrder !== undefined}
-        helperText={errors.sortOrder?.message ?? text.fields.orderHelp(nextSortOrder)}
+        helperText={errors.sortOrder?.message ?? orderHelp}
       />
 
       <Stack component="fieldset" spacing={1} sx={{ border: 'none', p: 0, m: 0 }}>

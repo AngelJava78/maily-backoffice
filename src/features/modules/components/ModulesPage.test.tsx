@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { describe, expect, it } from 'vitest';
@@ -111,6 +111,20 @@ describe('ModulesPage', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: '+ Nuevo módulo' }));
 
     expect(screen.getByRole('heading', { name: 'Nuevo módulo' })).toBeInTheDocument();
+  });
+
+  it('opens the edit panel from a row\'s "Editar", with its data and no new request (US3, research D10)', async () => {
+    const mock = createModulesCatalogMock();
+    renderPage();
+    await screen.findByText('23 módulos activos');
+    const requestsBefore = mock.requestCount;
+
+    const row = screen.getByRole('row', { name: /Agenda y citas/ });
+    await userEvent.setup().click(within(row).getByRole('button', { name: 'Editar' }));
+
+    expect(screen.getByRole('heading', { name: 'Editar módulo' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Nombre' })).toHaveValue('Agenda y citas');
+    expect(mock.requestCount).toBe(requestsBefore);
   });
 
   it('hides "+ Nuevo módulo" without canCreate', async () => {

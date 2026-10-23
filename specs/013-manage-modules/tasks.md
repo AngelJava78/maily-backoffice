@@ -399,12 +399,16 @@ igual (quickstart W10 a W13).
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T056 [P] [US3] Ampliar `src/features/modules/api/modulesApi.update.test.ts` (tras T033):
+- [X] T056 [P] [US3] Ampliar `src/features/modules/api/modulesApi.update.test.ts` (tras T033):
   `updateModule(client, id, body)` hace `PATCH /api/v1/modules/{id}` solo con los campos presentes
   en `body`; `deleteModuleAction(client, permissionId)` hace `DELETE
   /api/v1/permissions/{permissionId}` y, si la API responde `404 permission_not_found`, lo resuelve
   como éxito (ya se cumplió lo que se pedía; [contracts/modules-service.md](contracts/modules-service.md)).
-- [ ] T057 [P] [US3] Escribir `src/features/modules/components/ModuleEditPanel.test.tsx` (tras
+  Se sumaron `deleteModuleActions.test.ts` y `updateModuleWithChanges.test.ts` (mismo patrón de
+  `createModuleActions`/`createModuleWithActions` de US2: la orquesta secuencial de PATCH + altas +
+  bajas de acciones no quedó en el panel sino en `api/`, con `useUpdateModule.ts` como hook de
+  mutación).
+- [X] T057 [P] [US3] Escribir `src/features/modules/components/ModuleEditPanel.test.tsx` (tras
   T052, T009): Clave y Tipo se muestran como información fija (no campos editables), con el texto
   "La clave y el tipo no cambian nunca"; `ModuleFormFields` abre con los valores actuales
   (`toFormValues`); marcar una acción que no tenía la dispara de inmediato en el formulario sin
@@ -413,27 +417,40 @@ igual (quickstart W10 a W13).
   `PATCH` solo si cambió nombre/descripción/orden y, por separado, crea o elimina solo las acciones
   que cambiaron, en secuencia; "Descartar cambios" vuelve a los valores actuales sin guardar; con el
   módulo base `users`, el nombre, la descripción y el orden se pueden cambiar igual que cualquier
-  otro.
-- [ ] T058 [US3] Ampliar `src/features/modules/components/ModulesPage.test.tsx` (tras T057): pulsar
+  otro. Se reutilizó el `ConfirmDialog` compartido para la confirmación de desmarcar (mismo patrón
+  que `UserRolesPanel`'s quitar role). De paso se corrigió `ModuleFormFields` para que el texto de
+  ayuda de Orden lo dé el caller (`orderHelp: string`) en vez de calcularlo internamente desde
+  `nextSortOrder`: en edición, un Orden vacío significa "déjalo como estaba" (FR-011), no "al
+  final", así que el mismo texto fijo de alta ya no aplicaba.
+- [X] T058 [US3] Ampliar `src/features/modules/components/ModulesPage.test.tsx` (tras T057): pulsar
   Editar en una fila abre `ModuleEditPanel` con los datos de esa fila (`?edit=<id>`, sin una
   solicitud nueva: reutiliza el módulo ya cargado por la lista, research D10).
-- [ ] T059 [US3] Escribir `src/app/router/modules/editModule.integration.test.tsx` (tras T058): el
+- [X] T059 [US3] Escribir `src/app/router/modules/editModule.integration.test.tsx` (tras T058): el
   recorrido completo de W10 a W13 del quickstart.
 
 ### Implementation for User Story 3
 
-- [ ] T060 [P] [US3] Ampliar `src/features/modules/api/modulesApi.ts` (tras T056, T033):
+- [X] T060 [P] [US3] Ampliar `src/features/modules/api/modulesApi.ts` (tras T056, T033):
   `updateModule`, `deleteModuleAction`. Hace pasar T056.
-- [ ] T061 [US3] Implementar `src/features/modules/components/ModuleEditPanel.tsx` (tras T057,
+- [X] T061 [US3] Implementar `src/features/modules/components/ModuleEditPanel.tsx` (tras T057,
   T060, T052, T009): reutiliza `ModuleFormFields`; el diálogo de confirmación al desmarcar una
   acción (research D9); aplica `updateModule` y, en secuencia, `createModuleAction`/
-  `deleteModuleAction` por cada acción que cambió. Hace pasar T057.
-- [ ] T062 [US3] Ampliar `src/features/modules/components/ModulesPage.tsx` (tras T058, T054, T061):
+  `deleteModuleAction` por cada acción que cambió. Hace pasar T057. De paso se corrigió un error de
+  permisos ya presente en el simulador (`src/test/handlers/modulesCatalog/remove.ts`):
+  `DELETE /permissions/{id}` (desmarcar una acción) exigía `modules:delete` en vez de
+  `modules:update`, inconsistente con FR-014/FR-016/FR-017 (desmarcar es parte de modificar, no de
+  eliminar el módulo); y se cambió `watch()` de React Hook Form por `useWatch()` en
+  `ModuleCreatePanel`/`ModuleEditPanel`, con el foco del error general movido a un `useEffect`
+  (mismo patrón que `FormFrame`), porque la función `watch()` no se puede memoizar de forma segura
+  y ocultaba un segundo error del compilador de React al dejar de analizar el componente.
+- [X] T062 [US3] Ampliar `src/features/modules/components/ModulesPage.tsx` (tras T058, T054, T061):
   el botón Editar de cada fila (gated por `capabilities.canEdit`) abre el panel con
   `useModulesLocation().openEdit(id)`; renderizar `ModuleEditPanel` cuando `location.panel.kind ===
   'edit'`, tomando el módulo ya presente en la caché de la consulta de la lista. Hace pasar T058.
-- [ ] T063 [US3] Punto de control de la historia: ejecutar las pruebas y validar manualmente W10 a
-  W13 de [quickstart.md](quickstart.md).
+- [X] T063 [US3] Punto de control de la historia: ejecutar las pruebas y validar manualmente W10 a
+  W13 de [quickstart.md](quickstart.md). 180 pruebas en verde en el alcance de módulos
+  (`src/features/modules`, `src/app/router/modules`); `tsc -b` y `eslint` sin errores nuevos fuera
+  de la 012.
 
 **Checkpoint**: consultar, crear y modificar un módulo funcionan juntos de punta a punta.
 
