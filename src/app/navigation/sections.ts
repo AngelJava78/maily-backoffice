@@ -19,6 +19,11 @@ export interface SectionDefinition {
  * inject example sections of their own.
  */
 export const sections: readonly SectionDefinition[] = [
+  // Roles y permisos (feature 013), first in the registry: the menu order the feature asks for
+  // (FR-002) is Panel, Módulos, Roles y Permisos, Usuarios, Suscripciones, Clínicas, Token: with
+  // Módulos and Clínicas not registered yet, this leaves Panel, Roles y permisos, Usuarios,
+  // Suscripciones, Token. Insert the future Módulos section before this one, not after.
+  { id: 'roles', path: '/roles', labelKey: 'roles', resource: 'roles', icon: 'roles' },
   { id: 'users', path: '/users', labelKey: 'users', resource: 'users', icon: 'users' },
   // The subscriptions section of feature 003: listed for whoever has `subscriptions:read`.
   {

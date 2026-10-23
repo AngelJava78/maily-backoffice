@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  can,
-  hasAnythingToSee,
-  SECTION_RESOURCES,
-  type PermissionAction,
-} from '@/features/auth/policy/permissions';
+import { can, hasAnythingToSee, type PermissionAction } from '@/features/auth/policy/permissions';
 import { evaluateAccess } from '@/features/auth/policy/evaluateAccess';
 import { myAccessSchema } from '@/features/auth/schemas/myAccess';
 import { myAccessDto, roleDto } from '@/test/factories';
@@ -14,6 +9,12 @@ import { sampleSections } from '@/test/sampleSections';
 import { getVisibleSections } from './sections';
 
 const ACTIONS: readonly PermissionAction[] = ['read', 'write', 'update', 'delete'];
+/**
+ * The three sections `sampleSections` stands for (features 002 to 004). Deliberately not
+ * `SECTION_RESOURCES` from the policy module: this file is about these three specifically, and
+ * must not change just because a later feature (013: Roles y permisos) adds a resource of its own.
+ */
+const SAMPLE_RESOURCES = ['users', 'subscriptions', 'tenants'] as const;
 
 /** Every `resource:action` pair of the three sections, for a role that has them all. */
 function allPermissions(resources: readonly string[]): string[] {
@@ -24,7 +25,8 @@ function allPermissions(resources: readonly string[]): string[] {
 const administrator = roleDto({
   id: 1,
   name: 'Administrator',
-  // The platform also gives it permissions on roles and permissions, which have no section.
+  // The platform also gives it permissions on roles (its own section since feature 013, exercised
+  // in roles.*.test.ts, not here) and on permissions (still no section of its own).
   permissions: [
     ...allPermissions(['users', 'subscriptions', 'tenants']),
     ...allPermissions(['roles', 'permissions']),
@@ -44,7 +46,7 @@ const owner = roleDto({
 
 /** The pairs `resource:action` for which `can` answers yes, over the three known resources. */
 function allowedActions(permissions: ReadonlySet<string>): string[] {
-  return SECTION_RESOURCES.flatMap((resource) =>
+  return SAMPLE_RESOURCES.flatMap((resource) =>
     ACTIONS.filter((action) => can({ permissions }, { resource, action })).map(
       (action) => `${resource}:${action}`,
     ),
@@ -135,7 +137,7 @@ describe('sections and actions per role (SC-007, FR-017)', () => {
           .filter((role) => role.name !== 'Owner')
           .flatMap((role) => role.permissions)
           .filter((permission) =>
-            SECTION_RESOURCES.some((resource) => permission.startsWith(`${resource}:`)),
+            SAMPLE_RESOURCES.some((resource) => permission.startsWith(`${resource}:`)),
           ),
       );
 

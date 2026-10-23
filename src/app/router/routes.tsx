@@ -10,6 +10,7 @@ import { NotFoundPage } from '../pages/LazyNotFoundPage';
 import { AccessDeniedRoute } from './AccessDeniedRoute';
 import { HomeRoute } from './HomeRoute';
 import { ProtectedRoute } from './ProtectedRoute';
+import { RolesRoute } from './roles/RolesRoute';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
 import { SubscriptionCreateRoute } from './subscriptions/SubscriptionCreateRoute';
 import { SubscriptionDetailRoute } from './subscriptions/SubscriptionDetailRoute';
@@ -90,6 +91,27 @@ export const appRoutes: RouteObject[] = [
                 Component: ProfilePage,
                 handle: { titleKey: 'profile' },
                 ErrorBoundary: RouteErrorBoundary,
+              },
+              // Roles y permisos (feature 013): seeing it needs `roles:read`; creating, editing and
+              // deleting a role ask for `roles:write`/`roles:update`/`roles:delete` from the matrix
+              // itself (contracts/app-routes.md). A single route: the tab and the selected role live
+              // in the URL's search params (research D5), not in separate paths.
+              {
+                path: '/roles',
+                element: (
+                  <RequirePermission resource="roles">
+                    <Outlet />
+                  </RequirePermission>
+                ),
+                ErrorBoundary: RouteErrorBoundary,
+                children: [
+                  {
+                    index: true,
+                    Component: RolesRoute,
+                    handle: { titleKey: 'roles' },
+                    ErrorBoundary: RouteErrorBoundary,
+                  },
+                ],
               },
               // The users section: seeing it needs `users:read`, and each screen asks for more when
               // it does more (feature 002, contracts/app-routes.md).

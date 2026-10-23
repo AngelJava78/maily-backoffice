@@ -1,19 +1,21 @@
 <!--
 Sync Impact Report
-Version change: 1.3.0 → 1.4.0 (MINOR: ampliación material de guías dentro de principios existentes)
+Version change: 1.4.0 → 1.5.0 (MINOR: nuevo recurso administrado reconocido en el alcance del
+  producto, y ampliación material del Principio VI para cubrirlo)
 Modified principles:
-  - I. Arquitectura por Features y React Idiomático — se agrega una excepción a la regla de
-    identificadores en inglés, limitada a los NOMBRES de los tokens de diseño que repliquen un
-    sistema de diseño de referencia externo (caso actual: tokens de web-soft para la feature
-    008-design-system).
-  - Stack obligatorio (sección "Alcance, Stack y Restricciones Técnicas") — se agrega la licencia
-    SIL Open Font License 1.1 (OFL-1.1) a las licencias permitidas, limitada a activos de fuente
-    tipográfica (p. ej. Inter autoalojada), sin cambiar el límite de licencias para dependencias
-    de código.
+  - Alcance del producto — se agrega (4) roles y sus permisos por módulo y acción (Clínica y
+    Sistema) a la lista de lo que administra el Backoffice, consumiendo el catálogo de módulos y
+    acciones que ya expone MailySoft Usuarios (ese catálogo no se crea ni edita desde el
+    Backoffice); se aclara que roles se sirve desde la misma API de usuarios, sin backend nuevo.
+  - VI. Experiencia de Usuario, Accesibilidad y Consistencia — "Los tres recursos DEBEN seguir el
+    mismo patrón..." se generaliza a "Los recursos administrados DEBEN...", y se documenta la
+    variante de presentación de Roles (lista maestro-detalle en una sola pantalla, con pestañas por
+    tipo) como parte normal del patrón para ese recurso, no como excepción con Complexity Tracking.
 Added sections: ninguna (ampliación dentro de secciones existentes).
 Removed sections: ninguna.
-Templates/comandos dependientes: no requieren cambios (las excepciones son acotadas y no alteran
-  la estructura de Technical Context / Constitution Check de plan.md ni de otros comandos).
+Templates/comandos dependientes: no requieren cambios (el Constitution Check de plan.md sigue
+  aplicando igual; la variante de Roles queda ya justificada aquí y no exige una entrada nueva en
+  Complexity Tracking).
 Follow-up TODOs: ninguno.
 -->
 
@@ -223,9 +225,12 @@ autorización vive en las APIs y los tokens nunca se persisten.
   automático del siguiente ciclo PUEDE sustituir a la acción de reintentar; si falla una
   actualización con datos en pantalla, DEBEN conservarse junto con la hora de su última
   actualización correcta y DEBE avisarse de que no se pudieron actualizar.
-- Los tres recursos DEBEN seguir el mismo patrón para Listar, Mostrar, Crear, Modificar y Eliminar:
-  listado paginado, detalle, formulario compartido para crear y editar, y eliminación con diálogo
-  de confirmación.
+- Los recursos administrados DEBEN seguir el mismo patrón para Listar, Mostrar, Crear, Modificar y
+  Eliminar: listado paginado, detalle, formulario compartido para crear y editar, y eliminación con
+  diálogo de confirmación. El recurso de Roles sigue este patrón con una variante de presentación:
+  lista maestro-detalle en una sola pantalla, con pestañas por tipo (Clínica/Sistema), en vez de
+  listado y detalle en rutas separadas; esta variante es parte normal del patrón para ese recurso y
+  no requiere Complexity Tracking.
 - Las acciones destructivas o de alto impacto (eliminar cualquier recurso, cambiar el role de
   sistema de un usuario, asignar o cambiar el owner de una clínica) DEBEN pedir confirmación
   explícita que nombre el recurso afectado.
@@ -268,16 +273,20 @@ probar comportamiento y no implementación las mantiene útiles ante cambios de 
 ### Alcance del producto
 
 - MailySoft Backoffice es una SPA interna cuyo único origen de datos son las APIs REST de MailySoft.
-  Administra (1) usuarios y su role de sistema, (2) suscripciones y (3) clínicas, donde crear
-  una clínica asigna un owner que pasa a ser su administrador. Incluye login, logout, perfil del
-  usuario, el Panel (la página principal, con un resumen de solo lectura de la plataforma) y la
-  herramienta temporal de token para Postman.
+  Administra (1) usuarios y su role de sistema, (2) suscripciones, (3) clínicas, donde crear
+  una clínica asigna un owner que pasa a ser su administrador, y (4) roles y sus permisos por
+  módulo y acción (de tipo Clínica y de tipo Sistema), consumiendo el catálogo de módulos y
+  acciones que ya expone MailySoft Usuarios — ese catálogo (qué módulos existen y qué acciones
+  admite cada uno) se consume tal cual y no se crea ni edita desde el Backoffice. Incluye login,
+  logout, perfil del usuario, el Panel (la página principal, con un resumen de solo lectura de la
+  plataforma) y la herramienta temporal de token para Postman.
 - "Administrar" significa Listar, Mostrar, Crear, Modificar y Eliminar.
 - El repositorio contiene solo el frontend, como proyecto único en la raíz (sin monorepo). Los
   backends viven fuera y solo se simulan con MSW en las pruebas.
 - Ejemplos de desarrollo local (no normativos; siempre configurables por entorno):
   usuarios `http://127.0.0.1:8000/api/v1/users`, clínicas `http://127.0.0.1:8001/api/v1/clinics`,
-  suscripciones `http://127.0.0.1:8002/api/v1/suscriptions`.
+  suscripciones `http://127.0.0.1:8002/api/v1/suscriptions`. Roles y permisos se sirven desde la
+  misma API de usuarios: no agregan un backend nuevo.
 
 ### Stack obligatorio
 
@@ -359,4 +368,4 @@ probar comportamiento y no implementación las mantiene útiles ante cambios de 
   trimestre o tras cada release mayor.
 - La guía operativa de desarrollo vive en `README.md` y en `specs/<feature>/quickstart.md`.
 
-**Version**: 1.4.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-21
+**Version**: 1.5.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-23

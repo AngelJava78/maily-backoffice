@@ -145,14 +145,23 @@ export function toUserDto(user: DirectoryUser): UserDto {
   };
 }
 
+function typeOf(typeId: number): { id: number; name: string } {
+  return { id: typeId, name: TYPE_NAMES.get(typeId) ?? 'Desconocido' };
+}
+
 export function toRoleRecordDto(role: DirectoryRole): RoleRecordDto {
-  return {
+  // Feature 013 adds `type`, kept outside the literal so the extra field is not an excess-property
+  // error against `RoleRecordDto`. `roleSchema` (features/users) strips unknown keys on its own
+  // side, so this does not affect the simpler Role it already parses from this same endpoint.
+  const dto = {
     id: role.id,
     name: role.name,
     description: role.description,
     created_at: role.createdAt,
     status: statusOf(role.statusId),
+    type: typeOf(role.typeId),
   };
+  return dto;
 }
 
 const collator = new Intl.Collator('es', { sensitivity: 'base' });
@@ -211,6 +220,9 @@ const userNotFound = (): DirectoryError =>
 
 const roleNotFound = (): DirectoryError =>
   new DirectoryError(404, 'role_not_found', 'El role no existe o no está activo.');
+
+const roleNameConflict = (): DirectoryError =>
+  new DirectoryError(409, 'role_name_already_exists', 'Ya existe un role con ese nombre.');
 
 /**
  * The data of the users service and its rules (contracts/users-service.md), in memory and without
@@ -292,6 +304,25 @@ export function createDirectoryModel(initial: DirectoryInitial) {
 
   function nextId(items: readonly { readonly id: number }[]): number {
     return items.reduce((highest, item) => Math.max(highest, item.id), 0) + 1;
+  }
+
+  /** Feature 013: the name a role would take is already used by another non-deleted role. */
+  function roleNameTaken(name: string, excludeId?: number): boolean {
+    const normalized = name.trim().toLowerCase();
+    return roles.some(
+      (role) =>
+        role.id !== excludeId &&
+        role.statusId !== DELETED &&
+        role.name.toLowerCase() === normalized,
+    );
+  }
+
+  function getActiveRole(id: number): DirectoryRole {
+    const role = findRole(id);
+    if (role?.statusId !== ACTIVE) {
+      throw roleNotFound();
+    }
+    return role;
   }
 
   /** The id of the next user: the number after the highest one made with `uuidOf`, as a UUID. */
@@ -452,6 +483,50 @@ export function createDirectoryModel(initial: DirectoryInitial) {
         throw new DirectoryError(409, 'user_role_not_associated', 'El usuario no tiene ese role.');
       }
       links.splice(index, 1);
+    },
+
+    /** Feature 013: creates an active role with no permissions. The type never changes afterward. */
+    createRole(input: { name: string; description: string | null; typeId: number }): DirectoryRole {
+      const name = input.name.trim();
+      if (roleNameTaken(name)) {
+        throw roleNameConflict();
+      }
+      const role: DirectoryRole = {
+        id: nextId(roles),
+        name,
+        description: input.description,
+        createdAt: now(),
+        statusId: ACTIVE,
+        typeId: input.typeId,
+        permissions: [],
+      };
+      roles = [...roles, role];
+      return role;
+    },
+
+    /** Feature 013: changes the name and/or the description of an active role; the type is fixed. */
+    updateRole(id: number, changes: { name?: string; description?: string | null }): DirectoryRole {
+      const role = getActiveRole(id);
+      const name = changes.name?.trim() ?? role.name;
+      if (changes.name !== undefined && roleNameTaken(name, id)) {
+        throw roleNameConflict();
+      }
+      const updated: DirectoryRole = {
+        ...role,
+        name,
+        description: changes.description === undefined ? role.description : changes.description,
+      };
+      replaceRole(updated);
+      return updated;
+    },
+
+    /**
+     * Feature 013: logical deletion. Allowed even with users or permissions still linked to the
+     * role (contracts/roles-service.md, verified against `role_service.py`): they stay as they are.
+     */
+    deleteRole(id: number): void {
+      const role = getActiveRole(id);
+      replaceRole({ ...role, statusId: DELETED });
     },
 
     // --- Helpers to prepare the data of a test, which apply no rule ---
