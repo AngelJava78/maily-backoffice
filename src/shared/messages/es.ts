@@ -104,6 +104,7 @@ export const messages = {
     // Accessible name of the avatar button that opens the profile menu (011-profile-avatar-menu).
     profileMenu: (displayName: string) => `Menú de ${displayName}`,
     sections: {
+      modules: 'Módulos',
       users: 'Usuarios',
       subscriptions: 'Suscripciones',
       clinics: 'Clínicas',
@@ -127,6 +128,106 @@ export const messages = {
     // 011-profile-avatar-menu, US3: la API de usuarios todavía no soporta subir una fotografía.
     changePhoto: 'Cambiar foto',
     changePhotoUnavailable: 'Cambiar la fotografía todavía no está disponible.',
+  },
+  modules: {
+    title: 'Módulos',
+    subtitle:
+      'Las partes del sistema a las que se dan permisos. Los de Sistema son pantallas del Backoffice y los de Clínica, de la aplicación para clínicas.',
+    newAction: '+ Nuevo módulo',
+    filters: {
+      type: { all: 'Todos', system: 'Sistema', clinic: 'Clínica' },
+      status: { active: 'Activos', blocked: 'Bloqueados' },
+      search: 'Nombre o clave',
+    },
+    count: {
+      active: (n: number) => `${n} módulos activos`,
+      blocked: (n: number) => `${n} módulos bloqueados`,
+      noResults: 'Ningún módulo coincide con la búsqueda.',
+      noneBlocked: 'No hay módulos bloqueados.',
+    },
+    groups: {
+      system: (n: number) => `Sistema, pantallas del Backoffice · ${n} módulos`,
+      clinic: (n: number) => `Clínica, aplicación para clínicas · ${n} módulos`,
+    },
+    columns: {
+      order: 'Orden',
+      module: 'Módulo',
+      type: 'Tipo',
+      permissions: 'Permisos',
+      action: 'Acción',
+    },
+    baseBadge: 'Base',
+    type: { system: 'Sistema', clinic: 'Clínica' },
+    typeHelp: { system: 'Pantallas del Backoffice', clinic: 'Aplicación para clínicas' },
+    actions: { read: 'Ver', write: 'Crear', update: 'Modificar', delete: 'Eliminar' },
+    panel: {
+      editTitle: 'Editar módulo',
+      createTitle: 'Nuevo módulo',
+      emptyState: 'Selecciona un módulo para editarlo, o crea uno nuevo.',
+    },
+    form: {
+      fields: {
+        type: 'Tipo',
+        typeImmutable:
+          'No se puede cambiar después. Un módulo de Clínica solo se da a roles de Clínica.',
+        key: 'Clave',
+        keyHelp:
+          'En inglés, por ejemplo inventory. La usa el código y no se puede cambiar después. Solo minúsculas, números y guion bajo.',
+        keyAndTypeFixed: 'La clave y el tipo no cambian nunca.',
+        name: 'Nombre',
+        nameHelp: 'En español: es el que ve la gente en las pantallas.',
+        description: 'Descripción',
+        descriptionHelp: 'Opcional. Hasta 500 caracteres.',
+        order: 'Orden',
+        orderHelp: (n: number) => `Opcional. Si lo dejas vacío, queda al final (${n}).`,
+        actionsLabel: 'Acciones del módulo',
+      },
+      actionsHelp:
+        'Cada acción marcada es un permiso. Después se da a los roles en Roles y permisos.',
+      uncheckActionConfirm: (action: string, moduleName: string) =>
+        `¿Quitar la acción «${action}» del módulo «${moduleName}»? Quien ya la tenga por un role podría perder esa acción.`,
+      save: 'Guardar cambios',
+      discard: 'Descartar cambios',
+      create: 'Crear módulo',
+      cancel: 'Cancelar',
+    },
+    blockSection: {
+      help: 'Bloquear lo oculta y quita el acceso sin borrar nada, y se puede desbloquear. Eliminar lo borra junto con sus permisos.',
+      block: 'Bloquear módulo',
+      unblock: 'Desbloquear módulo',
+      delete: 'Eliminar módulo',
+      deleteConfirm: (name: string) =>
+        `¿Eliminar el módulo «${name}»? Esta acción no se puede deshacer.`,
+      protectedNotice:
+        'Los módulos base de administración (Usuarios, Roles, Permisos y Módulos) no se pueden bloquear ni eliminar.',
+    },
+    validation: {
+      keyRequired: 'Escribe la clave del módulo.',
+      keyInvalid:
+        'Usa minúsculas, números y guion bajo, empezando con una letra (hasta 50 caracteres).',
+      nameRequired: 'Escribe el nombre del módulo.',
+      nameTooLong: 'El nombre admite hasta 100 caracteres.',
+      descriptionTooLong: 'La descripción admite hasta 500 caracteres.',
+      sortOrderInvalid: 'Escribe un número entero, o déjalo vacío.',
+      actionsReadRequired: 'El módulo debe tener marcada, al menos, la acción Ver.',
+    },
+    errors: {
+      formInvalid: 'Revisa los datos del formulario.',
+      keyInUse: 'Ya existe un módulo con esa clave.',
+      nameInUse: 'Ya existe un módulo con ese nombre.',
+      notFound: 'Este módulo ya no existe.',
+      protected:
+        'Este módulo es uno de los módulos base de administración y no se puede bloquear ni eliminar.',
+      statusUnchanged: 'El estatus de este módulo ya cambió; vuelve a intentarlo.',
+      retryable: 'No se pudo completar la operación. Inténtalo de nuevo.',
+      fields: {
+        key: 'Escribe una clave válida: minúsculas, números y guion bajo, empezando con una letra.',
+        name: 'Escribe un nombre de 1 a 100 caracteres.',
+        description: 'La descripción admite hasta 500 caracteres.',
+        sortOrder: 'Escribe un número entero, o déjalo vacío.',
+        type: 'Elige un tipo de módulo.',
+      },
+    },
   },
   users: {
     title: 'Usuarios',
@@ -669,6 +770,7 @@ export const messages = {
     home: 'Panel',
     profile: 'Mi perfil',
     notFound: 'Página no encontrada',
+    modules: 'Módulos',
     users: 'Usuarios',
     userCreate: 'Crear usuario',
     userDetail: 'Detalle del usuario',

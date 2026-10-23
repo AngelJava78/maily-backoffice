@@ -1,6 +1,7 @@
 import {
   ArrowLeft,
   Ban,
+  Blocks,
   Building2,
   Camera,
   ChevronDown,
@@ -28,6 +29,7 @@ import {
  */
 export const iconRegistry = {
   dashboard: LayoutDashboard,
+  modules: Blocks,
   users: Users,
   subscriptions: CreditCard,
   clinics: Building2,

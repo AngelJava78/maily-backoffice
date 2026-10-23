@@ -2,7 +2,7 @@
  * Resources that have an entry in the navigation: the sections of the product (clarification 3) and
  * the Token tool of feature 005, whose only permission is `token:read`.
  */
-export const SECTION_RESOURCES = ['users', 'subscriptions', 'tenants', 'token'] as const;
+export const SECTION_RESOURCES = ['modules', 'users', 'subscriptions', 'tenants', 'token'] as const;
 
 /**
  * Every resource whose permissions are checked. The roles are only read, to offer assigning them to

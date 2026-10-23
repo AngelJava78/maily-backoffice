@@ -9,7 +9,7 @@ import {
   type SectionResource,
 } from './permissions';
 
-const RESOURCES: readonly SectionResource[] = ['users', 'subscriptions', 'tenants'];
+const RESOURCES: readonly SectionResource[] = ['modules', 'users', 'subscriptions', 'tenants'];
 const ACTIONS: readonly PermissionAction[] = ['read', 'write', 'update', 'delete'];
 
 function accessWith(...permissions: string[]) {
@@ -17,13 +17,13 @@ function accessWith(...permissions: string[]) {
 }
 
 describe('SECTION_RESOURCES', () => {
-  it('lists the three sections and the token tool (feature 005)', () => {
+  it('lists the four sections and the token tool (features 002/003/004/013, 005)', () => {
     expect([...SECTION_RESOURCES]).toEqual([...RESOURCES, 'token']);
   });
 });
 
 describe('can', () => {
-  it('allows the 12 combinations to someone who has every permission', () => {
+  it('allows the 16 combinations to someone who has every permission', () => {
     const access = accessWith(
       ...RESOURCES.flatMap((resource) => ACTIONS.map((action) => `${resource}:${action}`)),
     );
@@ -44,6 +44,7 @@ describe('can', () => {
     expect(can(access, { resource: 'tenants', action: 'delete' })).toBe(false);
     expect(can(access, { resource: 'users', action: 'read' })).toBe(false);
     expect(can(access, { resource: 'subscriptions', action: 'read' })).toBe(false);
+    expect(can(access, { resource: 'modules', action: 'read' })).toBe(false);
   });
 
   it('allows an action only together with the read permission of its section', () => {
@@ -162,7 +163,7 @@ describe('the dashboard resource (feature 007)', () => {
   it('is a permission resource without a section: the Panel is always in the navigation', () => {
     expect(PERMISSION_RESOURCES).toContain('dashboard');
     expect(SECTION_RESOURCES).not.toContain('dashboard');
-    expect([...SECTION_RESOURCES]).toEqual(['users', 'subscriptions', 'tenants', 'token']);
+    expect([...SECTION_RESOURCES]).toEqual(['modules', 'users', 'subscriptions', 'tenants', 'token']);
   });
 
   it('lets read the indicators if and only if dashboard:read is there', () => {

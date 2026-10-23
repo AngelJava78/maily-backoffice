@@ -45,8 +45,14 @@ mensajes de commit en inglés; documentación y textos de interfaz en español, 
 stack ya vigente) y sin variable de entorno nueva (research D2): no hace falta tocar
 `vite.config.ts`, `.env.example` ni `HttpClientsProvider`.
 
-- [ ] T001 Medir la línea base real del bundle: `npm run build && npm run size` en la raíz del
+- [X] T001 Medir la línea base real del bundle: `npm run build && npm run size` en la raíz del
   repo; registrar el KB gzip obtenido, para compararlo en el Polish final (T0XX, ver más abajo).
+  **Nota**: `npm run build` (`tsc -b && vite build`) falla hoy por errores de TypeScript ya
+  existentes en `src/features/subscriptions/**` heredados del commit base de este worktree (el
+  renombre `features`→`otherFeatures` de la 012 sigue a medias ahí; nada de esto toca `modules`).
+  Medido con `npx vite build && npm run size` (que no depende de `tsc`): **296.3 KB gzip** de 300 KB
+  de presupuesto. El `npm run typecheck`/`npm run build` de los puntos de control siguientes se
+  acota a los archivos de esta feature hasta que la 012 quede completa en `main`.
 
 **Checkpoint**: línea base de bundle registrada.
 
@@ -62,15 +68,15 @@ el simulador de pruebas que **todas** las historias necesitan.
 
 ### Catálogos fijos y modelo del módulo
 
-- [ ] T002 [P] Escribir `src/features/modules/schemas/moduleActionCatalog.test.ts` (debe fallar
+- [X] T002 [P] Escribir `src/features/modules/schemas/moduleActionCatalog.test.ts` (debe fallar
   primero; data-model.md, "Catálogos fijos"). `MODULE_ACTION_ORDER` es la tupla exacta `['read',
   'write', 'update', 'delete']`. `MODULE_ACTION_ID` da `{ read: 1, write: 2, update: 3, delete: 4 }`.
   `REQUIRED_ACTION_KEY` es `'read'`. `MODULE_TYPE` da `{ SYSTEM: 1, CLINIC: 2 }`. `MODULE_STATUS` da
   `{ ACTIVE: 1, BLOCKED: 2 }` (nunca se define `3 Eliminado`, no se usa en esta pantalla).
-- [ ] T003 Implementar (tras T002) `src/features/modules/schemas/moduleActionCatalog.ts`: las
+- [X] T003 Implementar (tras T002) `src/features/modules/schemas/moduleActionCatalog.ts`: las
   constantes `as const` y los tipos `ModuleActionKey`, `ModuleTypeId`, `ModuleStatusId` de T002.
   Hace pasar T002.
-- [ ] T004 [P] Escribir `src/features/modules/schemas/systemModule.test.ts` (debe fallar primero;
+- [X] T004 [P] Escribir `src/features/modules/schemas/systemModule.test.ts` (debe fallar primero;
   data-model.md, `SystemModule`). `systemModuleSchema` transforma el DTO de `GET /modules`
   (`id, key, name, description, sort_order, created_at, status: {id,name}, type: {id,name},
   active_permissions_count`) a `{ id, key, name, description, sortOrder, createdAt, statusId,
@@ -78,9 +84,9 @@ el simulador de pruebas que **todas** las historias necesitan.
   `name` de 1 a 100; `description` opcional, `null` o hasta 500 caracteres. `PROTECTED_MODULE_KEYS`
   es exactamente `['users', 'roles', 'permissions', 'modules']`. `isProtectedModule('users')` da
   `true`; `isProtectedModule('inventory')` da `false`.
-- [ ] T005 Implementar (tras T003, T004) `src/features/modules/schemas/systemModule.ts` con las
+- [X] T005 Implementar (tras T003, T004) `src/features/modules/schemas/systemModule.ts` con las
   reglas de T004. Hace pasar T004.
-- [ ] T006 [P] Escribir `src/features/modules/schemas/attachModuleActions.test.ts` (debe fallar
+- [X] T006 [P] Escribir `src/features/modules/schemas/attachModuleActions.test.ts` (debe fallar
   primero; research D3). `attachModuleActions(modules, permissions)` agrega a cada módulo su
   `actions: ReadonlySet<ModuleActionKey>` y su `permissionIdByAction: ReadonlyMap<ModuleActionKey,
   number>`, cruzando por `permission.module?.key === module.key` y `permission.action?.key` contra
@@ -90,12 +96,12 @@ el simulador de pruebas que **todas** las historias necesitan.
   - Un permiso cuyo `module.key` no corresponde a ningún módulo de la lista se ignora.
   - Un módulo sin ningún permiso coincidente da `actions` vacío y `permissionIdByAction` vacío.
   - No muta los arreglos recibidos.
-- [ ] T007 Implementar (tras T003, T005, T006) `src/features/modules/schemas/attachModuleActions.ts`.
+- [X] T007 Implementar (tras T003, T005, T006) `src/features/modules/schemas/attachModuleActions.ts`.
   Hace pasar T006.
 
 ### Formulario y política de selección de acciones
 
-- [ ] T008 [P] Escribir `src/features/modules/schemas/moduleForm.test.ts` (debe fallar primero;
+- [X] T008 [P] Escribir `src/features/modules/schemas/moduleForm.test.ts` (debe fallar primero;
   data-model.md, "Formulario"). `CreateModuleFormValues`: `type` (uno de `MODULE_TYPE`,
   obligatorio), `key` (`^[a-z][a-z0-9_]*$`, 1-50, obligatorio), `name` (recortado, 1-100,
   obligatorio), `description` (opcional, hasta 500), `sortOrder` (entero opcional), `actions`
@@ -105,41 +111,41 @@ el simulador de pruebas que **todas** las historias necesitan.
   values)` compara `name`/`description`/`sortOrder` y da solo lo distinto, o `null` si nada cambió;
   nunca incluye `key` ni `type_id`. `getChangedActions(initial, next)` da `{ toAdd:
   ModuleActionKey[], toRemove: ModuleActionKey[] }` comparando dos `ReadonlySet<ModuleActionKey>`.
-- [ ] T009 Implementar (tras T003, T005, T008) `src/features/modules/schemas/moduleForm.ts` con las
+- [X] T009 Implementar (tras T003, T005, T008) `src/features/modules/schemas/moduleForm.ts` con las
   reglas de T008; valores iniciales del alta: `type: MODULE_TYPE.CLINIC`, `key: ''`, `name: ''`,
   `description: ''`, `sortOrder: undefined`, `actions: new Set(MODULE_ACTION_ORDER)` (las 4
   marcadas, FR-012). Hace pasar T008.
-- [ ] T010 [P] Escribir `src/features/modules/policy/moduleActionSelection.test.ts` (debe fallar
+- [X] T010 [P] Escribir `src/features/modules/policy/moduleActionSelection.test.ts` (debe fallar
   primero; FR-018). `withActionChecked(selected, 'read', false)` no quita `'read'` (permanece
   marcada: no se puede desmarcar). `withActionChecked(selected, 'write', true)` agrega `'write'` sin
   tocar las demás. `withActionChecked(selected, 'write', false)` la quita. No muta el
   `ReadonlySet` recibido; el resultado es un `ReadonlySet` nuevo.
-- [ ] T011 Implementar (tras T003, T010) `src/features/modules/policy/moduleActionSelection.ts`.
+- [X] T011 Implementar (tras T003, T010) `src/features/modules/policy/moduleActionSelection.ts`.
   Hace pasar T010.
 
 ### Ubicación en la URL
 
-- [ ] T012 [P] Escribir `src/features/modules/schemas/modulesLocation.test.ts` (debe fallar primero;
+- [X] T012 [P] Escribir `src/features/modules/schemas/modulesLocation.test.ts` (debe fallar primero;
   data-model.md, `ModulesLocation`). `parseModulesSearchParams` lee `type_id` (`'1'`→Sistema,
   `'2'`→Clínica, ausente u otro valor→Todos), `status_id` (`'2'`→Bloqueados, cualquier otro valor o
   ausente→Activos), `q` (texto, `''` si ausente), y el panel: `edit=123`→`{kind:'edit',
   moduleId:123}`, `new=1`→`{kind:'create'}`, ninguno de los dos→`{kind:'none'}`; con los dos
   presentes a la vez, `edit` tiene prioridad. `toModulesSearchParams(location)` omite cada parámetro
   que esté en su valor por omisión (Todos, Activos, búsqueda vacía, panel `none`).
-- [ ] T013 Implementar (tras T012) `src/features/modules/schemas/modulesLocation.ts` con las reglas
+- [X] T013 Implementar (tras T012) `src/features/modules/schemas/modulesLocation.ts` con las reglas
   de T012. Hace pasar T012.
-- [ ] T014 [P] Escribir `src/features/modules/hooks/useModulesLocation.test.tsx` (tras T013).
+- [X] T014 [P] Escribir `src/features/modules/hooks/useModulesLocation.test.tsx` (tras T013).
   `location` refleja los parámetros de la URL. `setType`/`setStatus`/`setSearch` actualizan la URL
   conservando los demás parámetros vigentes. `openEdit(id)` escribe `edit=id` y quita `new` si
   estaba; `openCreate()` escribe `new=1` y quita `edit`; `closePanel()` quita los dos. Una dirección
   con valores no válidos se reemplaza por su forma normal sin agregar una entrada al historial
   (mismo criterio que `useSubscriptionsLocation`).
-- [ ] T015 Implementar (tras T013, T014) `src/features/modules/hooks/useModulesLocation.ts`, mismo
+- [X] T015 Implementar (tras T013, T014) `src/features/modules/hooks/useModulesLocation.ts`, mismo
   patrón que `useSubscriptionsLocation.ts`. Hace pasar T014.
 
 ### Catálogo de errores y capacidades
 
-- [ ] T016 [P] Escribir `src/features/modules/api/moduleErrors.test.ts` (debe fallar primero;
+- [X] T016 [P] Escribir `src/features/modules/api/moduleErrors.test.ts` (debe fallar primero;
   contracts/modules-service.md, tabla de errores). `describeModuleError(error, operation)` da:
   `module_key_already_exists` → `{kind:'field', fields:{key:...}}`; `module_name_already_exists` →
   `{kind:'field', fields:{name:...}}`; `module_not_found` y `permission_not_found` →
@@ -150,42 +156,42 @@ el simulador de pruebas que **todas** las historias necesitan.
   `{kind:'retryable'}`; `error.status === 403` o `error.code === 'permission_denied'` →
   `{kind:'forbidden'}`; `error.isRetryable` (red/5xx) → `{kind:'retryable'}`; cualquier otro →
   `{kind:'unexpected'}`. Un error que no es `ApiError` también da `{kind:'unexpected'}`.
-- [ ] T017 Implementar (tras T016) `src/features/modules/api/moduleErrors.ts`, mismo patrón que
+- [X] T017 Implementar (tras T016) `src/features/modules/api/moduleErrors.ts`, mismo patrón que
   `subscriptionErrors.ts`. Hace pasar T016.
-- [ ] T018 [P] Escribir `src/features/auth/policy/moduleCapabilities.test.ts` (debe fallar primero).
+- [X] T018 [P] Escribir `src/features/auth/policy/moduleCapabilities.test.ts` (debe fallar primero).
   `getModuleCapabilities(access)` da `canCreate` desde `modules:write`, `canEdit`/`canBlock`/
   `canUnblock` los tres desde `modules:update`, `canDelete` desde `modules:delete`; sin
   `modules:read`, los cuatro dan `false` (lo exige `can()` internamente).
-- [ ] T019 Implementar (tras T018) `src/features/auth/policy/moduleCapabilities.ts`; exportar
+- [X] T019 Implementar (tras T018) `src/features/auth/policy/moduleCapabilities.ts`; exportar
   `getModuleCapabilities` y el tipo `ModuleCapabilities` (definido en
   `src/features/modules/index.ts` e importado aquí, igual que `SubscriptionCapabilities`) desde
   `src/features/auth/index.ts`. Hace pasar T018.
 
 ### Textos, navegación, permisos y simulador de pruebas
 
-- [ ] T020 Agregar a `src/shared/messages/es.ts` el bloque `messages.modules` completo
+- [X] T020 Agregar a `src/shared/messages/es.ts` el bloque `messages.modules` completo
   (contracts/app-routes.md, "Textos de la pantalla") y `nav.sections.modules: 'Módulos'` (no
   requiere prueba propia; lo consumen las pruebas de componentes de las historias).
-- [ ] T021 Ampliar `src/features/auth/policy/permissions.ts`: agregar `'modules'` como **primer**
+- [X] T021 Ampliar `src/features/auth/policy/permissions.ts`: agregar `'modules'` como **primer**
   elemento de `SECTION_RESOURCES`.
-- [ ] T022 Ampliar `src/features/auth/policy/permissions.test.ts`: `SECTION_RESOURCES` incluye
+- [X] T022 Ampliar `src/features/auth/policy/permissions.test.ts`: `SECTION_RESOURCES` incluye
   `'modules'`; `hasAnythingToSee` da `true` con solo `modules:read`. Hace pasar la ampliación de
   T021.
-- [ ] T023 [P] Ampliar `src/shared/ui/iconRegistry.ts`: agregar `modules: Blocks` (de
+- [X] T023 [P] Ampliar `src/shared/ui/iconRegistry.ts`: agregar `modules: Blocks` (de
   `lucide-react`, research D12).
-- [ ] T024 Ampliar `src/app/navigation/sections.ts`: agregar `{ id: 'modules', path: '/modules',
+- [X] T024 Ampliar `src/app/navigation/sections.ts`: agregar `{ id: 'modules', path: '/modules',
   labelKey: 'modules', resource: 'modules', icon: 'modules' }` como **primer** elemento del arreglo
   `sections` (antes de `'users'`).
-- [ ] T025 Ampliar `src/app/navigation/sections.test.ts`: la prueba de registro (ya existente) pasa a
+- [X] T025 Ampliar `src/app/navigation/sections.test.ts`: la prueba de registro (ya existente) pasa a
   esperar `['modules', 'users', 'subscriptions', 'token']` en ese orden.
-- [ ] T026 [P] Ampliar `src/test/factories.ts`: agregar `moduleDto(overrides)` (valores por defecto:
+- [X] T026 [P] Ampliar `src/test/factories.ts`: agregar `moduleDto(overrides)` (valores por defecto:
   `{ id, key: 'inventory', name: 'Inventario', description: null, sort_order: 160, created_at:
   '2026-10-22T00:00:00Z', status: { id: 1, name: 'Activo' }, type: { id: 2, name: 'Clínica' },
   active_permissions_count: 0 }`) y `permissionDto(overrides)` (`{ id, name: 'inventory:read',
   description: null, created_at: '2026-10-22T00:00:00Z', status: { id: 1, name: 'Activo' }, module:
   { id, key: 'inventory', name: 'Inventario', type: { id: 2, name: 'Clínica' } }, action: { id: 1,
   key: 'read', name: 'Ver' } }`).
-- [ ] T027 [P] Escribir `src/test/handlers/modulesCatalog/model.test.ts` (debe fallar primero;
+- [X] T027 [P] Escribir `src/test/handlers/modulesCatalog/model.test.ts` (debe fallar primero;
   contracts/modules-service.md, research D13).
   - `createModule`: rechaza `key` duplicada entre los módulos no eliminados (`409
     module_key_already_exists`) y `name` duplicado sin distinguir mayúsculas (`409
@@ -205,32 +211,32 @@ el simulador de pruebas que **todas** las historias necesitan.
     no existe o no está activo.
   - `listModules` admite `status_id` (1 por omisión, 2); `listPermissions` no pagina y no admite
     filtros.
-- [ ] T028 Implementar (tras T003, T005, T027) `src/test/handlers/modulesCatalog/model.ts` con las
+- [X] T028 Implementar (tras T003, T005, T027) `src/test/handlers/modulesCatalog/model.ts` con las
   reglas de T027, importando `MODULE_ACTION_ORDER`/`MODULE_ACTION_ID`/`MODULE_TYPE` de
   `src/features/modules/schemas/moduleActionCatalog` (no una copia, mismo criterio que la 012 con su
   catálogo de módulos de clínica). Estado inicial: los 23 módulos reales de las páginas 11 a 14 del
   mockup (8 de Sistema, 15 de Clínica) con sus acciones exactas, construidos con `moduleDto`/
   `permissionDto` de T026. Hace pasar T027.
-- [ ] T029 Implementar (tras T028) `src/test/handlers/modulesCatalog/validation.ts`: validación de
+- [X] T029 Implementar (tras T028) `src/test/handlers/modulesCatalog/validation.ts`: validación de
   los campos de creación/modificación de un módulo y de creación de un permiso, con los mensajes de
   [contracts/modules-service.md](contracts/modules-service.md).
-- [ ] T030 Implementar (tras T028, T029) `src/test/handlers/modulesCatalog/handlers.ts`: handlers de
+- [X] T030 Implementar (tras T028, T029) `src/test/handlers/modulesCatalog/handlers.ts`: handlers de
   MSW para `GET`/`POST`/`PATCH /api/v1/modules`, `POST .../block`, `POST .../unblock`, `DELETE
   /api/v1/modules/{id}`, `GET`/`POST /api/v1/permissions`, `DELETE /api/v1/permissions/{id}`, con
   las respuestas y los códigos de error reales del contrato.
-- [ ] T031 Registrar los handlers de `modulesCatalog` junto a los demás simuladores con estado (el
+- [X] T031 Registrar los handlers de `modulesCatalog` junto a los demás simuladores con estado (el
   mismo lugar donde ya se registran `subscriptionsCatalog` y `usersService`).
 
 ### Lectura de módulos (cruzada con sus acciones)
 
-- [ ] T032 [P] Escribir `src/features/modules/api/modulesApi.list.test.ts` (debe fallar primero;
+- [X] T032 [P] Escribir `src/features/modules/api/modulesApi.list.test.ts` (debe fallar primero;
   tras T030, T031). `listModules(client, { statusId, signal })` hace `GET /api/v1/modules` (con
   `status_id` solo si se pasa) y `GET /api/v1/permissions`, cruza el resultado con
   `attachModuleActions` (T007) y da `SystemModule[]` en el mismo orden que ya da la API (sin
   reordenar en el cliente).
-- [ ] T033 Implementar (tras T007, T032) `src/features/modules/api/modulesApi.ts` con `listModules`.
+- [X] T033 Implementar (tras T007, T032) `src/features/modules/api/modulesApi.ts` con `listModules`.
   Hace pasar T032.
-- [ ] T034 Punto de control de la fase: `npm run typecheck`, `npm run lint` y `npm run test` pasan
+- [X] T034 Punto de control de la fase: `npm run typecheck`, `npm run lint` y `npm run test` pasan
   con todo lo anterior, en particular `src/features/modules/{schemas,policy,api}/`,
   `src/features/auth/policy/moduleCapabilities.ts` y `src/test/handlers/modulesCatalog/`.
 

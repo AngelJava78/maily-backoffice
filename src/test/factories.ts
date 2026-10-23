@@ -6,6 +6,7 @@ import type {
   DashboardDto,
   recentClinicSchema,
 } from '@/features/dashboard/schemas/dashboardSummary';
+import type { systemModuleSchema } from '@/features/modules/schemas/systemModule';
 import type { subscriptionSchema } from '@/features/subscriptions/schemas/subscription';
 import { platformUserSchema } from '@/features/users';
 import type { roleSchema } from '@/features/users/schemas/role';
@@ -24,6 +25,23 @@ export type SubscriptionDto = z.input<typeof subscriptionSchema>;
 /** The same API answers the summary of the Panel (feature 007); this is one of its recent clinics. */
 export type RecentClinicDto = z.input<typeof recentClinicSchema>;
 export type { DashboardDto };
+/** The users service also answers modules (spec 013 of mailySoft-usuarios); same snake_case shape. */
+export type ModuleDto = z.input<typeof systemModuleSchema>;
+/** A permission as that same service returns it, with its module and its action (or both `null`). */
+export interface PermissionDto {
+  readonly id: number;
+  readonly name: string;
+  readonly description: string | null;
+  readonly created_at: string;
+  readonly status: { readonly id: number; readonly name: string };
+  readonly module: {
+    readonly id: number;
+    readonly key: string;
+    readonly name: string;
+    readonly type: { readonly id: number; readonly name: string };
+  } | null;
+  readonly action: { readonly id: number; readonly key: string; readonly name: string } | null;
+}
 
 /** A user as the users service returns it: active, with the id `uuidOf(121)` and a maternal last name. */
 export function userDto(overrides: Partial<UserDto> = {}): UserDto {
@@ -206,6 +224,36 @@ export function dashboardDto(overrides: Partial<DashboardDto> = {}): DashboardDt
         status: ACTIVE_CLINIC,
       }),
     ],
+    ...overrides,
+  };
+}
+
+/** A module as the users service returns it: "Agenda y citas" (Clínica, id 2; the mockup example). */
+export function moduleDto(overrides: Partial<ModuleDto> = {}): ModuleDto {
+  return {
+    id: 2,
+    key: 'appointments',
+    name: 'Agenda y citas',
+    description: 'Calendario por doctor y consultorio; citas y confirmaciones.',
+    sort_order: 20,
+    created_at: '2026-10-22T00:00:00Z',
+    status: { id: 1, name: 'Activo' },
+    type: { id: 2, name: 'Clínica' },
+    active_permissions_count: 4,
+    ...overrides,
+  };
+}
+
+/** A permission as that same service returns it: "appointments:read", linked to its module and action. */
+export function permissionDto(overrides: Partial<PermissionDto> = {}): PermissionDto {
+  return {
+    id: 1,
+    name: 'appointments:read',
+    description: null,
+    created_at: '2026-10-22T00:00:00Z',
+    status: { id: 1, name: 'Activo' },
+    module: { id: 2, key: 'appointments', name: 'Agenda y citas', type: { id: 2, name: 'Clínica' } },
+    action: { id: 1, key: 'read', name: 'Ver' },
     ...overrides,
   };
 }
