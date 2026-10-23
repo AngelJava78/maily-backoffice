@@ -229,6 +229,8 @@ export const messages = {
       saved: 'Cambios guardados.',
       savedPartial: (failedLabels: string) =>
         `Cambios guardados, pero no se pudo aplicar: ${failedLabels}. Puedes reintentarlo.`,
+      blocked: 'Módulo bloqueado.',
+      unblocked: 'Módulo desbloqueado.',
     },
     errors: {
       formInvalid: 'Revisa los datos del formulario.',

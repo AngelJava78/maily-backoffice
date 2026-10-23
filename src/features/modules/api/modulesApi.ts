@@ -92,6 +92,34 @@ export function createModuleAction(
     .then((created) => created.id);
 }
 
+/** `POST /api/v1/modules/{id}/block` (FR-019): the module stays, but stops being usable. */
+export function blockModule(
+  client: HttpClient,
+  moduleId: number,
+  { signal }: Cancellable = {},
+): Promise<SystemModuleBase> {
+  return client.request({
+    path: `${MODULES_PATH}/${moduleId}/block`,
+    method: 'POST',
+    schema: systemModuleSchema,
+    signal,
+  });
+}
+
+/** `POST /api/v1/modules/{id}/unblock` (FR-020): the module goes back to Activo. */
+export function unblockModule(
+  client: HttpClient,
+  moduleId: number,
+  { signal }: Cancellable = {},
+): Promise<SystemModuleBase> {
+  return client.request({
+    path: `${MODULES_PATH}/${moduleId}/unblock`,
+    method: 'POST',
+    schema: systemModuleSchema,
+    signal,
+  });
+}
+
 /**
  * Unmarks one action of a module: deletes the permission by its id (research D5). A `404
  * permission_not_found` is resolved as success (contracts/modules-service.md): the result it asked

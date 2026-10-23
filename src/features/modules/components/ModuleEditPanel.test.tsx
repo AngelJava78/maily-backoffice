@@ -4,12 +4,23 @@ import { axe } from 'vitest-axe';
 import { describe, expect, it } from 'vitest';
 
 import { createHttpClient } from '@/shared/api/httpClient';
+import { messages } from '@/shared/messages/es';
 import { renderWithProviders } from '@/test/renderWithProviders';
 import { createModulesCatalogMock, USERS_API_BASE_URL, type ModulesCatalogMock } from '@/test/handlers/modulesCatalog';
 
 import { listModules } from '../api/modulesApi';
 import type { SystemModule } from '../schemas/systemModule';
+import type { ModuleCapabilities } from '..';
 import { ModuleEditPanel } from './ModuleEditPanel';
+
+const FULL_ACCESS: ModuleCapabilities = {
+  canCreate: true,
+  canEdit: true,
+  canBlock: true,
+  canUnblock: true,
+  canDelete: true,
+};
+const messagesBlockSection = messages.modules.blockSection;
 
 function client() {
   return createHttpClient({
@@ -37,8 +48,8 @@ async function usersModule(): Promise<SystemModule> {
   return found;
 }
 
-function renderPanel(module: SystemModule) {
-  return renderWithProviders(<ModuleEditPanel module={module} />);
+function renderPanel(module: SystemModule, capabilities: ModuleCapabilities = FULL_ACCESS) {
+  return renderWithProviders(<ModuleEditPanel module={module} capabilities={capabilities} />);
 }
 
 /** MUI keeps the dialog's node mounted through its exit transition: only once it is gone does the
@@ -250,5 +261,76 @@ describe('ModuleEditPanel', () => {
     await user.click(screen.getByRole('checkbox', { name: /Modificar/ }));
     await screen.findByRole('dialog');
     expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe('ModuleEditPanel: blocking and unblocking (US4)', () => {
+  it('shows the section with its help text only with canBlock/canUnblock', async () => {
+    createModulesCatalogMock();
+    const module = await medicalRecords();
+    renderPanel(module, { ...FULL_ACCESS, canBlock: false, canUnblock: false });
+
+    expect(screen.queryByText(messagesBlockSection.help)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Bloquear módulo/ })).not.toBeInTheDocument();
+  });
+
+  it('offers "Bloquear módulo" for an Active module', async () => {
+    createModulesCatalogMock();
+    const module = await medicalRecords();
+    renderPanel(module);
+
+    expect(screen.getByText(messagesBlockSection.help)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bloquear módulo' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Desbloquear módulo' })).not.toBeInTheDocument();
+  });
+
+  it('blocks the module and says so', async () => {
+    const user = userEvent.setup();
+    const mock = createModulesCatalogMock();
+    const module = await medicalRecords();
+    renderPanel(module);
+
+    await user.click(screen.getByRole('button', { name: 'Bloquear módulo' }));
+
+    expect(await screen.findByRole('button', { name: 'Desbloquear módulo' })).toBeInTheDocument();
+    expect(mock.requestsTo('POST', `/api/v1/modules/${module.id}/block`)).toHaveLength(1);
+  });
+
+  it('unblocks a Bloqueado module', async () => {
+    const user = userEvent.setup();
+    const mock = createModulesCatalogMock();
+    mock.state.blockModule(23);
+    const module = (await listModules(client(), { statusId: 2 })).find((candidate) => candidate.id === 23);
+    if (module === undefined) {
+      throw new Error('setup error: missing module 23');
+    }
+    renderPanel(module);
+
+    await user.click(screen.getByRole('button', { name: 'Desbloquear módulo' }));
+
+    expect(await screen.findByRole('button', { name: 'Bloquear módulo' })).toBeInTheDocument();
+    expect(mock.requestsTo('POST', `/api/v1/modules/23/unblock`)).toHaveLength(1);
+  });
+
+  it('shows a conflict notice, without breaking the screen, when it was already blocked a moment earlier', async () => {
+    const user = userEvent.setup();
+    const mock = createModulesCatalogMock();
+    const module = await medicalRecords();
+    mock.state.blockModule(module.id);
+    renderPanel(module);
+
+    await user.click(screen.getByRole('button', { name: 'Bloquear módulo' }));
+
+    expect(await screen.findByText('El estatus de este módulo ya cambió; vuelve a intentarlo.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bloquear módulo' })).toBeInTheDocument();
+  });
+
+  it('hides the block/unblock action for a protected module, with an explanation', async () => {
+    createModulesCatalogMock();
+    const module = await usersModule();
+    renderPanel(module);
+
+    expect(screen.queryByRole('button', { name: /^(Bloquear|Desbloquear) módulo/ })).not.toBeInTheDocument();
+    expect(screen.getByText(messagesBlockSection.protectedNotice)).toBeInTheDocument();
   });
 });

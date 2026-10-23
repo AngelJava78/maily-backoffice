@@ -467,28 +467,36 @@ acciones dejan de figurar como permisos activos; desbloquearlo y comprobar que t
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T064 [P] [US4] Ampliar `src/features/modules/api/modulesApi.block.test.ts` (tras T033):
+- [X] T064 [P] [US4] Ampliar `src/features/modules/api/modulesApi.block.test.ts` (tras T033):
   `blockModule(client, id)` hace `POST /api/v1/modules/{id}/block`; `unblockModule(client, id)` hace
   `POST /api/v1/modules/{id}/unblock`.
-- [ ] T065 [US4] Ampliar `src/features/modules/components/ModuleEditPanel.test.tsx` (tras T061): la
+- [X] T065 [US4] Ampliar `src/features/modules/components/ModuleEditPanel.test.tsx` (tras T061): la
   sección "Bloquear o eliminar" con su texto de ayuda es visible solo con `canBlock`/`canUnblock`;
   muestra "Bloquear módulo" si el módulo está Activo y "Desbloquear módulo" si está Bloqueado; para
   los cuatro módulos protegidos, esa acción no está disponible, con una explicación; bloquear un
   módulo ya bloqueado por otra persona un instante antes muestra el aviso del `409` sin romper la
-  pantalla.
-- [ ] T066 [US4] Escribir `src/app/router/modules/blockModule.integration.test.tsx` (tras T065):
+  pantalla. `ModuleEditPanel` gana un prop `capabilities: ModuleCapabilities` (lo pasa
+  `ModulesPage`, igual que a sí misma).
+- [X] T066 [US4] Escribir `src/app/router/modules/blockModule.integration.test.tsx` (tras T065):
   el recorrido de W14 del quickstart (bloquear, ver el cambio de filtro, desbloquear) y la parte de
   W15 relativa a bloquear un módulo protegido.
 
 ### Implementation for User Story 4
 
-- [ ] T067 [P] [US4] Ampliar `src/features/modules/api/modulesApi.ts` (tras T064, T033):
-  `blockModule`, `unblockModule`. Hace pasar T064.
-- [ ] T068 [US4] Ampliar `src/features/modules/components/ModuleEditPanel.tsx` (tras T065, T067,
+- [X] T067 [P] [US4] Ampliar `src/features/modules/api/modulesApi.ts` (tras T064, T033):
+  `blockModule`, `unblockModule`. Hace pasar T064. Se agregó `hooks/useChangeModuleStatus.ts` (un
+  solo hook con `action: 'block' | 'unblock'`, mismo patrón que `useChangeUserStatus` de `users`) en
+  vez de dos hooks separados.
+- [X] T068 [US4] Ampliar `src/features/modules/components/ModuleEditPanel.tsx` (tras T065, T067,
   T061): agregar la sección "Bloquear o eliminar" con el botón Bloquear/Desbloquear según el estatus
-  del módulo, oculto para los protegidos. Hace pasar T065.
-- [ ] T069 [US4] Punto de control de la historia: ejecutar las pruebas y validar manualmente W14 de
-  [quickstart.md](quickstart.md).
+  del módulo, oculto para los protegidos. Hace pasar T065. El estatus que decide la etiqueta del
+  botón prefiere el que acaba de confirmar el propio `useChangeModuleStatus` sobre el de la prop
+  `module` (constitución IV: nunca optimista, pero tampoco espera a que la lista se vuelva a pedir).
+  Sin diálogo de confirmación (a diferencia de Eliminar, US5): spec.md documenta bloquear como
+  reversible y frecuente, por eso no lo pide.
+- [X] T069 [US4] Punto de control de la historia: ejecutar las pruebas y validar manualmente W14 de
+  [quickstart.md](quickstart.md). 190 pruebas en verde en el alcance de módulos; `tsc -b` y `eslint`
+  sin errores nuevos fuera de la 012.
 
 **Checkpoint**: bloquear y desbloquear funcionan junto con las historias anteriores.
 
