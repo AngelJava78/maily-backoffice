@@ -333,46 +333,56 @@ W9).
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T046 [P] [US2] Ampliar `src/features/modules/api/modulesApi.create.test.ts` (tras T033):
+- [X] T046 [P] [US2] Ampliar `src/features/modules/api/modulesApi.create.test.ts` (tras T033):
   `createModule(client, body)` hace `POST /api/v1/modules` con el cuerpo exacto de
   `toCreateModuleBody`; `createModuleAction(client, moduleKey, action)` hace `POST
   /api/v1/permissions` con `{ name: "<moduleKey>:<action>" }`.
-- [ ] T047 [P] [US2] Escribir `src/features/modules/components/ModuleFormFields.test.tsx` (tras
+- [X] T047 [P] [US2] Escribir `src/features/modules/components/ModuleFormFields.test.tsx` (tras
   T009, T011, T020): campos Nombre (obligatorio), Descripción (opcional, contador si aplica), Orden
   (numérico opcional, con el texto de ayuda dinámico "queda al final (N)"); grupo "Acciones del
   módulo" con las cuatro casillas Ver/Crear/Modificar/Eliminar, Ver siempre marcada y sin poder
   desmarcarse (deshabilitada o que revierte el intento); cada casilla muestra debajo el nombre del
   permiso (`<key>:<accion>`, con una `key` de ejemplo pasada por props); errores asociados con
   `aria-describedby`; sin violaciones de axe.
-- [ ] T048 [P] [US2] Escribir `src/features/modules/components/ModuleCreatePanel.test.tsx` (tras
+- [X] T048 [P] [US2] Escribir `src/features/modules/components/ModuleCreatePanel.test.tsx` (tras
   T047): Tipo como dos tarjetas (Sistema/Clínica) con su texto de ayuda; Clave con su formato y su
   ayuda; `ModuleFormFields` con las cuatro acciones marcadas por omisión; al guardar con éxito llama
   `createModule` y después `createModuleAction` por cada acción marcada, **en secuencia**; si
   `createModule` falla, no se llama a ninguna `createModuleAction` y el error se asocia al campo que
   corresponda (p. ej. Clave duplicada); si `createModule` tiene éxito pero una `createModuleAction`
   falla, se informa con precisión cuáles acciones se guardaron y cuál no, y el panel pasa a mostrar
-  **Editar** ese módulo ya creado (research D11).
-- [ ] T049 [US2] Ampliar `src/features/modules/components/ModulesPage.test.tsx` (tras T048): el
+  **Editar** ese módulo ya creado (research D11). La orquesta secuencial no quedó en el panel sino en
+  dos piezas propias de `api/` (`createModuleActions.ts`, `createModuleWithActions.ts`, mismo patrón
+  que `assignRoles.ts`/`createUserWithRoles.ts` de `users`), cada una con su propia prueba, más
+  `useCreateModule.ts` (hook de mutación, como `useCreateUser.ts`); `ModuleCreatePanel` solo llama
+  `create.mutateAsync(...)`. `ModuleFormValues` también se unificó en un solo tipo para alta y
+  edición (antes eran dos: `CreateModuleFormValues`/`UpdateModuleFormValues`), mismo patrón que
+  `SubscriptionFormValues`, para que `ModuleFormFields` no necesite genéricos de React Hook Form.
+- [X] T049 [US2] Ampliar `src/features/modules/components/ModulesPage.test.tsx` (tras T048): el
   botón "+ Nuevo módulo" (visible solo con `canCreate`) abre `ModuleCreatePanel` (`?new=1`); crear un
   módulo lo agrega de inmediato al listado sin recargar toda la pantalla.
-- [ ] T050 [US2] Escribir `src/app/router/modules/createModule.integration.test.tsx` (tras T049):
+- [X] T050 [US2] Escribir `src/app/router/modules/createModule.integration.test.tsx` (tras T049):
   el recorrido completo de W6 a W9 del quickstart.
 
 ### Implementation for User Story 2
 
-- [ ] T051 [P] [US2] Ampliar `src/features/modules/api/modulesApi.ts` (tras T046, T033):
+- [X] T051 [P] [US2] Ampliar `src/features/modules/api/modulesApi.ts` (tras T046, T033):
   `createModule`, `createModuleAction`. Hace pasar T046.
-- [ ] T052 [P] [US2] Implementar `src/features/modules/components/ModuleFormFields.tsx` (tras T047,
-  T009, T011, T020). Hace pasar T047.
-- [ ] T053 [US2] Implementar `src/features/modules/components/ModuleCreatePanel.tsx` (tras T048,
-  T051, T052, T009): orquesta `createModule` y, en secuencia, `createModuleAction` por cada acción
-  marcada (research D11); usa React Hook Form con el resolver de `moduleForm.ts`. Hace pasar T048.
-- [ ] T054 [US2] Ampliar `src/features/modules/components/ModulesPage.tsx` (tras T049, T042, T053):
+- [X] T052 [P] [US2] Implementar `src/features/modules/components/ModuleFormFields.tsx` (tras T047,
+  T009, T011, T020). No incluye Clave ni Tipo (los renderiza cada llamador por su cuenta: alta con
+  tarjetas editables, edición con información fija — plan.md ya lo preveía así). Hace pasar T047.
+- [X] T053 [US2] Implementar `src/features/modules/components/ModuleCreatePanel.tsx` (tras T048,
+  T051, T052, T009): orquesta la alta vía `useCreateModule` (que llama `createModuleWithActions`,
+  T048); usa React Hook Form con el resolver de `moduleForm.ts`. Hace pasar T048.
+- [X] T054 [US2] Ampliar `src/features/modules/components/ModulesPage.tsx` (tras T049, T042, T053):
   agregar el botón "+ Nuevo módulo" (gated por `capabilities.canCreate`) que abre el panel de alta
-  (`useModulesLocation().openCreate()`); renderizar `ModuleCreatePanel` cuando
-  `location.panel.kind === 'create'`. Hace pasar T049.
-- [ ] T055 [US2] Punto de control de la historia: ejecutar las pruebas y validar manualmente W6 a W9
-  de [quickstart.md](quickstart.md).
+  (`useModulesLocation().openCreate()`); pasa a un `Grid` de dos columnas (listado / panel, research
+  D10) y renderiza `ModuleCreatePanel` cuando `location.panel.kind === 'create'`, o un estado vacío
+  en los demás casos. Hace pasar T049.
+- [X] T055 [US2] Punto de control de la historia: ejecutar las pruebas y validar manualmente W6 a W9
+  de [quickstart.md](quickstart.md). 485 pruebas en verde (`src/features/modules`, `src/features/auth`,
+  `src/app/router/modules`, `src/app/layouts/useRouteAccessibility.modules`,
+  `src/test/handlers/modulesCatalog`); `tsc -b` sin errores nuevos fuera de la 012.
 
 **Checkpoint**: el alta de un módulo, con sus acciones, funciona de punta a punta.
 

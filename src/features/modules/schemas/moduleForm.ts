@@ -19,25 +19,13 @@ function hasRequiredAction(actions: ReadonlySet<ModuleActionKey>): boolean {
   return actions.has(REQUIRED_ACTION_KEY);
 }
 
-const actionsSchema = z
-  .custom<ReadonlySet<ModuleActionKey>>((value) => value instanceof Set)
-  .refine(hasRequiredAction, { error: validation.actionsReadRequired });
-
-const nameSchema = z
-  .string({ error: validation.nameRequired })
-  .trim()
-  .min(1, { error: validation.nameRequired })
-  .max(100, { error: validation.nameTooLong });
-
-const descriptionSchema = z
-  .string({ error: validation.descriptionTooLong })
-  .max(500, { error: validation.descriptionTooLong });
-
-const sortOrderSchema = z
-  .string({ error: validation.sortOrderInvalid })
-  .regex(SORT_ORDER_PATTERN, { error: validation.sortOrderInvalid });
-
-export const createModuleFormSchema = z.object({
+/**
+ * One shape for both alta and edición (same pattern as `SubscriptionFormValues`): `type` and `key`
+ * are only ever editable at alta — the edit panel shows them as fixed information (FR-015) and
+ * `toUpdateModuleBody` never reads them — but keeping one type lets `ModuleFormFields` be shared
+ * without generic `register`/`errors` typing across two different form shapes.
+ */
+export const moduleFormSchema = z.object({
   type: z.union([z.literal(MODULE_TYPE.SYSTEM), z.literal(MODULE_TYPE.CLINIC)]),
   key: z
     .string({ error: validation.keyRequired })
@@ -45,23 +33,25 @@ export const createModuleFormSchema = z.object({
     .min(1, { error: validation.keyRequired })
     .max(50, { error: validation.keyInvalid })
     .regex(KEY_PATTERN, { error: validation.keyInvalid }),
-  name: nameSchema,
-  description: descriptionSchema,
-  sortOrder: sortOrderSchema,
-  actions: actionsSchema,
+  name: z
+    .string({ error: validation.nameRequired })
+    .trim()
+    .min(1, { error: validation.nameRequired })
+    .max(100, { error: validation.nameTooLong }),
+  description: z
+    .string({ error: validation.descriptionTooLong })
+    .max(500, { error: validation.descriptionTooLong }),
+  sortOrder: z
+    .string({ error: validation.sortOrderInvalid })
+    .regex(SORT_ORDER_PATTERN, { error: validation.sortOrderInvalid }),
+  actions: z
+    .custom<ReadonlySet<ModuleActionKey>>((value) => value instanceof Set)
+    .refine(hasRequiredAction, { error: validation.actionsReadRequired }),
 });
 
-export const updateModuleFormSchema = z.object({
-  name: nameSchema,
-  description: descriptionSchema,
-  sortOrder: sortOrderSchema,
-  actions: actionsSchema,
-});
+export type ModuleFormValues = z.infer<typeof moduleFormSchema>;
 
-export type CreateModuleFormValues = z.infer<typeof createModuleFormSchema>;
-export type UpdateModuleFormValues = z.infer<typeof updateModuleFormSchema>;
-
-export const initialCreateModuleFormValues: CreateModuleFormValues = {
+export const initialModuleFormValues: ModuleFormValues = {
   type: MODULE_TYPE.CLINIC,
   key: '',
   name: '',
@@ -86,7 +76,7 @@ export interface UpdateModuleBody {
   readonly sort_order?: number;
 }
 
-export function toCreateModuleBody(values: CreateModuleFormValues): CreateModuleBody {
+export function toCreateModuleBody(values: ModuleFormValues): CreateModuleBody {
   const body: {
     key: string;
     name: string;
@@ -103,8 +93,10 @@ export function toCreateModuleBody(values: CreateModuleFormValues): CreateModule
   return body;
 }
 
-export function toFormValues(module: SystemModule): UpdateModuleFormValues {
+export function toFormValues(module: SystemModule): ModuleFormValues {
   return {
+    type: module.typeId === MODULE_TYPE.SYSTEM ? MODULE_TYPE.SYSTEM : MODULE_TYPE.CLINIC,
+    key: module.key,
     name: module.name,
     description: module.description ?? '',
     sortOrder: String(module.sortOrder),
@@ -115,12 +107,13 @@ export function toFormValues(module: SystemModule): UpdateModuleFormValues {
 /**
  * Only what changed in `name`/`description`/`sortOrder`, or `null` if nothing did (research D11:
  * actions are not part of this body, they are separate `POST`/`DELETE` calls on `permissions`, see
- * `getChangedActions`). Clearing "Orden" means "leave it as it was", not "recalculate": that default
- * only applies when creating (FR-011).
+ * `getChangedActions`; `type`/`key` are never read, even though `values` carries them). Clearing
+ * "Orden" means "leave it as it was", not "recalculate": that default only applies when creating
+ * (FR-011).
  */
 export function toUpdateModuleBody(
   initial: SystemModule,
-  values: UpdateModuleFormValues,
+  values: ModuleFormValues,
 ): UpdateModuleBody | null {
   const body: { name?: string; description?: string; sort_order?: number } = {};
   if (values.name !== initial.name) {

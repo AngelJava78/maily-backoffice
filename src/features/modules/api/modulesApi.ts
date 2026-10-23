@@ -2,8 +2,10 @@ import { z } from 'zod';
 
 import type { HttpClient } from '@/shared/api/httpClient';
 
+import type { ModuleActionKey } from '../schemas/moduleActionCatalog';
+import type { CreateModuleBody } from '../schemas/moduleForm';
 import { attachModuleActions, type ModulePermissionRef } from '../schemas/attachModuleActions';
-import { systemModuleSchema, type SystemModule } from '../schemas/systemModule';
+import { systemModuleSchema, type SystemModuleBase, type SystemModule } from '../schemas/systemModule';
 
 /**
  * The operations on modules and permissions of the users service (contracts/modules-service.md).
@@ -39,4 +41,36 @@ export function listModules(
     client.get(MODULES_PATH, { schema: moduleListSchema, query: { status_id: statusId }, signal }),
     client.get(PERMISSIONS_PATH, { schema: permissionListSchema, signal }),
   ]).then(([modules, permissions]) => attachModuleActions(modules, permissions));
+}
+
+/** `POST /api/v1/modules` (FR-005 to FR-013): the module is born Active. */
+export function createModule(
+  client: HttpClient,
+  body: CreateModuleBody,
+  { signal }: Cancellable = {},
+): Promise<SystemModuleBase> {
+  return client.request({ path: MODULES_PATH, method: 'POST', body, schema: systemModuleSchema, signal });
+}
+
+const createdPermissionSchema = z.object({ id: z.number() });
+
+/**
+ * Marks one action of a module: creates the permission `<moduleKey>:<action>` (research D5) and
+ * gives its id, to delete it later if the action is unchecked.
+ */
+export function createModuleAction(
+  client: HttpClient,
+  moduleKey: string,
+  action: ModuleActionKey,
+  { signal }: Cancellable = {},
+): Promise<number> {
+  return client
+    .request({
+      path: PERMISSIONS_PATH,
+      method: 'POST',
+      body: { name: `${moduleKey}:${action}` },
+      schema: createdPermissionSchema,
+      signal,
+    })
+    .then((created) => created.id);
 }

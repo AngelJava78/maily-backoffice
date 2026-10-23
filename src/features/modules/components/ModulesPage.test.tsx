@@ -93,4 +93,34 @@ describe('ModulesPage', () => {
 
     expect(await axe(container)).toHaveNoViolations();
   });
+
+  it('shows an empty panel until a module is opened or created', async () => {
+    createModulesCatalogMock();
+    renderPage();
+
+    await screen.findByText('23 módulos activos');
+
+    expect(screen.getByText('Selecciona un módulo para editarlo, o crea uno nuevo.')).toBeInTheDocument();
+  });
+
+  it('opens the create panel from "+ Nuevo módulo" (US2)', async () => {
+    createModulesCatalogMock();
+    renderPage();
+    await screen.findByText('23 módulos activos');
+
+    await userEvent.setup().click(screen.getByRole('button', { name: '+ Nuevo módulo' }));
+
+    expect(screen.getByRole('heading', { name: 'Nuevo módulo' })).toBeInTheDocument();
+  });
+
+  it('hides "+ Nuevo módulo" without canCreate', async () => {
+    createModulesCatalogMock();
+    renderWithProviders(
+      <ModulesPage capabilities={{ ...FULL_ACCESS, canCreate: false }} />,
+      { route: '/modules' },
+    );
+    await screen.findByText('23 módulos activos');
+
+    expect(screen.queryByRole('button', { name: '+ Nuevo módulo' })).not.toBeInTheDocument();
+  });
 });

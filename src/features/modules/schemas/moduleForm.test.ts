@@ -2,13 +2,12 @@ import { describe, expect, it } from 'vitest';
 
 import { MODULE_TYPE } from './moduleActionCatalog';
 import {
-  createModuleFormSchema,
   getChangedActions,
-  initialCreateModuleFormValues,
+  initialModuleFormValues,
+  moduleFormSchema,
   toCreateModuleBody,
   toFormValues,
   toUpdateModuleBody,
-  updateModuleFormSchema,
 } from './moduleForm';
 import type { SystemModule } from './systemModule';
 
@@ -34,16 +33,16 @@ function module(overrides: Partial<SystemModule> = {}): SystemModule {
   };
 }
 
-describe('initialCreateModuleFormValues', () => {
+describe('initialModuleFormValues', () => {
   it('starts with the four actions marked (FR-012)', () => {
-    expect([...initialCreateModuleFormValues.actions]).toEqual(['read', 'write', 'update', 'delete']);
-    expect(initialCreateModuleFormValues.type).toBe(MODULE_TYPE.CLINIC);
-    expect(initialCreateModuleFormValues.key).toBe('');
-    expect(initialCreateModuleFormValues.sortOrder).toBe('');
+    expect([...initialModuleFormValues.actions]).toEqual(['read', 'write', 'update', 'delete']);
+    expect(initialModuleFormValues.type).toBe(MODULE_TYPE.CLINIC);
+    expect(initialModuleFormValues.key).toBe('');
+    expect(initialModuleFormValues.sortOrder).toBe('');
   });
 });
 
-describe('createModuleFormSchema', () => {
+describe('moduleFormSchema', () => {
   const valid = {
     type: MODULE_TYPE.CLINIC,
     key: 'inventory',
@@ -54,45 +53,35 @@ describe('createModuleFormSchema', () => {
   };
 
   it('accepts a valid value', () => {
-    expect(createModuleFormSchema.safeParse(valid).success).toBe(true);
+    expect(moduleFormSchema.safeParse(valid).success).toBe(true);
   });
 
   it.each(['Inventory', '1nventory', ''])('rejects an invalid key: %s', (key) => {
-    expect(createModuleFormSchema.safeParse({ ...valid, key }).success).toBe(false);
+    expect(moduleFormSchema.safeParse({ ...valid, key }).success).toBe(false);
   });
 
   it('rejects an empty name', () => {
-    expect(createModuleFormSchema.safeParse({ ...valid, name: '' }).success).toBe(false);
+    expect(moduleFormSchema.safeParse({ ...valid, name: '' }).success).toBe(false);
   });
 
   it('rejects a name longer than 100 characters', () => {
-    expect(createModuleFormSchema.safeParse({ ...valid, name: 'a'.repeat(101) }).success).toBe(false);
+    expect(moduleFormSchema.safeParse({ ...valid, name: 'a'.repeat(101) }).success).toBe(false);
   });
 
   it('rejects a description longer than 500 characters', () => {
-    expect(createModuleFormSchema.safeParse({ ...valid, description: 'a'.repeat(501) }).success).toBe(
-      false,
-    );
+    expect(moduleFormSchema.safeParse({ ...valid, description: 'a'.repeat(501) }).success).toBe(false);
   });
 
   it.each(['abc', '-1', '1.5'])('rejects a sortOrder that is not digits only: %s', (sortOrder) => {
-    expect(createModuleFormSchema.safeParse({ ...valid, sortOrder }).success).toBe(false);
+    expect(moduleFormSchema.safeParse({ ...valid, sortOrder }).success).toBe(false);
   });
 
   it('accepts an empty sortOrder', () => {
-    expect(createModuleFormSchema.safeParse({ ...valid, sortOrder: '' }).success).toBe(true);
+    expect(moduleFormSchema.safeParse({ ...valid, sortOrder: '' }).success).toBe(true);
   });
-});
 
-describe('updateModuleFormSchema', () => {
-  it('does not require type or key', () => {
-    const result = updateModuleFormSchema.safeParse({
-      name: 'Agenda y citas',
-      description: '',
-      sortOrder: '20',
-      actions: new Set(['read'] as const),
-    });
-    expect(result.success).toBe(true);
+  it('rejects actions without "read" (FR-018)', () => {
+    expect(moduleFormSchema.safeParse({ ...valid, actions: new Set() }).success).toBe(false);
   });
 });
 
@@ -131,8 +120,10 @@ describe('toCreateModuleBody', () => {
 });
 
 describe('toFormValues', () => {
-  it('fills the form from an existing module', () => {
+  it('fills the form from an existing module, including its fixed type and key', () => {
     const values = toFormValues(module());
+    expect(values.type).toBe(MODULE_TYPE.CLINIC);
+    expect(values.key).toBe('appointments');
     expect(values.name).toBe('Agenda y citas');
     expect(values.description).toBe('Calendario por doctor y consultorio.');
     expect(values.sortOrder).toBe('20');
@@ -152,12 +143,13 @@ describe('toUpdateModuleBody', () => {
     expect(toUpdateModuleBody(initial, values)).toEqual({ description: 'Nueva descripción.' });
   });
 
-  it('never includes key or type_id', () => {
+  it('never includes key or type_id, even though the form carries them', () => {
     const initial = module();
-    const values = { ...toFormValues(initial), name: 'Agenda' };
+    const values = { ...toFormValues(initial), name: 'Agenda', key: 'changed', type: MODULE_TYPE.SYSTEM };
     const body = toUpdateModuleBody(initial, values);
     expect(body).not.toHaveProperty('key');
     expect(body).not.toHaveProperty('type_id');
+    expect(body).toEqual({ name: 'Agenda' });
   });
 });
 

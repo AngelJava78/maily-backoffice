@@ -219,6 +219,12 @@ export const messages = {
       sortOrderInvalid: 'Escribe un número entero, o déjalo vacío.',
       actionsReadRequired: 'El módulo debe tener marcada, al menos, la acción Ver.',
     },
+    notices: {
+      created: 'Módulo creado.',
+      createdPartial: (failedLabels: string) =>
+        `Módulo creado, pero no se pudo marcar: ${failedLabels}. Puedes reintentarlo desde Editar.`,
+      saved: 'Cambios guardados.',
+    },
     errors: {
       formInvalid: 'Revisa los datos del formulario.',
       keyInUse: 'Ya existe un módulo con esa clave.',
