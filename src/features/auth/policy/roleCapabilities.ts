@@ -6,7 +6,7 @@ interface PermissionHolder {
   readonly permissions: ReadonlySet<string>;
 }
 
-/** What the operator may do in Roles y permisos (feature 013); every decision goes through `can()`,
+/** What the operator may do in Roles y permisos (feature 014); every decision goes through `can()`,
  * which already requires `roles:read` before any other action on roles. */
 export function getRoleCapabilities(access: PermissionHolder): RoleCapabilities {
   return {

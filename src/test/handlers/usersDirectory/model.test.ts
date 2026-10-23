@@ -543,7 +543,7 @@ describe('the catalog of roles', () => {
     expect(model.listActiveRoles().map((role) => role.name)).toEqual(['Administrator', 'Doctor']);
   });
 
-  it('includes the type of each role (feature 013)', () => {
+  it('includes the type of each role (feature 014)', () => {
     const model = build({ roles: [directoryRole({ id: 6, name: 'Doctor', typeId: CLINIC_TYPE })] });
 
     expect(model.listActiveRoles()).toEqual([
@@ -559,7 +559,7 @@ describe('the catalog of roles', () => {
   });
 });
 
-describe('createRole (feature 013)', () => {
+describe('createRole (feature 014)', () => {
   it('stores an active role with the name trimmed and no permissions', () => {
     const role = build().createRole({ name: '  Auditor  ', description: null, typeId: SYSTEM_TYPE });
 
@@ -591,7 +591,7 @@ describe('createRole (feature 013)', () => {
   });
 });
 
-describe('updateRole (feature 013)', () => {
+describe('updateRole (feature 014)', () => {
   it('changes the name and/or description of an active role, keeping its type', () => {
     const model = build({
       roles: [directoryRole({ id: 1, name: 'Doctor', description: null, typeId: CLINIC_TYPE })],
@@ -636,7 +636,7 @@ describe('updateRole (feature 013)', () => {
   });
 });
 
-describe('deleteRole (feature 013)', () => {
+describe('deleteRole (feature 014)', () => {
   it('marks the role as deleted even if it is assigned to a user or has permissions', () => {
     const model = build({
       users: [directoryUser({ id: uuidOf(1) })],

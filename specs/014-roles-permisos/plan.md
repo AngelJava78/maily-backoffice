@@ -1,8 +1,8 @@
 # Implementation Plan: Roles y permisos
 
-**Branch**: `013-roles-permisos` | **Date**: 2026-10-23 | **Spec**: [spec.md](spec.md)
+**Branch**: `014-roles-permisos` | **Date**: 2026-10-23 | **Spec**: [spec.md](spec.md)
 
-**Input**: Feature specification from `/specs/013-roles-permisos/spec.md`
+**Input**: Feature specification from `/specs/014-roles-permisos/spec.md`
 
 **Note**: This template is filled in by the `/speckit-plan` command; its definition describes the execution workflow.
 
@@ -73,7 +73,7 @@ Filas no listadas (Auth0 y sesión, formato de fechas ISO, code splitting por ru
 ### Documentation (this feature)
 
 ```text
-specs/013-roles-permisos/
+specs/014-roles-permisos/
 ├── plan.md              # This file (/speckit-plan command output)
 ├── research.md          # Phase 0 output (/speckit-plan command)
 ├── data-model.md        # Phase 1 output (/speckit-plan command)

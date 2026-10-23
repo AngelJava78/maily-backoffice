@@ -681,7 +681,7 @@ export const messages = {
     token: 'Token',
     roles: 'Roles y permisos',
   },
-  // Feature 013: "Roles y permisos" — pantalla maestro-detalle (pestañas Clínica/Sistema, lista y
+  // Feature 014: "Roles y permisos" — pantalla maestro-detalle (pestañas Clínica/Sistema, lista y
   // matriz de permisos por módulo y acción).
   roles: {
     title: 'Roles y permisos',

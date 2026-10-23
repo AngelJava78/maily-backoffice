@@ -1,6 +1,6 @@
 # Contrato de la interfaz: pantalla y ruta de Roles y permisos
 
-**Feature**: `013-roles-permisos` | **Fecha**: 2026-10-23 | **Spec**: [../spec.md](../spec.md)
+**Feature**: `014-roles-permisos` | **Fecha**: 2026-10-23 | **Spec**: [../spec.md](../spec.md)
 
 ## Ruta
 

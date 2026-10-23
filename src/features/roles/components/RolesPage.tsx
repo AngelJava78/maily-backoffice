@@ -15,7 +15,7 @@ interface RolesPageProps {
 }
 
 /**
- * Roles y permisos (feature 013): master-detail in a single screen (research D5, constitution
+ * Roles y permisos (feature 014): master-detail in a single screen (research D5, constitution
  * v1.5.0 Principio VI) — pestañas Clínica/Sistema, lista a la izquierda, detalle a la derecha. The
  * detail itself (`RoleDetailPanel`, Historia 1) replaces the placeholder message below it.
  */

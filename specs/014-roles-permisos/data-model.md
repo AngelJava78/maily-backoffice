@@ -1,6 +1,6 @@
 # Modelo de datos: Roles y permisos
 
-**Feature**: `013-roles-permisos` | **Fecha**: 2026-10-23 | **Spec**: [spec.md](spec.md) | **Investigación**: [research.md](research.md)
+**Feature**: `014-roles-permisos` | **Fecha**: 2026-10-23 | **Spec**: [spec.md](spec.md) | **Investigación**: [research.md](research.md)
 
 Todos los campos salen de los DTOs reales de `mailySoft-usuarios` (`src/dtos/role.py`, `permission.py`, `module.py`, `role_permission.py`, `references.py`, `catalogs.py`), verificados contra el código el 2026-10-23. `Role` aquí (con `type` y permisos) es un modelo **distinto** del `Role` de `features/users/schemas/role.ts` (ese es el visto por el combo de asignar rol a una persona, sin tipo ni permisos): conviven, no se unifican (research D2).
 

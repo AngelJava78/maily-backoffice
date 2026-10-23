@@ -47,7 +47,7 @@ function readPermissionIdOfBody(body: unknown): number {
 
 /**
  * `GET/POST /api/v1/roles/{id}/permissions` and `DELETE .../permissions/{permissionId}` (feature
- * 013; contracts/roles-service.md). Associating/disassociating only needs `roles:update`: there is
+ * 014; contracts/roles-service.md). Associating/disassociating only needs `roles:update`: there is
  * no separate "permissions" scope for changing a role's own permissions (only for reading or
  * managing the catalog itself, see catalogs.ts).
  */

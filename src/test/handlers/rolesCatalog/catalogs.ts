@@ -25,7 +25,7 @@ function toModuleReadDto(module: ReturnType<RolesCatalogModel['modules']>[number
 }
 
 /**
- * `GET /api/v1/permissions`, `GET /api/v1/modules` and `GET /api/v1/role-types` (feature 013;
+ * `GET /api/v1/permissions`, `GET /api/v1/modules` and `GET /api/v1/role-types` (feature 014;
  * contracts/roles-service.md): the read-only catalogs the permission matrix is built from.
  */
 export function catalogHandlers(catalog: RolesCatalogModel, handle: Handle): HttpHandler[] {

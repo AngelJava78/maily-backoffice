@@ -70,7 +70,7 @@ export function readUserId(params: PathParams): string {
 /** The `{role_id}` of the path: a whole number from 1, or a 422. */
 export const readRoleId = (params: PathParams): number => readPathId(params, 'roleId', 'role_id');
 
-/** The `{permission_id}` of the path (feature 013): a whole number from 1, or a 422. */
+/** The `{permission_id}` of the path (feature 014): a whole number from 1, or a 422. */
 export const readPermissionId = (params: PathParams): number =>
   readPathId(params, 'permissionId', 'permission_id');
 

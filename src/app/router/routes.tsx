@@ -92,7 +92,7 @@ export const appRoutes: RouteObject[] = [
                 handle: { titleKey: 'profile' },
                 ErrorBoundary: RouteErrorBoundary,
               },
-              // Roles y permisos (feature 013): seeing it needs `roles:read`; creating, editing and
+              // Roles y permisos (feature 014): seeing it needs `roles:read`; creating, editing and
               // deleting a role ask for `roles:write`/`roles:update`/`roles:delete` from the matrix
               // itself (contracts/app-routes.md). A single route: the tab and the selected role live
               // in the URL's search params (research D5), not in separate paths.

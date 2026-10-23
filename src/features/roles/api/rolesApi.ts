@@ -4,7 +4,7 @@ import type { HttpClient } from '@/shared/api/httpClient';
 
 import { roleSchema, rolesSchema, type Role, type RoleCreateInput } from '../schemas/role';
 
-/** `/api/v1/roles` (feature 013; contracts/roles-service.md). */
+/** `/api/v1/roles` (feature 014; contracts/roles-service.md). */
 export const ROLES_PATH = '/api/v1/roles';
 
 interface Cancellable {

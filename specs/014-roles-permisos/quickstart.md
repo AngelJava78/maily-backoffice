@@ -1,6 +1,6 @@
 # Guía de validación: Roles y permisos
 
-**Feature**: `013-roles-permisos` | **Fecha**: 2026-10-23 | **Spec**: [spec.md](spec.md) | **Plan**: [plan.md](plan.md)
+**Feature**: `014-roles-permisos` | **Fecha**: 2026-10-23 | **Spec**: [spec.md](spec.md) | **Plan**: [plan.md](plan.md)
 
 ## Requisitos previos
 

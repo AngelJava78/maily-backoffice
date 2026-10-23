@@ -9,7 +9,7 @@ const roleTypeSchema = z.object({
 
 export type RoleType = z.output<typeof roleTypeSchema>;
 
-/** A role, with its type (feature 013): the permission matrix it can have depends on it. */
+/** A role, with its type (feature 014): the permission matrix it can have depends on it. */
 export const roleSchema = z
   .object({
     id: z.number().int().min(1),

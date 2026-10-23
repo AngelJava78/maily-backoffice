@@ -1,4 +1,4 @@
-/** What the operator may do in Roles y permisos (feature 013), decided in `app` from `auth`. */
+/** What the operator may do in Roles y permisos (feature 014), decided in `app` from `auth`. */
 export interface RoleCapabilities {
   /** "Nuevo role" and "Duplicar" (research D7: duplicating is creating, under the hood). */
   readonly canCreate: boolean;

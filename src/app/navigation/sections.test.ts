@@ -44,10 +44,10 @@ describe('getVisibleSections', () => {
   });
 
   // The registry lists only the sections that exist (FR-009): each feature adds its own. The order
-  // (FR-002 of feature 013) is Panel, Roles y permisos, Usuarios, Suscripciones, Token, until
+  // (FR-002 of feature 014) is Panel, Roles y permisos, Usuarios, Suscripciones, Token, until
   // Módulos and Clínicas become sections of their own (they are inserted before Roles y permisos
   // and after Suscripciones respectively, to reach the final order the feature documents).
-  it('registers Roles y permisos (feature 013) first, then users (002), subscriptions (003) and the Token tool (005)', () => {
+  it('registers Roles y permisos (feature 014) first, then users (002), subscriptions (003) and the Token tool (005)', () => {
     expect(sections).toEqual([
       { id: 'roles', path: '/roles', labelKey: 'roles', resource: 'roles', icon: 'roles' },
       { id: 'users', path: '/users', labelKey: 'users', resource: 'users', icon: 'users' },

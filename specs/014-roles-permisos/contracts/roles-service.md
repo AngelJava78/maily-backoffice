@@ -1,6 +1,6 @@
 # Contrato consumido: API de roles, permisos y módulos (MailySoft Usuarios)
 
-**Feature**: `013-roles-permisos` | **Fecha**: 2026-10-23 | **Spec**: [../spec.md](../spec.md)
+**Feature**: `014-roles-permisos` | **Fecha**: 2026-10-23 | **Spec**: [../spec.md](../spec.md)
 
 Verificado el 2026-10-23 leyendo directamente el código fuente vigente de `C:\Maily\code\mailySoft-usuarios`: `src/routers/roles.py`, `role_permissions.py`, `permissions.py`, `modules.py`, `catalogs.py`; `src/dtos/role.py`, `permission.py`, `module.py`, `role_permission.py`, `references.py`, `role_type.py`, `catalogs.py`; `src/services/role_service.py`; `project-definition/create_database.sql`. Mismo backend y mismo cliente HTTP (`VITE_USERS_API_URL`) que ya consume `features/users`; condiciones generales sin cambios respecto a esa feature: Bearer token de Auth0, timeout de 30 s, cancelación con `AbortSignal`, reintentos solo en GET (máx. 2, red/5xx), 401 con un reintento de renovación y redirección a login si falla, 403 "sin permisos" sin cerrar sesión.
 

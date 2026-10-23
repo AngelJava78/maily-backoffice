@@ -12,7 +12,7 @@ const ACTIONS: readonly PermissionAction[] = ['read', 'write', 'update', 'delete
 /**
  * The three sections `sampleSections` stands for (features 002 to 004). Deliberately not
  * `SECTION_RESOURCES` from the policy module: this file is about these three specifically, and
- * must not change just because a later feature (013: Roles y permisos) adds a resource of its own.
+ * must not change just because a later feature (014: Roles y permisos) adds a resource of its own.
  */
 const SAMPLE_RESOURCES = ['users', 'subscriptions', 'tenants'] as const;
 
@@ -25,7 +25,7 @@ function allPermissions(resources: readonly string[]): string[] {
 const administrator = roleDto({
   id: 1,
   name: 'Administrator',
-  // The platform also gives it permissions on roles (its own section since feature 013, exercised
+  // The platform also gives it permissions on roles (its own section since feature 014, exercised
   // in roles.*.test.ts, not here) and on permissions (still no section of its own).
   permissions: [
     ...allPermissions(['users', 'subscriptions', 'tenants']),

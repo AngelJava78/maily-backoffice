@@ -17,7 +17,7 @@ function accessWith(...permissions: string[]) {
 }
 
 describe('SECTION_RESOURCES', () => {
-  it('lists the three sections, the token tool (feature 005) and roles (feature 013)', () => {
+  it('lists the three sections, the token tool (feature 005) and roles (feature 014)', () => {
     expect([...SECTION_RESOURCES]).toEqual([...RESOURCES, 'token', 'roles']);
   });
 });
@@ -105,7 +105,7 @@ describe('hasAnythingToSee', () => {
   });
 });
 
-describe('the roles resource (features 002, 013)', () => {
+describe('the roles resource (features 002, 014)', () => {
   it('is both a section of its own (Roles y permisos) and a permission resource', () => {
     expect([...PERMISSION_RESOURCES]).toEqual([...RESOURCES, 'token', 'roles', 'dashboard']);
     expect([...SECTION_RESOURCES]).toEqual([...RESOURCES, 'token', 'roles']);

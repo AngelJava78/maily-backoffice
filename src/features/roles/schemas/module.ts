@@ -7,7 +7,7 @@ const moduleTypeSchema = z.object({
 
 export type ModuleType = z.output<typeof moduleTypeSchema>;
 
-/** A module of the catalog (feature 013): a row of the permission matrix. */
+/** A module of the catalog (feature 014): a row of the permission matrix. */
 export const moduleSchema = z
   .object({
     id: z.number().int().min(1),

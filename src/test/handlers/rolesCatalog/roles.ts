@@ -106,7 +106,7 @@ function readRoleChanges(body: unknown): { name?: string; description?: string |
   return changes;
 }
 
-/** `POST/PATCH/DELETE /api/v1/roles` (feature 013; contracts/roles-service.md). */
+/** `POST/PATCH/DELETE /api/v1/roles` (feature 014; contracts/roles-service.md). */
 export function roleHandlers(model: DirectoryModel, handle: Handle): HttpHandler[] {
   const roles = `${USERS_API_BASE_URL}/api/v1/roles`;
 

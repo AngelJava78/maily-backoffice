@@ -1,6 +1,6 @@
 /**
  * Resources that have an entry in the navigation: the sections of the product (clarification 3),
- * the Token tool of feature 005 (`token:read`), and Roles y permisos (feature 013, `roles:read`) —
+ * the Token tool of feature 005 (`token:read`), and Roles y permisos (feature 014, `roles:read`) —
  * the same resource feature 002 already used to offer assigning a role to a user, now also its own
  * section to administer roles and their permissions.
  */

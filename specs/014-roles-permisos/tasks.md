@@ -5,7 +5,7 @@ description: "Task list template for feature implementation"
 
 # Tasks: Roles y permisos
 
-**Input**: Design documents from `/specs/013-roles-permisos/`
+**Input**: Design documents from `/specs/014-roles-permisos/`
 
 **Prerequisites**: [plan.md](./plan.md), [spec.md](./spec.md), [research.md](./research.md), [data-model.md](./data-model.md), [contracts/roles-service.md](./contracts/roles-service.md), [contracts/app-routes.md](./contracts/app-routes.md), [quickstart.md](./quickstart.md), [.specify/memory/constitution.md](../../.specify/memory/constitution.md) (v1.5.0).
 
@@ -154,7 +154,7 @@ Proyecto único en la raíz del repositorio (`C:\Maily\code\maily-backoffice`): 
   - Invalida `roleKeys` de la lista (para el contador) y del detalle tras un guardado con éxito, parcial o total.
 - [X] T065 [US1] Implementar (tras T026, T028, T030, T038, T064) `src/features/roles/hooks/useSaveRoleDetail.ts`. Hace pasar T064. Verificado: lint y typecheck limpios, 5/5 pruebas en verde.
 
-**PAUSA (2026-10-23, sesión interrumpida por el usuario para hacer logout)**: continuar en T066 (escribir `RoleDetailPanel.test.tsx`). Todo lo de arriba (T001-T065) está implementado, probado y commiteado en la rama `worktree-013-roles-permisos` de este worktree — no hay nada pendiente de guardar.
+**PAUSA (2026-10-23, sesión interrumpida por el usuario para hacer logout)**: continuar en T066 (escribir `RoleDetailPanel.test.tsx`). Todo lo de arriba (T001-T065) está implementado, probado y commiteado en la rama `worktree-013-roles-permisos` de este worktree (renumerado a `014-roles-permisos` poco después, por choque con la spec «Módulos» que tomó el 013 en paralelo) — no hay nada pendiente de guardar.
 - [ ] T066 [P] [US1] Escribir `src/features/roles/components/RoleDetailPanel.test.tsx` (debe fallar primero; FR-005, FR-010, FR-020, FR-021). Nombre y descripción editables; tipo mostrado como texto, no como campo; contador «X de Y permisos»; «Guardar cambios»/«Descartar cambios» deshabilitados sin cambios pendientes; si `useRolePermissionMatrix` falla pero el rol cargó, el resto del panel se ve igual y solo la tabla muestra el aviso (FR-020); «Descartar cambios» repone nombre, descripción y tabla al último estado guardado.
 - [ ] T067 [US1] Implementar (tras T063, T065) `src/features/roles/components/RoleDetailPanel.tsx`. Hace pasar T066.
 - [ ] T068 [US1] Wire: sustituir el cascarón de detalle de `RolesPage.tsx` (T058) por `RoleDetailPanel`, condicionado a que exista `roleId` en la URL; aviso de cambios sin guardar al cambiar de pestaña, de rol o salir de `/roles` con la tabla o el nombre/descripción modificados sin guardar (edge case de spec.md).

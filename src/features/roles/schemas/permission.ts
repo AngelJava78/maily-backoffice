@@ -26,7 +26,7 @@ const permissionModuleSchema = z.object({
   type: z.object({ id: z.union([z.literal(1), z.literal(2)]), name: z.string() }),
 });
 
-/** A permission of the catalog (feature 013): `module`/`action` are `null` when `name` (the
+/** A permission of the catalog (feature 014): `module`/`action` are `null` when `name` (the
  * `recurso:accion` pair) does not resolve to an Active module or a known action. */
 export const permissionSchema = z
   .object({
