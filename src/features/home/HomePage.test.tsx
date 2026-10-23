@@ -61,7 +61,12 @@ describe('HomePage', () => {
   });
 
   it('shows that notice when the only permissions cannot open anything', () => {
-    renderHome('users:write', 'roles:read');
+    // `clinics` is not (yet) one of PERMISSION_RESOURCES (same placeholder as
+    // `features/auth/policy/permissions.test.ts`): an unrelated read permission never counts.
+    // `tenants:read` no longer works for this example: `hasAnythingToSee` only checks
+    // `SECTION_RESOURCES` membership, and `tenants` was already listed there regardless of
+    // whether `sections.ts` has a matching entry — it was never really a safe example either.
+    renderHome('users:write', 'clinics:read');
 
     expect(screen.getByText(messages.home.noPermissionsTitle)).toBeInTheDocument();
   });
