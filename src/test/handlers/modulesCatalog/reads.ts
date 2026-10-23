@@ -55,9 +55,11 @@ export function readHandlers(model: ModulesCatalogModel, handle: Handle): HttpHa
       }),
     ),
 
+    // `modules:read`, not `permissions:read` (research D8): this screen never needs a permissions
+    // capability of its own, only to cross-reference each module's own actions.
     http.get(
       permissions,
-      handle('permissions:read', () =>
+      handle('modules:read', () =>
         HttpResponse.json(model.listPermissions().map((permission) => model.toPermissionDto(permission))),
       ),
     ),

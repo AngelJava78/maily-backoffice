@@ -11,7 +11,7 @@ import Typography from '@mui/material/Typography';
 
 import { messages } from '@/shared/messages/es';
 
-import { MODULE_ACTION_ORDER, MODULE_TYPE, type ModuleTypeId } from '../schemas/moduleActionCatalog';
+import { MODULE_ACTION_ORDER, MODULE_TYPE } from '../schemas/moduleActionCatalog';
 import { isProtectedModule, type SystemModule } from '../schemas/systemModule';
 
 const text = messages.modules;
@@ -23,7 +23,9 @@ interface ModulesTableProps {
   readonly onEdit: (moduleId: number) => void;
 }
 
-function typeLabel(typeId: ModuleTypeId): string {
+/** `typeId` is a plain `number` at the schema boundary (constitution II): the API is the source of
+ * truth for which values exist, so an unexpected one is shown as-is rather than rejected outright. */
+function typeLabel(typeId: number): string {
   return typeId === MODULE_TYPE.SYSTEM ? text.type.system : text.type.clinic;
 }
 

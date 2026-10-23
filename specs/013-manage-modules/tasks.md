@@ -284,11 +284,12 @@ agrupados con sus acciones correctas, y que los filtros y la búsqueda acotan la
   - un error de red al cargar muestra el estado de error con la opción de reintentar, conservando
     los filtros elegidos;
   - sin violaciones de axe.
-- [ ] T038 [US1] **EN PAUSA, ROTA**: 3 de 4 pruebas fallan (falta `configure({asyncUtilTimeout})`
-  + precargar el chunk perezoso, igual que `usersList.integration.test.tsx`; ya identificado, falta
-  aplicarlo). Escribir `src/app/router/modules/modulesList.integration.test.tsx` (tras T037):
+- [X] T038 [US1] Escribir `src/app/router/modules/modulesList.integration.test.tsx` (tras T037):
   con el catálogo real de 23 módulos sembrado por el simulador, abrir `/modules` y comprobar W1 a W4
-  de [quickstart.md](quickstart.md).
+  de [quickstart.md](quickstart.md). Arreglado tras la pausa: faltaba `configure({asyncUtilTimeout:
+  10_000})` + precargar el chunk (igual que `usersList.integration.test.tsx`), y el handler de
+  `GET /api/v1/permissions` del simulador pedía `permissions:read` en vez de `modules:read`
+  (inconsistente con research D8 — ya corregido en `modulesCatalog/reads.ts`).
 - [X] T039 [US1] Escribir `src/app/layouts/useRouteAccessibility.modules.test.tsx` (mismo patrón
   que `useRouteAccessibility.subscriptions.test.tsx`/`.token.test.tsx`, ya existentes): sin
   `modules:read`, "Módulos" no aparece en el menú principal y entrar a `/modules` directamente
@@ -307,12 +308,14 @@ agrupados con sus acciones correctas, y que los filtros y la búsqueda acotan la
   y éxito; el panel de la derecha, por ahora, solo existe vacío (research D10; su contenido de
   Editar/Nuevo módulo llega en US2/US3). Hace pasar T037.
 - [X] T043 [US1] Ampliar `src/app/router/routes.tsx` (tras T042): agregar la ruta `/modules` con
-  `<RequirePermission resource="modules"><Outlet /></RequirePermission>`, el componente de
-  `ModulesPage` cargado con `React.lazy`, `handle.titleKey: 'modules'`, mismo patrón que `/users` y
-  `/subscriptions`. Hace pasar T038 y T039.
+  `<RequirePermission resource="modules"><Outlet /></RequirePermission>`, `handle.titleKey:
+  'modules'`, mismo patrón que `/users` y `/subscriptions`. Nota: `ModulesRoute` se importa directo
+  (no `React.lazy`), igual que `UsersListRoute`/`SubscriptionsListRoute` — ninguna de las dos usa
+  lazy a este nivel; revisar en Polish (T078) si el presupuesto de bundle lo exige. Hace pasar T038
+  y T039.
 - [X] T044 [US1] Crear `src/features/modules/index.ts`: exporta `ModulesPage` y el tipo
   `ModuleCapabilities` (usado por T019).
-- [ ] T045 [US1] Punto de control de la historia: ejecutar las pruebas y validar manualmente W1 a W5
+- [X] T045 [US1] Punto de control de la historia: ejecutar las pruebas y validar manualmente W1 a W5
   de [quickstart.md](quickstart.md).
 
 **Checkpoint**: la pantalla de Módulos consulta, filtra y busca de punta a punta (MVP de lectura).
