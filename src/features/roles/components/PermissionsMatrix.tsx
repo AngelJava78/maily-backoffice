@@ -4,6 +4,7 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import { Fragment } from 'react';
 
 import { messages } from '@/shared/messages/es';
 import { EmptyState } from '@/shared/ui/EmptyState';
@@ -40,6 +41,10 @@ export function PermissionsMatrix({
   }
 
   const columns = ACTION_KEYS.filter((key) => matrix.some((row) => row.cells[key] !== undefined));
+  // FR-004/FR-005: a Clínica role's matrix groups its rows by module type (Sistema modules joined
+  // in, spec 015-clinic-roles-system-modules); a single-type matrix (every role before this
+  // feature, and a role de Sistema always) shows no group header at all.
+  const groupedByType = new Set(matrix.map((row) => row.module.type.id)).size > 1;
 
   return (
     <TableContainer sx={{ maxWidth: '100%' }}>
@@ -58,20 +63,32 @@ export function PermissionsMatrix({
           </TableRow>
         </TableHead>
         <TableBody>
-          {matrix.map((row) => (
-            <PermissionsMatrixRow
-              key={row.module.id}
-              row={row}
-              columns={columns}
-              pending={pending}
-              onToggle={(actionKey, checked) => {
-                onToggle(row.module.id, actionKey, checked);
-              }}
-              onToggleAll={(checked) => {
-                onToggleAll(row.module.id, checked);
-              }}
-            />
-          ))}
+          {matrix.map((row, index) => {
+            const startsNewGroup =
+              groupedByType && matrix[index - 1]?.module.type.id !== row.module.type.id;
+            return (
+              <Fragment key={row.module.id}>
+                {startsNewGroup && (
+                  <TableRow>
+                    <TableCell component="th" scope="rowgroup" colSpan={columns.length + 2}>
+                      {text.moduleGroupHeader(row.module.type.name)}
+                    </TableCell>
+                  </TableRow>
+                )}
+                <PermissionsMatrixRow
+                  row={row}
+                  columns={columns}
+                  pending={pending}
+                  onToggle={(actionKey, checked) => {
+                    onToggle(row.module.id, actionKey, checked);
+                  }}
+                  onToggleAll={(checked) => {
+                    onToggleAll(row.module.id, checked);
+                  }}
+                />
+              </Fragment>
+            );
+          })}
         </TableBody>
       </Table>
     </TableContainer>

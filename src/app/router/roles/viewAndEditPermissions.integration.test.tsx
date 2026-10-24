@@ -62,7 +62,8 @@ describe(
 
       expect(await screen.findByLabelText(text.detail.fields.name)).toHaveValue('Owner');
       expect(screen.getByText(`${text.detail.fields.type}: Clínica`)).toBeInTheDocument();
-      expect(screen.getByText(text.detail.permissionsCount(0, 10))).toBeInTheDocument();
+      // 10 de Clínica (Pacientes/Agenda/Recordatorios) + 16 de Sistema que ya puede recibir (015).
+      expect(screen.getByText(text.detail.permissionsCount(0, 26))).toBeInTheDocument();
       // "Recordatorios" only has Ver and Modificar in the catalog (mockup): no Crear/Eliminar checkbox.
       expect(screen.getByRole('checkbox', { name: 'Ver de Recordatorios' })).toBeInTheDocument();
       expect(
@@ -98,7 +99,7 @@ describe(
 
       expect(screen.getByRole('checkbox', { name: 'Ver de Recordatorios' })).toBeChecked();
       expect(screen.getByRole('checkbox', { name: 'Modificar de Recordatorios' })).toBeChecked();
-      expect(screen.getByText(text.detail.permissionsCount(2, 10))).toBeInTheDocument();
+      expect(screen.getByText(text.detail.permissionsCount(2, 26))).toBeInTheDocument();
     });
 
     it('US1-6: Guardar cambios updates the table and the counter, and it is still there after reopening', async () => {
@@ -111,17 +112,19 @@ describe(
       await user.click(screen.getByRole('button', { name: text.detail.save }));
 
       await waitFor(() => {
-        expect(screen.getByText(text.detail.permissionsCount(2, 10))).toBeInTheDocument();
+        expect(screen.getByText(text.detail.permissionsCount(2, 26))).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: text.detail.save })).toBeDisabled();
       });
-      expect(screen.getByRole('button', { name: text.detail.save })).toBeDisabled();
       unmount();
 
       // A fresh load (as if the person came back later): the server, not the page, is the source.
       const { user: userAgain } = open();
       await userAgain.click(await screen.findByText('Owner'));
 
-      expect(await screen.findByText(text.detail.permissionsCount(2, 10))).toBeInTheDocument();
-      expect(screen.getByRole('checkbox', { name: 'Ver de Recordatorios' })).toBeChecked();
+      await waitFor(() => {
+        expect(screen.getByText(text.detail.permissionsCount(2, 26))).toBeInTheDocument();
+        expect(screen.getByRole('checkbox', { name: 'Ver de Recordatorios' })).toBeChecked();
+      });
     });
 
     it('US1-7: Descartar cambios reverts the table and the name/description to the last saved state', async () => {

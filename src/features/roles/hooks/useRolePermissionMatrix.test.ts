@@ -38,29 +38,44 @@ describe('useRolePermissionMatrix', () => {
     expect(usersRow?.cells.read).toEqual({ permissionId: 1, granted: true });
   });
 
-  it('is empty for a type with no modules yet (Clínica, in the real local environment)', async () => {
+  it('includes the Sistema modules too, even with no Clínica modules yet (asymmetric rule, FR-001)', async () => {
     start();
     const { wrapper } = wrapperFor();
 
     const { result } = renderHook(() => useRolePermissionMatrix(2, new Set()), { wrapper });
 
     await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
+      expect(result.current.matrix).toHaveLength(4);
     });
-    expect(result.current.matrix).toEqual([]);
+    const usersRow = result.current.matrix?.find((row) => row.module.key === 'users');
+    expect(usersRow).toBeDefined();
   });
 
-  it('builds a rich Clínica matrix when those modules exist', async () => {
+  it('builds a rich Clínica matrix combined with the Sistema modules when both exist', async () => {
     start(richClinicModulesScenario());
     const { wrapper } = wrapperFor();
 
     const { result } = renderHook(() => useRolePermissionMatrix(2, new Set()), { wrapper });
 
     await waitFor(() => {
-      expect(result.current.matrix?.length).toBe(3);
+      expect(result.current.matrix?.length).toBe(7);
     });
     const reminders = result.current.matrix?.find((row) => row.module.key === 'reminders');
     expect(Object.keys(reminders?.cells ?? {}).sort()).toEqual(['read', 'update']);
+    const usersRow = result.current.matrix?.find((row) => row.module.key === 'users');
+    expect(usersRow).toBeDefined();
+  });
+
+  it('never includes a Clínica module for a Sistema role, even when Clínica modules exist (FR-002)', async () => {
+    start(richClinicModulesScenario());
+    const { wrapper } = wrapperFor();
+
+    const { result } = renderHook(() => useRolePermissionMatrix(1, new Set()), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.matrix).toHaveLength(4);
+    });
+    expect(result.current.matrix?.some((row) => row.module.type.id === 2)).toBe(false);
   });
 
   it('gives no matrix, without loading or erroring, while there is no granted set yet', () => {
