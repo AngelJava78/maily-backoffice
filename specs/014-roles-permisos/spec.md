@@ -106,7 +106,7 @@ Una persona con acceso duplica un role desde su detalle para partir de uno ya co
 - **FR-003**: El sistema DEBE presentar los roles agrupados en dos conjuntos independientes y claramente identificados, Clínica y Sistema, de forma que elegir uno no mezcle roles del otro tipo.
 - **FR-004**: Por cada role de la lista, el sistema DEBE mostrar al menos su nombre, su descripción y cuántos permisos tiene concedidos.
 - **FR-005**: Al elegir un role, el sistema DEBE mostrar su detalle: nombre, descripción, tipo, un contador de permisos concedidos sobre el total posible para ese tipo, y una tabla de permisos con un módulo por fila.
-- **FR-006**: La tabla de permisos DEBE incluir únicamente los módulos del mismo tipo que el role (un role de Clínica no muestra ni puede recibir permisos de módulos de Sistema, y viceversa).
+- **FR-006**: La tabla de permisos DEBE incluir los módulos del tipo del role; un role de Sistema solo ve y puede recibir módulos de Sistema, y un role de Clínica ve y puede recibir módulos de Sistema además de los de Clínica (regla asimétrica, no la simétrica original de esta spec — sustituida por la spec `015-clinic-roles-system-modules`, FR-003).
 - **FR-007**: Por cada módulo de la tabla, el sistema DEBE mostrar únicamente las acciones que ese módulo tiene disponibles (no toda fila tiene necesariamente Ver, Crear, Modificar y Eliminar).
 - **FR-008**: El sistema DEBE impedir que una fila quede con Crear, Modificar o Eliminar concedido sin que Ver también lo esté: al conceder cualquiera de esas tres, Ver se concede junto con ella; al retirar Ver, las demás de esa fila se retiran con él.
 - **FR-009**: El sistema DEBE ofrecer, por fila, una forma de conceder o retirar de una sola vez todas las acciones disponibles de ese módulo.

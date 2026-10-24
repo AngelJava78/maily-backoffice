@@ -43,7 +43,7 @@ Sale de `ModuleRead` (catálogo) y de `ModuleReference` (embebido en cada `Permi
 | `id` | entero ≥ 1 | `id` | — |
 | `key` | texto, `^[a-z][a-z0-9_]*$` | `key` | Identificador estable (p. ej. `"patients"`); no cambia. Es la clave de agrupación de la matriz (research D3). |
 | `name` | texto | `name` | Nombre visible de la fila (p. ej. "Pacientes"). |
-| `type` | `{ id: 1 \| 2, name }` (`ModuleTypeRead`) | `type` | Catálogo de tipo de **módulo**: mismos `id`/`name` que `RoleType` pero es un catálogo distinto, nunca se mezclan (coincidencia documentada en el propio backend). La matriz de un rol solo incluye módulos cuyo `type.id` sea igual al `type.id` del rol (FR-006). |
+| `type` | `{ id: 1 \| 2, name }` (`ModuleTypeRead`) | `type` | Catálogo de tipo de **módulo**: mismos `id`/`name` que `RoleType` pero es un catálogo distinto, nunca se mezclan (coincidencia documentada en el propio backend). La matriz de un rol de Sistema solo incluye módulos de Sistema; la de uno de Clínica incluye los de Clínica y, además, los de Sistema (regla asimétrica, FR-006 — spec `015-clinic-roles-system-modules`). |
 | `sortOrder` | entero | `sort_order` | Orden de la fila en la tabla (catálogo completo, vía `GET /modules`). |
 
 ## `Action`
@@ -75,7 +75,7 @@ No tiene identificador propio ni endpoint de lectura directa fuera de `GET /role
 | `roleId` | entero | parte de la ruta | — |
 | `permissionId` | entero | `permission_id` de `RolePermissionCreate` | Al asociar (`POST`) o desasociar (`DELETE`, en la ruta). |
 
-**Reglas de conflicto (409, del backend, no se reimplementan)**: `role_permission_already_associated` (ya estaba asociado), `role_permission_not_associated` (no estaba asociado), `role_permission_module_type_conflict` (el `type` del módulo del permiso no es el `type` del rol). El frontend trata los dos primeros como éxito silencioso para ese `permissionId` puntual durante un guardado (research D6); el tercero no debería ocurrir porque la matriz ya solo ofrece módulos del tipo correcto (FR-006), así que si llega se muestra como error de ese permiso.
+**Reglas de conflicto (409, del backend, no se reimplementan)**: `role_permission_already_associated` (ya estaba asociado), `role_permission_not_associated` (no estaba asociado), `role_permission_module_type_conflict` (el par tipo de rol/tipo de módulo no es uno de los permitidos). El frontend trata los dos primeros como éxito silencioso para ese `permissionId` puntual durante un guardado (research D6); el tercero no debería ocurrir porque la matriz ya solo ofrece módulos de un tipo permitido para ese role (no necesariamente el mismo, desde la regla asimétrica de la spec `015-clinic-roles-system-modules`, FR-006), así que si llega se muestra como error de ese permiso.
 
 ## `PermissionMatrix` (derivado; `schemas/permissionMatrix.ts`, no sale de ninguna respuesta)
 

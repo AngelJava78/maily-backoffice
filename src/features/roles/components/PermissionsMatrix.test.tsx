@@ -28,6 +28,13 @@ function permission(id: number, mod: Module | null, actionKey: string | null): P
 
 const PATIENTS = module({ id: 5, key: 'patients', name: 'Pacientes', sortOrder: 50 });
 const REMINDERS = module({ id: 7, key: 'reminders', name: 'Recordatorios', sortOrder: 70 });
+const USERS = module({
+  id: 1,
+  key: 'users',
+  name: 'Usuarios',
+  sortOrder: 10,
+  type: { id: 1, name: 'Sistema' },
+});
 
 function richMatrix(): Matrix {
   return buildPermissionMatrix(
@@ -43,6 +50,18 @@ function richMatrix(): Matrix {
     new Set(),
     2,
   );
+}
+
+/** A Clínica role's matrix after it also gains the Sistema modules (FR-001): two groups. */
+function mixedTypeMatrix(): Matrix {
+  const clinicRows = buildPermissionMatrix(
+    [PATIENTS, REMINDERS],
+    [permission(1, PATIENTS, 'read'), permission(5, REMINDERS, 'read')],
+    new Set(),
+    2,
+  );
+  const systemRows = buildPermissionMatrix([USERS], [permission(10, USERS, 'read')], new Set(), 1);
+  return [...clinicRows, ...systemRows];
 }
 
 function Harness({ initial }: { readonly initial: Matrix }) {
@@ -116,6 +135,28 @@ describe('PermissionsMatrix', () => {
 
     expect(screen.getByRole('checkbox', { name: 'Crear de Pacientes' })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: 'Ver de Pacientes' })).toBeChecked();
+  });
+
+  it('groups rows by module type under a header, Clínica first, when the matrix mixes types (FR-004)', () => {
+    render(<Harness initial={mixedTypeMatrix()} />);
+
+    expect(screen.getByText('Módulos de Clínica')).toBeInTheDocument();
+    expect(screen.getByText('Módulos de Sistema')).toBeInTheDocument();
+
+    const rowTexts = screen.getAllByRole('row').map((row) => row.textContent);
+    const clinicHeaderIndex = rowTexts.findIndex((text) => text === 'Módulos de Clínica');
+    const patientsRowIndex = rowTexts.findIndex((text) => text.includes('Pacientes'));
+    const systemHeaderIndex = rowTexts.findIndex((text) => text === 'Módulos de Sistema');
+    const usersRowIndex = rowTexts.findIndex((text) => text.includes('Usuarios'));
+    expect(clinicHeaderIndex).toBeLessThan(patientsRowIndex);
+    expect(patientsRowIndex).toBeLessThan(systemHeaderIndex);
+    expect(systemHeaderIndex).toBeLessThan(usersRowIndex);
+  });
+
+  it('shows no group header when every row is of the same module type (no regression, FR-005)', () => {
+    render(<Harness initial={richMatrix()} />);
+
+    expect(screen.queryByText(/^Módulos de /)).not.toBeInTheDocument();
   });
 
   it('reports which moduleId changed when a whole-row toggle happens', async () => {

@@ -87,6 +87,25 @@ describe('RoleDetailPanel', () => {
     expect(screen.getByRole('button', { name: text.save })).toBeDisabled();
   });
 
+  it('a Clínica role can grant and save a Sistema module permission (asymmetric rule, FR-001)', async () => {
+    start();
+    const { user } = renderPanel(6);
+
+    await screen.findByLabelText(text.fields.name);
+    expect(screen.getByText(text.permissionsCount(0, 16))).toBeInTheDocument();
+
+    await user.click(screen.getByRole('checkbox', { name: 'Ver de Roles' }));
+    expect(screen.getByRole('button', { name: text.save })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: text.save }));
+
+    await waitFor(() => {
+      expect(screen.getByText(text.permissionsCount(1, 16))).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: 'Ver de Roles' })).toBeChecked();
+    });
+    expect(screen.getByRole('button', { name: text.save })).toBeDisabled();
+  });
+
   it('rejects an empty name and saves nothing (US1-8)', async () => {
     const { roles } = start();
     const { user } = renderPanel(2);
