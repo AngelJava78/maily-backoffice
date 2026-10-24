@@ -71,6 +71,19 @@ export function ModuleEditPanel({ module, capabilities, onDeleted }: ModuleEditP
   // safely (React Compiler).
   const actions = useWatch({ control, name: 'actions' });
 
+  // `defaultValues` only seeds the form on its first render: this panel is not remounted when the
+  // operator picks a different module to edit (only the `module` prop changes), so without this the
+  // form kept showing whichever module was open first. Keyed on the id alone, not the whole object,
+  // so a background refetch of the same module (the periodic catalog refresh) never discards an
+  // edit in progress — saving its own changes already resets the form itself, below.
+  useEffect(() => {
+    reset(toFormValues(module));
+    // A stale refusal from the previous module would otherwise still show for this one.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- synchronizing with module.id, not derived render state
+    setGeneralError(undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [module.id]);
+
   // Same reason as `FormFrame`: the ref is read from an effect, never from inside the submit
   // handler itself, so React (and its compiler) never sees it as a render-time read.
   useEffect(() => {

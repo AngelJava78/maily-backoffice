@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -209,6 +210,39 @@ describe('ModuleEditPanel', () => {
         'Cambios guardados, pero no se pudo aplicar: Eliminar. Puedes reintentarlo.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it("resets to the new module's own values when the operator picks a different one to edit", async () => {
+    const user = userEvent.setup();
+    createModulesCatalogMock();
+    const first = await medicalRecords();
+    const second = await usersModule();
+    // Stands in for `ModulesPage`: holds which module is being edited, exactly as `?edit=` does.
+    function SwitchesModule() {
+      const [module, setModule] = useState(first);
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              setModule(second);
+            }}
+          >
+            edit the other module
+          </button>
+          <ModuleEditPanel module={module} capabilities={FULL_ACCESS} onDeleted={vi.fn()} />
+        </>
+      );
+    }
+    renderWithProviders(<SwitchesModule />);
+    expect(screen.getByRole('textbox', { name: 'Nombre' })).toHaveValue('Expediente clínico');
+
+    await user.click(screen.getByRole('button', { name: 'edit the other module' }));
+
+    expect(screen.getByRole('textbox', { name: 'Nombre' })).toHaveValue(second.name);
+    expect(screen.getByRole('textbox', { name: 'Descripción' })).toHaveValue(
+      second.description ?? '',
+    );
   });
 
   it('discards every change back to the current values without saving', async () => {
