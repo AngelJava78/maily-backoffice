@@ -1,24 +1,3 @@
-<!--
-Sync Impact Report
-Version change: 1.4.0 → 1.5.0 (MINOR: nuevo recurso administrado reconocido en el alcance del
-  producto, y ampliación material del Principio VI para cubrirlo)
-Modified principles:
-  - Alcance del producto — se agrega (4) roles y sus permisos por módulo y acción (Clínica y
-    Sistema) a la lista de lo que administra el Backoffice, consumiendo el catálogo de módulos y
-    acciones que ya expone MailySoft Usuarios (ese catálogo no se crea ni edita desde el
-    Backoffice); se aclara que roles se sirve desde la misma API de usuarios, sin backend nuevo.
-  - VI. Experiencia de Usuario, Accesibilidad y Consistencia — "Los tres recursos DEBEN seguir el
-    mismo patrón..." se generaliza a "Los recursos administrados DEBEN...", y se documenta la
-    variante de presentación de Roles (lista maestro-detalle en una sola pantalla, con pestañas por
-    tipo) como parte normal del patrón para ese recurso, no como excepción con Complexity Tracking.
-Added sections: ninguna (ampliación dentro de secciones existentes).
-Removed sections: ninguna.
-Templates/comandos dependientes: no requieren cambios (el Constitution Check de plan.md sigue
-  aplicando igual; la variante de Roles queda ya justificada aquí y no exige una entrada nueva en
-  Complexity Tracking).
-Follow-up TODOs: ninguno.
--->
-
 # Constitución de MailySoft Backoffice
 
 Convención normativa (RFC 2119): DEBE = MUST, NO DEBE = MUST NOT, DEBERÍA = SHOULD, PUEDE = MAY.
@@ -274,19 +253,33 @@ probar comportamiento y no implementación las mantiene útiles ante cambios de 
 
 - MailySoft Backoffice es una SPA interna cuyo único origen de datos son las APIs REST de MailySoft.
   Administra (1) usuarios y su role de sistema, (2) suscripciones, (3) clínicas, donde crear
-  una clínica asigna un owner que pasa a ser su administrador, y (4) roles y sus permisos por
+  una clínica asigna un owner que pasa a ser su administrador, (4) roles y sus permisos por
   módulo y acción (de tipo Clínica y de tipo Sistema), consumiendo el catálogo de módulos y
   acciones que ya expone MailySoft Usuarios — ese catálogo (qué módulos existen y qué acciones
-  admite cada uno) se consume tal cual y no se crea ni edita desde el Backoffice. Incluye login,
-  logout, perfil del usuario, el Panel (la página principal, con un resumen de solo lectura de la
-  plataforma) y la herramienta temporal de token para Postman.
+  admite cada uno) se consume tal cual y no se crea ni edita desde el Backoffice —, y (5) el
+  registro de componentes monitoreados que sirve maily-system-api: los microservicios y frontends
+  cuya salud se vigila, que se suman sin desplegar nada. Los componentes integrados
+  (maily-system-api y su base de datos) se monitorean siempre y no se registran ni se editan.
+  Incluye login, logout, perfil del usuario, el Panel (la página principal, con un resumen de solo
+  lectura de la plataforma) y la herramienta temporal de token para Postman.
+- Incluye también el monitoreo de salud de la plataforma: la página «Salud de servicios», de solo
+  lectura y con actualización periódica (principio IV), con el estado de cada componente que
+  entrega el agregador de maily-system-api y la versión del propio Backoffice; el estado público de
+  la plataforma, el resumen sin autenticación de maily-system-api que se muestra cuando no se puede
+  comprobar el acceso de la persona o falla la consulta al agregador, sin conceder ni negar el
+  acceso; y la comprobación directa que lo respalda cuando maily-system-api no responde, en la que
+  el navegador consulta sin credencial solo las rutas públicas de salud (`/health/live` y
+  `/health/ready`) de los servicios cuya URL base está configurada, nunca las direcciones del
+  registro.
 - "Administrar" significa Listar, Mostrar, Crear, Modificar y Eliminar.
 - El repositorio contiene solo el frontend, como proyecto único en la raíz (sin monorepo). Los
   backends viven fuera y solo se simulan con MSW en las pruebas.
 - Ejemplos de desarrollo local (no normativos; siempre configurables por entorno):
   usuarios `http://127.0.0.1:8000/api/v1/users`, clínicas `http://127.0.0.1:8001/api/v1/clinics`,
   suscripciones `http://127.0.0.1:8002/api/v1/suscriptions`. Roles y permisos se sirven desde la
-  misma API de usuarios: no agregan un backend nuevo.
+  misma API de usuarios, y la salud de los servicios, su registro de componentes y el estado
+  público, desde maily-system-api (la API de suscripciones y del Panel): no agregan un backend
+  nuevo.
 
 ### Stack obligatorio
 
@@ -368,4 +361,4 @@ probar comportamiento y no implementación las mantiene útiles ante cambios de 
   trimestre o tras cada release mayor.
 - La guía operativa de desarrollo vive en `README.md` y en `specs/<feature>/quickstart.md`.
 
-**Version**: 1.5.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-23
+**Version**: 1.6.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-24
