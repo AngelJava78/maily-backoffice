@@ -312,8 +312,9 @@ probar comportamiento y no implementación las mantiene útiles ante cambios de 
 ### Rendimiento y observabilidad
 
 - Code splitting por ruta con `React.lazy` y `Suspense`; las dependencias pesadas (p. ej. Data Grid)
-  DEBERÍAN cargarse de forma diferida. Presupuesto de JS inicial: 300 KB gzip en la ruta de entrada,
-  verificado en CI y ajustable mediante enmienda tras medir la línea base.
+  DEBERÍAN cargarse de forma diferida. Presupuesto de JS inicial: 320 KB gzip en la ruta de entrada,
+  verificado en CI y ajustable mediante enmienda tras medir la línea base (en la 1.7.0, 299,7 KB
+  medidos más lo que añade la feature 016).
 - Los listados NO DEBEN renderizar más filas que el `page_size` vigente.
 - El logging DEBE pasar por un único módulo `logger`; `console.*` está prohibido en código de
   producción (ESLint `no-console`). DEBEN existir Error Boundaries global y por ruta que registren
@@ -361,4 +362,4 @@ probar comportamiento y no implementación las mantiene útiles ante cambios de 
   trimestre o tras cada release mayor.
 - La guía operativa de desarrollo vive en `README.md` y en `specs/<feature>/quickstart.md`.
 
-**Version**: 1.6.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-24
+**Version**: 1.7.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-24
