@@ -34,8 +34,9 @@ describe('formatElapsed', () => {
     [12 * SECOND_MS, 'Actualizado hace 12 s'],
     [59 * SECOND_MS, 'Actualizado hace 59 s'],
     [59_999, 'Actualizado hace 59 s'],
-    [MINUTE_MS, 'Actualizado hace 1 min'],
-    [59 * MINUTE_MS + 59 * SECOND_MS, 'Actualizado hace 59 min'],
+    [MINUTE_MS, 'Actualizado hace 1 min 0 s'],
+    [MINUTE_MS + 15 * SECOND_MS, 'Actualizado hace 1 min 15 s'],
+    [59 * MINUTE_MS + 59 * SECOND_MS, 'Actualizado hace 59 min 59 s'],
   ])('says %d ms ago as «%s» (FR-027)', (elapsed, text) => {
     expect(formatElapsed(LAST, LAST + elapsed)).toBe(text);
   });

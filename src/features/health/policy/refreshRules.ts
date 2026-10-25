@@ -28,7 +28,7 @@ export function formatElapsed(updatedAt: number, now: number): string {
   }
   const minutes = Math.floor(seconds / SECONDS_PER_MINUTE);
   if (minutes < MINUTES_PER_HOUR) {
-    return page.updatedMinutesAgo(minutes);
+    return page.updatedMinutesAgo(minutes, seconds % SECONDS_PER_MINUTE);
   }
   return page.updatedAt(formatDateTime(new Date(updatedAt).toISOString(), { seconds: true }));
 }

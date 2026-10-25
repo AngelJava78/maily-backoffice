@@ -85,7 +85,7 @@ const dashboardRefreshMinutes = z.preprocess(
 );
 
 /** The seconds between two automatic refreshes of «Salud de servicios» when the variable is not set. */
-const DEFAULT_HEALTH_REFRESH_SECONDS = 30;
+const DEFAULT_HEALTH_REFRESH_SECONDS = 60;
 
 /**
  * Whole seconds from 10 to 300, written with digits only (feature 016, contracts/environment.md):

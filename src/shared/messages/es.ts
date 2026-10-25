@@ -948,7 +948,8 @@ export const messages = {
       refresh: 'Actualizar',
       updating: 'Actualizando…',
       updatedSecondsAgo: (seconds: number) => `Actualizado hace ${seconds} s`,
-      updatedMinutesAgo: (minutes: number) => `Actualizado hace ${minutes} min`,
+      updatedMinutesAgo: (minutes: number, seconds: number) =>
+        `Actualizado hace ${minutes} min ${seconds} s`,
       updatedAt: (when: string) => `Actualizado: ${when}`,
       refreshFailed:
         'No se pudo actualizar la salud de los servicios. Se muestran los datos de la última actualización correcta.',

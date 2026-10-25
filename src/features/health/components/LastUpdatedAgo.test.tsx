@@ -36,7 +36,7 @@ describe('LastUpdatedAgo', () => {
     expect(elapsedLine()).toHaveTextContent('Actualizado hace 13 s');
 
     await advance(47_000);
-    expect(elapsedLine()).toHaveTextContent('Actualizado hace 1 min');
+    expect(elapsedLine()).toHaveTextContent('Actualizado hace 1 min 0 s');
 
     await advance(59 * 60_000);
     expect(elapsedLine()).toHaveTextContent(
