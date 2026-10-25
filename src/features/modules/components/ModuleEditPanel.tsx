@@ -1,8 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import Alert from '@mui/material/Alert';
-import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Paper from '@mui/material/Paper';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { useEffect, useRef, useState } from 'react';
@@ -34,6 +35,8 @@ const text = messages.modules;
 interface ModuleEditPanelProps {
   readonly module: SystemModule;
   readonly capabilities: ModuleCapabilities;
+  /** The `id` its `DialogTitle` uses, so the dialog that hosts it names itself accessibly. */
+  readonly titleId: string;
   /** The module was deleted (US5): the caller closes this panel, since there is nothing left to edit. */
   readonly onDeleted: () => void;
 }
@@ -48,7 +51,12 @@ interface PendingUncheck {
  * `edición` share, and a confirmation before any action the module already had is taken away.
  * Bloquear/Desbloquear/Eliminar (US4, US5) live in `ModuleDangerZone`, which this panel only hosts.
  */
-export function ModuleEditPanel({ module, capabilities, onDeleted }: ModuleEditPanelProps) {
+export function ModuleEditPanel({
+  module,
+  capabilities,
+  titleId,
+  onDeleted,
+}: ModuleEditPanelProps) {
   const notify = useNotify();
   const update = useUpdateModule();
   const errorRef = useRef<HTMLDivElement>(null);
@@ -139,18 +147,17 @@ export function ModuleEditPanel({ module, capabilities, onDeleted }: ModuleEditP
   });
 
   return (
-    <Paper variant="outlined" sx={{ p: 3 }}>
-      <Typography variant="h6" component="h2" gutterBottom>
-        {text.panel.editTitle}
-      </Typography>
-      <Box
-        component="form"
-        noValidate
-        onSubmit={(event) => {
-          void save(event);
-        }}
-      >
-        <Stack spacing={3}>
+    <>
+      <DialogTitle id={titleId}>{text.panel.editTitle}</DialogTitle>
+      <DialogContent>
+        <Stack
+          component="form"
+          spacing={3}
+          noValidate
+          onSubmit={(event) => {
+            void save(event);
+          }}
+        >
           {generalError !== undefined && (
             <Alert ref={errorRef} tabIndex={-1} severity="error">
               {generalError}
@@ -187,24 +194,30 @@ export function ModuleEditPanel({ module, capabilities, onDeleted }: ModuleEditP
             actions={actions}
             onActionToggle={handleActionToggle}
           />
-
-          <Stack direction="row" spacing={1}>
-            <Button type="submit" variant="contained" loading={isSubmitting}>
-              {text.form.save}
-            </Button>
-            <Button
-              disabled={isSubmitting}
-              onClick={() => {
-                reset(initialValues);
-              }}
-            >
-              {text.form.discard}
-            </Button>
-          </Stack>
-
-          <ModuleDangerZone module={module} capabilities={capabilities} onDeleted={onDeleted} />
         </Stack>
-      </Box>
+
+        <ModuleDangerZone module={module} capabilities={capabilities} onDeleted={onDeleted} />
+      </DialogContent>
+
+      <DialogActions>
+        <Button
+          variant="contained"
+          loading={isSubmitting}
+          onClick={() => {
+            void save();
+          }}
+        >
+          {text.form.save}
+        </Button>
+        <Button
+          disabled={isSubmitting}
+          onClick={() => {
+            reset(initialValues);
+          }}
+        >
+          {text.form.discard}
+        </Button>
+      </DialogActions>
 
       <ConfirmDialog
         open={pendingUncheck !== null}
@@ -226,6 +239,6 @@ export function ModuleEditPanel({ module, capabilities, onDeleted }: ModuleEditP
           setPendingUncheck(null);
         }}
       />
-    </Paper>
+    </>
   );
 }

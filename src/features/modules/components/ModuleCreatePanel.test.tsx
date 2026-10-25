@@ -1,5 +1,7 @@
+import Dialog from '@mui/material/Dialog';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useId } from 'react';
 import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -8,16 +10,29 @@ import { createModulesCatalogMock } from '@/test/handlers/modulesCatalog';
 
 import { ModuleCreatePanel } from './ModuleCreatePanel';
 
+/** The real context `ModuleCreatePanel` renders in (`ModuleFormDialog`, spec 017): its own
+ * `DialogTitle`/`DialogContent`/`DialogActions` need an actual `Dialog` ancestor. */
+function Harness(props: {
+  readonly onCreated?: (moduleId: number) => void;
+  readonly onCancel?: () => void;
+}) {
+  const titleId = useId();
+  return (
+    <Dialog open aria-labelledby={titleId}>
+      <ModuleCreatePanel
+        nextSortOrder={160}
+        titleId={titleId}
+        onCreated={props.onCreated ?? vi.fn()}
+        onCancel={props.onCancel ?? vi.fn()}
+      />
+    </Dialog>
+  );
+}
+
 function renderPanel(
   options: { readonly onCreated?: (moduleId: number) => void; readonly onCancel?: () => void } = {},
 ) {
-  return renderWithProviders(
-    <ModuleCreatePanel
-      nextSortOrder={160}
-      onCreated={options.onCreated ?? vi.fn()}
-      onCancel={options.onCancel ?? vi.fn()}
-    />,
-  );
+  return renderWithProviders(<Harness {...options} />);
 }
 
 describe('ModuleCreatePanel', () => {
@@ -147,8 +162,10 @@ describe('ModuleCreatePanel', () => {
 
   it('has no axe violations', async () => {
     createModulesCatalogMock();
-    const { container } = renderPanel();
+    // `Dialog` portals its content to `document.body`, outside `container` (same as
+    // `ConfirmDialog.test.tsx`): `axe` must scan `baseElement` to see it at all.
+    const { baseElement } = renderPanel();
 
-    expect(await axe(container)).toHaveNoViolations();
+    expect(await axe(baseElement)).toHaveNoViolations();
   });
 });

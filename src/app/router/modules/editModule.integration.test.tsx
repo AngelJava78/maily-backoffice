@@ -32,9 +32,26 @@ const noDialog = () =>
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+/** Only the uncheck-action confirmation closes here; the outer edit modal (`DialogHarness`-style
+ * nesting, spec 017) stays open underneath it. A mere count can settle on a transient, wrong
+ * instant while it closes (same finding as `ModuleEditPanel.test.tsx`, research R6 of spec 017),
+ * so this re-confirms the outer dialog by its own name too. */
+const noConfirmDialog = () =>
+  waitFor(() => {
+    expect(screen.getByRole('dialog', { name: 'Editar módulo' })).toBeInTheDocument();
+    expect(screen.queryAllByRole('dialog')).toHaveLength(1);
+  });
+
 async function openEditFor(user: ReturnType<typeof open>['user'], rowName: RegExp) {
   const row = await screen.findByRole('row', { name: rowName });
   await user.click(within(row).getByRole('button', { name: 'Editar' }));
+}
+
+/** Saving does not close the edit modal on its own (it only resets the form, `ModuleEditPanel`):
+ * the table behind it stays inert until it is dismissed. */
+async function closeDialog(user: ReturnType<typeof open>['user']) {
+  await user.keyboard('{Escape}');
+  await noDialog();
 }
 
 describe('the modules section: editing (feature 013, user story 3)', () => {
@@ -57,6 +74,7 @@ describe('the modules section: editing (feature 013, user story 3)', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
     expect(await screen.findByText('Cambios guardados.')).toBeInTheDocument();
+    await closeDialog(user);
     const row = await screen.findByRole('row', { name: /Agenda y citas/ });
     expect(row).toHaveTextContent('25');
   });
@@ -71,6 +89,7 @@ describe('the modules section: editing (feature 013, user story 3)', () => {
     await user.click(screen.getByRole('checkbox', { name: /Crear/ }));
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
     await screen.findByText('Cambios guardados.');
+    await closeDialog(user);
 
     const row = await screen.findByRole('row', { name: /Recordatorios/ });
     expect(row).toHaveTextContent('Crear');
@@ -83,13 +102,14 @@ describe('the modules section: editing (feature 013, user story 3)', () => {
 
     await openEditFor(user, /Agenda y citas/);
     await user.click(screen.getByRole('checkbox', { name: /Eliminar/ }));
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('dialog', { name: 'Quitar acción' });
     expect(dialog).toHaveTextContent('Eliminar');
     expect(dialog).toHaveTextContent('Agenda y citas');
     await user.click(screen.getByRole('button', { name: 'Quitar' }));
-    await noDialog();
+    await noConfirmDialog();
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
     await screen.findByText('Cambios guardados.');
+    await closeDialog(user);
 
     const row = await screen.findByRole('row', { name: /Agenda y citas/ });
     expect(row).not.toHaveTextContent('Eliminar');
@@ -106,6 +126,7 @@ describe('the modules section: editing (feature 013, user story 3)', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
 
     expect(await screen.findByText('Cambios guardados.')).toBeInTheDocument();
+    await closeDialog(user);
     expect(await screen.findByRole('row', { name: /Usuarios del sistema/ })).toBeInTheDocument();
   });
 });
