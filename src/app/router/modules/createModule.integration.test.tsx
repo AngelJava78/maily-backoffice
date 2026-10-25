@@ -1,4 +1,4 @@
-import { configure, screen } from '@testing-library/react';
+import { configure, screen, waitFor } from '@testing-library/react';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { createModulesCatalogMock } from '@/test/handlers/modulesCatalog';
@@ -27,6 +27,15 @@ function open(url: string) {
   return renderApp({ url, sub: ADMIN_SUB, signedIn: true });
 }
 
+/** Creating successfully moves straight into editing the new module, in the same modal (FR-007 of
+ * spec 017): the table behind it stays inert until it is dismissed. */
+async function closeDialog(user: ReturnType<typeof open>['user']) {
+  await user.keyboard('{Escape}');
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+}
+
 describe('the modules section: creating (feature 013, user story 2)', () => {
   it('creates a module with two of its actions and shows it in the catalog at once (W6)', async () => {
     start();
@@ -43,6 +52,7 @@ describe('the modules section: creating (feature 013, user story 2)', () => {
     await user.click(screen.getByRole('button', { name: 'Crear módulo' }));
 
     expect(await screen.findByText('Módulo creado.')).toBeInTheDocument();
+    await closeDialog(user);
     const row = await screen.findByRole('row', { name: /Auditoría/ });
     expect(row).toHaveTextContent('Ver');
     expect(row).not.toHaveTextContent('Crear');
@@ -92,6 +102,7 @@ describe('the modules section: creating (feature 013, user story 2)', () => {
     await user.type(screen.getByRole('textbox', { name: 'Nombre' }), 'Auditoría');
     await user.click(screen.getByRole('button', { name: 'Crear módulo' }));
     await screen.findByText('Módulo creado.');
+    await closeDialog(user);
 
     // The greatest sort_order of all 23 seeded modules is 150 (Facturación, Clínica): the new one,
     // of Sistema, must still land after it, not after Sistema's own greatest (80, Módulos).

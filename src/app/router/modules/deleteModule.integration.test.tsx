@@ -64,17 +64,15 @@ describe('the modules section: deleting (feature 013, user story 5)', () => {
     // assignments for the deletion to go through.
     await openEditFor(user, /Recordatorios/);
     await user.click(screen.getByRole('button', { name: 'Eliminar módulo' }));
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('dialog', { name: 'Eliminar módulo' });
     expect(dialog).toHaveTextContent('Recordatorios');
     await user.click(screen.getByRole('button', { name: 'Eliminar' }));
     await screen.findByText('Módulo eliminado.');
+    // Deleting calls `onDeleted` (`closePanel`): both the confirmation and the edit modal close.
     await noDialog();
 
     expect(screen.queryByRole('row', { name: /Recordatorios/ })).not.toBeInTheDocument();
     expect(screen.getByText('22 módulos activos')).toBeInTheDocument();
-    expect(
-      await screen.findByText('Selecciona un módulo para editarlo, o crea uno nuevo.'),
-    ).toBeInTheDocument();
 
     // The key is free again: a new module can reuse it.
     await user.click(screen.getByRole('button', { name: '+ Nuevo módulo' }));

@@ -1,8 +1,7 @@
 import Button from '@mui/material/Button';
-import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 
 import { messages } from '@/shared/messages/es';
 import { EmptyState } from '@/shared/ui/EmptyState';
@@ -18,6 +17,7 @@ import { filterModules } from '../policy/filterModules';
 import { MODULE_STATUS } from '../schemas/moduleActionCatalog';
 import { ModuleCreatePanel } from './ModuleCreatePanel';
 import { ModuleEditPanel } from './ModuleEditPanel';
+import { ModuleFormDialog } from './ModuleFormDialog';
 import { ModulesFilters } from './ModulesFilters';
 import { ModulesTable } from './ModulesTable';
 
@@ -29,12 +29,13 @@ interface ModulesPageProps {
 }
 
 /**
- * The Módulos screen: the catalog grouped by type, with its filters and search (research D6), next
- * to a panel (empty, Nuevo módulo or Editar módulo — research D10) that opens over the same screen
- * instead of a separate route.
+ * The Módulos screen: the catalog grouped by type, with its filters and search (research D6),
+ * using the full width of the page. "Nuevo módulo"/"Editar" open their form in a modal over this
+ * same screen instead of a separate route (spec 017, superseding research D10's panel).
  */
 export function ModulesPage({ capabilities }: ModulesPageProps) {
   const headingRef = useFocusOnMount<HTMLHeadingElement>();
+  const titleId = useId();
   const { location, setType, setStatus, setSearch, openEdit, openCreate, closePanel } =
     useModulesLocation();
   const statusId = location.status === 'blocked' ? MODULE_STATUS.BLOCKED : MODULE_STATUS.ACTIVE;
@@ -101,6 +102,7 @@ export function ModulesPage({ capabilities }: ModulesPageProps) {
       return (
         <ModuleCreatePanel
           nextSortOrder={nextSortOrder}
+          titleId={titleId}
           onCreated={openEdit}
           onCancel={closePanel}
         />
@@ -112,12 +114,18 @@ export function ModulesPage({ capabilities }: ModulesPageProps) {
       const editing = (query.data ?? []).find((module) => module.id === panelState.moduleId);
       if (editing !== undefined) {
         return (
-          <ModuleEditPanel module={editing} capabilities={capabilities} onDeleted={closePanel} />
+          <ModuleEditPanel
+            module={editing}
+            capabilities={capabilities}
+            titleId={titleId}
+            onDeleted={closePanel}
+          />
         );
       }
       return loaded ? <EmptyState message={text.errors.notFound} /> : <PageLoader />;
     }
-    return <EmptyState message={text.panel.emptyState} />;
+    // FR-003: nothing to show when no modal is open — there is no panel column to keep filled.
+    return null;
   }
 
   return (
@@ -151,10 +159,10 @@ export function ModulesPage({ capabilities }: ModulesPageProps) {
         onStatusChange={setStatus}
         onSearchChange={setSearch}
       />
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 8 }}>{list()}</Grid>
-        <Grid size={{ xs: 12, md: 4 }}>{panel()}</Grid>
-      </Grid>
+      {list()}
+      <ModuleFormDialog open={location.panel.kind !== 'none'} onClose={closePanel} titleId={titleId}>
+        {panel()}
+      </ModuleFormDialog>
     </Stack>
   );
 }

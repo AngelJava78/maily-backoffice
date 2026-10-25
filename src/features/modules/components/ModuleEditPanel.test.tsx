@@ -1,6 +1,7 @@
+import Dialog from '@mui/material/Dialog';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { axe } from 'vitest-axe';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -55,21 +56,45 @@ async function usersModule(): Promise<SystemModule> {
   return found;
 }
 
+/** The real context `ModuleEditPanel` renders in (`ModuleFormDialog`, spec 017): its own
+ * `DialogTitle`/`DialogContent`/`DialogActions` need an actual `Dialog` ancestor. */
+function DialogHarness({ children }: { readonly children: (titleId: string) => ReactNode }) {
+  const titleId = useId();
+  return (
+    <Dialog open aria-labelledby={titleId}>
+      {children(titleId)}
+    </Dialog>
+  );
+}
+
 function renderPanel(
   module: SystemModule,
   capabilities: ModuleCapabilities = FULL_ACCESS,
   onDeleted: () => void = vi.fn(),
 ) {
   return renderWithProviders(
-    <ModuleEditPanel module={module} capabilities={capabilities} onDeleted={onDeleted} />,
+    <DialogHarness>
+      {(titleId) => (
+        <ModuleEditPanel
+          module={module}
+          capabilities={capabilities}
+          titleId={titleId}
+          onDeleted={onDeleted}
+        />
+      )}
+    </DialogHarness>,
   );
 }
 
-/** MUI keeps the dialog's node mounted through its exit transition: only once it is gone does the
- * rest of the page stop being `aria-hidden` (same pattern as `UserRolesPanel.actions.test.tsx`). */
+/** The outer edit dialog (`DialogHarness`) stays open throughout these tests: only a second,
+ * nested dialog (the uncheck/delete confirmation) ever closes. MUI keeps a closing dialog's node
+ * mounted, still matching `role="dialog"`, through its exit transition — asserting a mere count
+ * can settle on a transient, wrong instant, so this re-confirms the outer dialog by its own name
+ * *and* that nothing else is left (same pattern as `UserRolesPanel.actions.test.tsx`). */
 const noDialog = () =>
   waitFor(() => {
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Editar módulo' })).toBeInTheDocument();
+    expect(screen.queryAllByRole('dialog')).toHaveLength(1);
   });
 
 describe('ModuleEditPanel', () => {
@@ -106,7 +131,7 @@ describe('ModuleEditPanel', () => {
     await user.click(screen.getByRole('checkbox', { name: /Eliminar/ }));
 
     expect(screen.getByRole('checkbox', { name: /Eliminar/ })).toBeChecked();
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Quitar acción' })).not.toBeInTheDocument();
   });
 
   it('asks to confirm before unmarking an action the module already had, naming it and the module (FR-017)', async () => {
@@ -117,7 +142,7 @@ describe('ModuleEditPanel', () => {
 
     await user.click(screen.getByRole('checkbox', { name: /Modificar/ }));
 
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('dialog', { name: 'Quitar acción' });
     expect(dialog).toHaveTextContent('Modificar');
     expect(dialog).toHaveTextContent('Expediente clínico');
     // Nothing applied yet: the checkbox still shows checked until confirmed. It is `aria-hidden`
@@ -145,7 +170,7 @@ describe('ModuleEditPanel', () => {
     renderPanel(module);
 
     await user.click(screen.getByRole('checkbox', { name: /Modificar/ }));
-    await screen.findByRole('dialog');
+    await screen.findByRole('dialog', { name: 'Quitar acción' });
     await user.click(screen.getByRole('button', { name: 'Quitar' }));
     await noDialog();
 
@@ -165,7 +190,7 @@ describe('ModuleEditPanel', () => {
     );
     await user.click(screen.getByRole('checkbox', { name: /Eliminar/ }));
     await user.click(screen.getByRole('checkbox', { name: /Modificar/ }));
-    await screen.findByRole('dialog');
+    await screen.findByRole('dialog', { name: 'Quitar acción' });
     await user.click(screen.getByRole('button', { name: 'Quitar' }));
     await noDialog();
     await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
@@ -220,8 +245,11 @@ describe('ModuleEditPanel', () => {
     // Stands in for `ModulesPage`: holds which module is being edited, exactly as `?edit=` does.
     function SwitchesModule() {
       const [module, setModule] = useState(first);
+      const titleId = useId();
       return (
-        <>
+        // The trigger lives inside the dialog too: MUI inerts the rest of the page while it is
+        // open, exactly like a real "Editar" button in `ModulesPage` would be.
+        <Dialog open aria-labelledby={titleId}>
           <button
             type="button"
             onClick={() => {
@@ -230,8 +258,13 @@ describe('ModuleEditPanel', () => {
           >
             edit the other module
           </button>
-          <ModuleEditPanel module={module} capabilities={FULL_ACCESS} onDeleted={vi.fn()} />
-        </>
+          <ModuleEditPanel
+            module={module}
+            capabilities={FULL_ACCESS}
+            titleId={titleId}
+            onDeleted={vi.fn()}
+          />
+        </Dialog>
       );
     }
     renderWithProviders(<SwitchesModule />);
@@ -305,13 +338,15 @@ describe('ModuleEditPanel', () => {
     const user = userEvent.setup();
     createModulesCatalogMock();
     const module = await medicalRecords();
-    const { container } = renderPanel(module);
+    // `Dialog` portals its content to `document.body`, outside `container` (same as
+    // `ConfirmDialog.test.tsx`): `axe` must scan `baseElement` to see it at all.
+    const { baseElement } = renderPanel(module);
 
-    expect(await axe(container)).toHaveNoViolations();
+    expect(await axe(baseElement)).toHaveNoViolations();
 
     await user.click(screen.getByRole('checkbox', { name: /Modificar/ }));
-    await screen.findByRole('dialog');
-    expect(await axe(container)).toHaveNoViolations();
+    await screen.findByRole('dialog', { name: 'Quitar acción' });
+    expect(await axe(baseElement)).toHaveNoViolations();
   });
 });
 
@@ -422,7 +457,7 @@ describe('ModuleEditPanel: deleting (US5)', () => {
 
     await user.click(screen.getByRole('button', { name: 'Eliminar módulo' }));
 
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('dialog', { name: 'Eliminar módulo' });
     expect(dialog).toHaveTextContent('Expediente clínico');
     expect(mock.requestsTo('DELETE', `/api/v1/modules/${module.id}`)).toHaveLength(0);
   });
@@ -450,7 +485,7 @@ describe('ModuleEditPanel: deleting (US5)', () => {
     renderPanel(module, FULL_ACCESS, onDeleted);
 
     await user.click(screen.getByRole('button', { name: 'Eliminar módulo' }));
-    await screen.findByRole('dialog');
+    await screen.findByRole('dialog', { name: 'Eliminar módulo' });
     await user.click(screen.getByRole('button', { name: 'Eliminar' }));
 
     expect(await screen.findByText('Módulo eliminado.')).toBeInTheDocument();

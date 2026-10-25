@@ -102,15 +102,16 @@ describe('ModulesPage', () => {
     expect(await axe(container)).toHaveNoViolations();
   });
 
-  it('shows an empty panel until a module is opened or created', async () => {
+  it('shows no modal and no leftover panel text until a module is opened or created (FR-003)', async () => {
     createModulesCatalogMock();
     renderPage();
 
     await screen.findByText('23 módulos activos');
 
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(
-      screen.getByText('Selecciona un módulo para editarlo, o crea uno nuevo.'),
-    ).toBeInTheDocument();
+      screen.queryByText('Selecciona un módulo para editarlo, o crea uno nuevo.'),
+    ).not.toBeInTheDocument();
   });
 
   it('opens the create panel from "+ Nuevo módulo" (US2)', async () => {
@@ -120,6 +121,7 @@ describe('ModulesPage', () => {
 
     await userEvent.setup().click(screen.getByRole('button', { name: '+ Nuevo módulo' }));
 
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Nuevo módulo' })).toBeInTheDocument();
   });
 
@@ -132,6 +134,7 @@ describe('ModulesPage', () => {
     const row = screen.getByRole('row', { name: /Agenda y citas/ });
     await userEvent.setup().click(within(row).getByRole('button', { name: 'Editar' }));
 
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Editar módulo' })).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: 'Nombre' })).toHaveValue('Agenda y citas');
     expect(mock.requestCount).toBe(requestsBefore);

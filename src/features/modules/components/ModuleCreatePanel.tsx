@@ -1,7 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import Alert from '@mui/material/Alert';
-import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import FormLabel from '@mui/material/FormLabel';
 import Paper from '@mui/material/Paper';
@@ -34,6 +36,8 @@ const text = messages.modules;
 interface ModuleCreatePanelProps {
   /** What "Si lo dejas vacío, queda al final" resolves to right now (research D13). */
   readonly nextSortOrder: number;
+  /** The `id` its `DialogTitle` uses, so the dialog that hosts it names itself accessibly. */
+  readonly titleId: string;
   /** The module was created (even if partially, research D11): the caller opens it for editing. */
   readonly onCreated: (moduleId: number) => void;
   readonly onCancel: () => void;
@@ -41,7 +45,12 @@ interface ModuleCreatePanelProps {
 
 /** The alta panel of Módulos (US2): Tipo and Clave, only editable here, plus the fields alta and
  * edición share. */
-export function ModuleCreatePanel({ nextSortOrder, onCreated, onCancel }: ModuleCreatePanelProps) {
+export function ModuleCreatePanel({
+  nextSortOrder,
+  titleId,
+  onCreated,
+  onCancel,
+}: ModuleCreatePanelProps) {
   const notify = useNotify();
   const create = useCreateModule();
   const errorRef = useRef<HTMLDivElement>(null);
@@ -97,18 +106,17 @@ export function ModuleCreatePanel({ nextSortOrder, onCreated, onCancel }: Module
   });
 
   return (
-    <Paper variant="outlined" sx={{ p: 3 }}>
-      <Typography variant="h6" component="h2" gutterBottom>
-        {text.panel.createTitle}
-      </Typography>
-      <Box
-        component="form"
-        noValidate
-        onSubmit={(event) => {
-          void save(event);
-        }}
-      >
-        <Stack spacing={3}>
+    <>
+      <DialogTitle id={titleId}>{text.panel.createTitle}</DialogTitle>
+      <DialogContent>
+        <Stack
+          component="form"
+          spacing={3}
+          noValidate
+          onSubmit={(event) => {
+            void save(event);
+          }}
+        >
           {generalError !== undefined && (
             <Alert ref={errorRef} tabIndex={-1} severity="error">
               {generalError}
@@ -178,17 +186,23 @@ export function ModuleCreatePanel({ nextSortOrder, onCreated, onCancel }: Module
               });
             }}
           />
-
-          <Stack direction="row" spacing={1}>
-            <Button type="submit" variant="contained" loading={isSubmitting}>
-              {text.form.create}
-            </Button>
-            <Button onClick={onCancel} disabled={isSubmitting}>
-              {text.form.cancel}
-            </Button>
-          </Stack>
         </Stack>
-      </Box>
-    </Paper>
+      </DialogContent>
+
+      <DialogActions>
+        <Button
+          variant="contained"
+          loading={isSubmitting}
+          onClick={() => {
+            void save();
+          }}
+        >
+          {text.form.create}
+        </Button>
+        <Button onClick={onCancel} disabled={isSubmitting}>
+          {text.form.cancel}
+        </Button>
+      </DialogActions>
+    </>
   );
 }
