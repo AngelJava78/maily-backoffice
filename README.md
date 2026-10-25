@@ -103,7 +103,7 @@ Las dependencias fluyen `app → features → shared`, y una feature solo import
 
 ### Línea base de tamaño
 
-JS de la ruta de entrada tras la feature 003: **276,8 KB gzip** (límite de la constitución: 300 KB; fue 274,3 KB tras la 005, 273,6 KB tras la 002 y 264,8 KB tras la 001), medido el 2026-10-20 con `npm run build && npm run size`. Las secciones nuevas deben cargarse por ruta con `React.lazy` para no consumir ese margen: la tabla de `/users` y de `/subscriptions` (Data Grid) y la herramienta Token (5,3 KB sin comprimir) son fragmentos aparte, y `npm run size` también falla si algún marcador del Data Grid o de la herramienta aparece en la ruta de entrada o si esas comprobaciones quedaron obsoletas.
+JS de la ruta de entrada tras la feature 014: **299,7 KB gzip** (306 850 bytes; límite de la constitución: 300 KB, así que quedan 350 bytes de margen), medido el 2026-10-24 con `npm run build && npm run size`. Fue 361,5 KB mientras la pantalla de Roles y permisos se exportaba de forma estática, 298,1 KB tras la 013, 276,8 KB tras la 003, 274,3 KB tras la 005, 273,6 KB tras la 002 y 264,8 KB tras la 001. Las secciones nuevas deben cargarse por ruta con `React.lazy` para no consumir ese margen: la tabla de `/users` y de `/subscriptions` (Data Grid), las pantallas de `/modules` y de `/roles` y la herramienta Token (5,3 KB sin comprimir) son fragmentos aparte, y `npm run size` también falla si algún marcador del Data Grid o de la herramienta aparece en la ruta de entrada o si esas comprobaciones quedaron obsoletas.
 
 ## Despliegue
 
