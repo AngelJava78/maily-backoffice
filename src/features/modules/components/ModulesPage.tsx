@@ -160,7 +160,11 @@ export function ModulesPage({ capabilities }: ModulesPageProps) {
         onSearchChange={setSearch}
       />
       {list()}
-      <ModuleFormDialog open={location.panel.kind !== 'none'} onClose={closePanel} titleId={titleId}>
+      <ModuleFormDialog
+        open={location.panel.kind !== 'none'}
+        onClose={closePanel}
+        titleId={titleId}
+      >
         {panel()}
       </ModuleFormDialog>
     </Stack>
