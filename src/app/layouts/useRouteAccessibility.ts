@@ -21,6 +21,7 @@ const routeHandleSchema = z.object({
     'profile',
     'notFound',
     'modules',
+    'roles',
     'users',
     'userCreate',
     'userDetail',
