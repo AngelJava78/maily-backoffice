@@ -39,6 +39,8 @@ describe('parseEnv', () => {
         VITE_CLINICS_API_URL: undefined,
         VITE_DASHBOARD_REFRESH_MINUTES: 5,
         VITE_MAILYSOFT_APP_URL: undefined,
+        VITE_HEALTH_REFRESH_SECONDS: 30,
+        VITE_HEALTH_DIRECT_SERVICES: [],
       },
     });
   });
@@ -270,6 +272,139 @@ describe('parseEnv', () => {
         ]);
       },
     );
+  });
+
+  // How often the page "Salud de servicios" refreshes itself (feature 016, contracts/environment.md):
+  // whole seconds from 10 to 300, written with digits only, and 30 when it is not set.
+  describe('VITE_HEALTH_REFRESH_SECONDS', () => {
+    function refreshSecondsOf(value: string | undefined): number {
+      const source =
+        value === undefined ? validSource : { ...validSource, VITE_HEALTH_REFRESH_SECONDS: value };
+      const result = parseEnv(source, development);
+      if (!result.ok) {
+        throw new Error(`Expected ${JSON.stringify(value)} to be accepted`);
+      }
+      return result.env.VITE_HEALTH_REFRESH_SECONDS;
+    }
+
+    it('is 30 when it is not set, or set to an empty value', () => {
+      expect(refreshSecondsOf(undefined)).toBe(30);
+      expect(refreshSecondsOf('')).toBe(30);
+    });
+
+    it.each([
+      ['10', 10],
+      ['030', 30],
+      ['300', 300],
+    ])('reads %j as %d seconds, a number', (value, seconds) => {
+      expect(refreshSecondsOf(value)).toBe(seconds);
+    });
+
+    it.each(['9', '301', '30.5', '+30', '-30', '3e1', 'treinta', ' 30', '30 ', '   '])(
+      // The whole message is the name and the rule, so the value received never shows up in it.
+      'rejects %j with the rule and without repeating the value',
+      (value) => {
+        expect(errorsFor({ ...validSource, VITE_HEALTH_REFRESH_SECONDS: value })).toEqual([
+          `VITE_HEALTH_REFRESH_SECONDS: ${messages.config.rules.healthRefreshSeconds}`,
+        ]);
+      },
+    );
+  });
+
+  // The services that the direct check of «Salud de servicios» reaches besides the two of the
+  // platform (feature 016, contracts/environment.md): a JSON list, and [] when it is not set.
+  describe('VITE_HEALTH_DIRECT_SERVICES', () => {
+    const PATIENTS = {
+      code: 'mailysoft-pacientes',
+      name: 'mailySoft-pacientes',
+      url: 'https://pacientes.maily.example',
+    };
+    const rule = `VITE_HEALTH_DIRECT_SERVICES: ${messages.config.rules.healthDirectServices}`;
+
+    function servicesOf(value: string | undefined, options = development) {
+      const source =
+        value === undefined ? validSource : { ...validSource, VITE_HEALTH_DIRECT_SERVICES: value };
+      const result = parseEnv(source, options);
+      if (!result.ok) {
+        throw new Error(`Expected ${JSON.stringify(value)} to be accepted`);
+      }
+      return result.env.VITE_HEALTH_DIRECT_SERVICES;
+    }
+
+    it.each([undefined, '', '[]'])('is an empty list for %j', (value) => {
+      expect(servicesOf(value)).toEqual([]);
+    });
+
+    it('reads the services, in order, with the name trimmed', () => {
+      expect(
+        servicesOf(
+          JSON.stringify([
+            PATIENTS,
+            { code: 'mailysoft-agenda', name: '  Agenda  ', url: '/proxy/agenda' },
+          ]),
+          production,
+        ),
+      ).toEqual([PATIENTS, { code: 'mailysoft-agenda', name: 'Agenda', url: '/proxy/agenda' }]);
+    });
+
+    it('accepts 20 services', () => {
+      const twenty = Array.from({ length: 20 }, (_, index) => ({
+        ...PATIENTS,
+        code: `servicio-${String(index + 1)}`,
+      }));
+
+      expect(servicesOf(JSON.stringify(twenty))).toHaveLength(20);
+    });
+
+    it.each([
+      ['a text that is not JSON', 'no es json'],
+      ['an object', '{}'],
+      ['only spaces', '   '],
+      ['a service without url', JSON.stringify([{ code: 'a1', name: 'A' }])],
+      ['a service with one more field', JSON.stringify([{ ...PATIENTS, port: 8000 }])],
+      ['a code with upper case', JSON.stringify([{ ...PATIENTS, code: 'Pacientes' }])],
+      ['a code of one character', JSON.stringify([{ ...PATIENTS, code: 'a' }])],
+      ['a repeated code', JSON.stringify([PATIENTS, PATIENTS])],
+      ['the code of maily-system-api', JSON.stringify([{ ...PATIENTS, code: 'maily-system-api' }])],
+      [
+        'the code of mailySoft-usuarios',
+        JSON.stringify([{ ...PATIENTS, code: 'mailysoft-usuarios' }]),
+      ],
+      ['an empty name', JSON.stringify([{ ...PATIENTS, name: '   ' }])],
+      ['a name of 101 characters', JSON.stringify([{ ...PATIENTS, name: 'a'.repeat(101) }])],
+      [
+        'a URL with a slash at the end',
+        JSON.stringify([{ ...PATIENTS, url: 'https://x.example/' }]),
+      ],
+      ['a URL with parameters', JSON.stringify([{ ...PATIENTS, url: 'https://x.example?x=1' }])],
+      ['a URL with a fragment', JSON.stringify([{ ...PATIENTS, url: 'https://x.example#f' }])],
+      [
+        '21 services',
+        JSON.stringify(
+          Array.from({ length: 21 }, (_, index) => ({
+            ...PATIENTS,
+            code: `s-${String(index + 1)}`,
+          })),
+        ),
+      ],
+    ])('rejects %s with the rule and without repeating the value', (_label, value) => {
+      const errors = errorsFor({ ...validSource, VITE_HEALTH_DIRECT_SERVICES: value });
+
+      expect(errors).toEqual([rule]);
+      expect(errors.join(' ')).not.toContain(value);
+    });
+
+    it('rejects a URL http in a production build', () => {
+      expect(
+        errorsFor(
+          {
+            ...validSource,
+            VITE_HEALTH_DIRECT_SERVICES: JSON.stringify([{ ...PATIENTS, url: 'http://x.example' }]),
+          },
+          production,
+        ),
+      ).toEqual([rule]);
+    });
   });
 
   // The link to MailySoft's clinic-facing application on the "Sin acceso" page (feature 006,

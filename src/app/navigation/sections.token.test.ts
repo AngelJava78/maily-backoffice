@@ -22,6 +22,7 @@ describe('the Token entry of the navigation (feature 005)', () => {
       'roles',
       'users',
       'subscriptions',
+      'health',
       'token',
     ]);
   });

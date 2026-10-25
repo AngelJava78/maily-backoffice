@@ -1,6 +1,7 @@
 import Container from '@mui/material/Container';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import type { ReactNode } from 'react';
 
 import { messages } from '@/shared/messages/es';
 import { ErrorState } from '@/shared/ui/ErrorState';
@@ -13,13 +14,18 @@ interface AccessCheckFailedPageProps {
   readonly email: string | null;
   /** Asks again whether the person may enter. */
   readonly refetch: () => void;
+  /**
+   * What the application adds below the line of the account (feature 016, FR-065): the status of
+   * the platform. This screen does not know what it receives.
+   */
+  readonly children?: ReactNode;
 }
 
 /**
  * Shown when the access could not be checked and nothing was known before (FR-005): the person
  * can retry or leave, and sees nothing about themselves, as in the access denied screen.
  */
-export function AccessCheckFailedPage({ email, refetch }: AccessCheckFailedPageProps) {
+export function AccessCheckFailedPage({ email, refetch, children }: AccessCheckFailedPageProps) {
   useDocumentTitle(messages.checkFailed.title);
 
   return (
@@ -37,6 +43,7 @@ export function AccessCheckFailedPage({ email, refetch }: AccessCheckFailedPageP
             {messages.common.account(email)}
           </Typography>
         )}
+        {children}
       </Stack>
     </Container>
   );

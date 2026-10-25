@@ -75,6 +75,30 @@ function restrictGlobals(names) {
 const CLASS_COMPONENT_MESSAGE =
   'Class components are forbidden; write function components (constitution I). The only exception is src/shared/ui/ErrorBoundary.tsx.';
 
+/** Selectors forbidden in the whole source (constitution I and V). */
+const BASE_RESTRICTED_SYNTAX = [
+  {
+    selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+    message: 'dangerouslySetInnerHTML is forbidden (constitution V).',
+  },
+  {
+    selector:
+      ':matches(ClassDeclaration, ClassExpression)[superClass.name=/^(Component|PureComponent)$/]',
+    message: CLASS_COMPONENT_MESSAGE,
+  },
+  {
+    selector:
+      ':matches(ClassDeclaration, ClassExpression)[superClass.property.name=/^(Component|PureComponent)$/]',
+    message: CLASS_COMPONENT_MESSAGE,
+  },
+];
+
+/** `probe` answers any HTTP status without an ApiError: only the direct check may call it (research D3 of 016). */
+const PROBE_RESTRICTION = {
+  selector: "CallExpression[callee.property.name='probe']",
+  message: 'probe() is only for the public health routes of the direct check (research D3 of 016).',
+};
+
 export default defineConfig(
   globalIgnores([
     'dist',
@@ -159,28 +183,20 @@ export default defineConfig(
     rules: restrictGlobals(['localStorage']),
   },
 
-  // No raw HTML injection and no class components (constitution I and V).
+  // No raw HTML injection, no class components and no probe() outside the direct check
+  // (constitution I, IV and V). A later block replaces the options of the rule, so the one that
+  // lets the direct check and the client itself use probe() repeats the base selectors.
   {
     files: SOURCE_FILES,
-    rules: {
-      'no-restricted-syntax': [
-        'error',
-        {
-          selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
-          message: 'dangerouslySetInnerHTML is forbidden (constitution V).',
-        },
-        {
-          selector:
-            ':matches(ClassDeclaration, ClassExpression)[superClass.name=/^(Component|PureComponent)$/]',
-          message: CLASS_COMPONENT_MESSAGE,
-        },
-        {
-          selector:
-            ':matches(ClassDeclaration, ClassExpression)[superClass.property.name=/^(Component|PureComponent)$/]',
-          message: CLASS_COMPONENT_MESSAGE,
-        },
-      ],
-    },
+    rules: { 'no-restricted-syntax': ['error', ...BASE_RESTRICTED_SYNTAX, PROBE_RESTRICTION] },
+  },
+  {
+    files: [
+      'src/features/health/api/directCheckApi.ts',
+      'src/shared/api/httpClient.ts',
+      ...TEST_FILES,
+    ],
+    rules: { 'no-restricted-syntax': ['error', ...BASE_RESTRICTED_SYNTAX] },
   },
   { files: ['src/shared/ui/ErrorBoundary.tsx'], rules: { 'no-restricted-syntax': 'off' } },
 
@@ -267,4 +283,8 @@ export default defineConfig(
   // And for `dashboard`: the home page decides with the permissions whether to show the summary,
   // and the summary gets the refresh interval through its props (research D1 of feature 007).
   forbidAuthImports('dashboard', 'research D1 of 007'),
+  // And for `health` (feature 016): `auth` only reads the type of its capabilities, and the
+  // capabilities, the refresh interval and the build of the Backoffice reach its screens from the
+  // application (research D1 of 016).
+  forbidAuthImports('health', 'research D1 of 016'),
 );

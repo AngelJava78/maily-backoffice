@@ -15,6 +15,8 @@ Toda la configuración viaja en variables `VITE_*` (públicas: nunca contienen s
 | `VITE_SUBSCRIPTIONS_API_URL` | Sí (feature 003) | `/proxy/subscriptions` | Igual que la anterior. |
 | `VITE_DASHBOARD_REFRESH_MINUTES` | No (feature 007) | `10` | Entero de 1 a 60 (minutos), escrito solo con dígitos; ausente o vacía vale 5. Se fija al compilar. Detalle en [specs/007-dashboard/contracts/environment.md](../../007-dashboard/contracts/environment.md). |
 | `VITE_CLINICS_API_URL` | No (feature 004) | `http://127.0.0.1:8001` | Igual que la anterior. |
+| `VITE_HEALTH_REFRESH_SECONDS` | No (feature 016) | `10` | Entero de 10 a 300 (segundos), escrito solo con dígitos; ausente o vacía vale 30. Se fija al compilar. Detalle en [specs/016-health-dashboard/contracts/environment.md](../../016-health-dashboard/contracts/environment.md). |
+| `VITE_HEALTH_DIRECT_SERVICES` | No (feature 016) | `[{"code":"mailysoft-pacientes","name":"mailySoft-pacientes","url":"https://pacientes.maily.example"}]` | Lista JSON de hasta 20 `{ code, name, url }` para la comprobación directa; ausente, vacía o `[]` vale `[]`. Se fija al compilar. Detalle en [specs/016-health-dashboard/contracts/environment.md](../../016-health-dashboard/contracts/environment.md). |
 
 Variables solo de desarrollo, leídas por `vite.config.ts` (sin prefijo `VITE_`, no llegan al navegador):
 

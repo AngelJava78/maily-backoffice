@@ -208,13 +208,21 @@ describe('useOperatorAccess', () => {
       });
       expect(usersService.requestCount).toBe(3);
 
+      expect(result.current).toMatchObject({ status: 'failed', isChecking: false });
+
       usersService.recover();
+      const release = usersService.defer();
       act(() => {
         if (result.current.status === 'failed') {
           result.current.refetch();
         }
       });
 
+      // Still failed while it checks again, so the screen of the failure stays (feature 016).
+      await waitFor(() => {
+        expect(result.current).toMatchObject({ status: 'failed', isChecking: true });
+      });
+      release();
       await waitFor(() => {
         expect(result.current.status).toBe('granted');
       });

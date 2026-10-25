@@ -6,6 +6,8 @@ import type {
   DashboardDto,
   recentClinicSchema,
 } from '@/features/dashboard/schemas/dashboardSummary';
+import type { HealthResultDto } from '@/features/health/schemas/healthResult';
+import type { MonitoredComponentDto } from '@/features/health/schemas/monitoredComponent';
 import type { systemModuleSchema } from '@/features/modules/schemas/systemModule';
 import type { subscriptionSchema } from '@/features/subscriptions/schemas/subscription';
 import { platformUserSchema } from '@/features/users';
@@ -27,6 +29,12 @@ export type RecentClinicDto = z.input<typeof recentClinicSchema>;
 export type { DashboardDto };
 /** The users service also answers modules (spec 013 of mailySoft-usuarios); same snake_case shape. */
 export type ModuleDto = z.input<typeof systemModuleSchema>;
+/** The aggregator of maily-system-api answers the health of the platform (feature 016). */
+export type { HealthResultDto };
+export type HealthComponentDto = HealthResultDto['components'][number];
+export type HealthCheckDto = HealthComponentDto['checks'][number];
+/** The same service answers the registry of components; this is one of them. */
+export type { MonitoredComponentDto };
 /** A permission as that same service returns it, with its module and its action (or both `null`). */
 export interface PermissionDto {
   readonly id: number;
@@ -259,6 +267,84 @@ export function permissionDto(overrides: Partial<PermissionDto> = {}): Permissio
       type: { id: 2, name: 'Clínica' },
     },
     action: { id: 1, key: 'read', name: 'Ver' },
+    ...overrides,
+  };
+}
+
+/** A check of a component as the aggregator sends it: the database, correct, in 12 ms. */
+export function healthCheckDto(overrides: Partial<HealthCheckDto> = {}): HealthCheckDto {
+  return { name: 'database', status: 'ok', latency_ms: 12, error: null, ...overrides };
+}
+
+/**
+ * A component as the aggregator sends it (contracts/health-aggregator.md): maily-system-api, up,
+ * with its build data, a commit of 40 characters and the check of its database.
+ */
+export function healthComponentDto(
+  overrides: Partial<HealthComponentDto> = {},
+): HealthComponentDto {
+  return {
+    code: 'maily-system-api',
+    name: 'MailySoft System API',
+    kind: 'service',
+    status: 'up',
+    latency_ms: 12,
+    checked_at: '2026-10-24T16:00:00Z',
+    version: '2.1.0',
+    commit: '9fceb02d0ae598e95dc970b74767f19372d61af8',
+    build_date: '2026-10-24T15:30:00Z',
+    environment: 'production',
+    checks: [healthCheckDto()],
+    error: null,
+    next_start_at: null,
+    ...overrides,
+  };
+}
+
+/** The result of the aggregator with everything up: the two integrated components, in order. */
+export function healthResultDto(overrides: Partial<HealthResultDto> = {}): HealthResultDto {
+  return {
+    status: 'ok',
+    checked_at: '2026-10-24T16:00:00Z',
+    registry_available: true,
+    components: [
+      healthComponentDto(),
+      healthComponentDto({
+        code: 'database',
+        name: 'Base de datos',
+        kind: 'database',
+        latency_ms: 8,
+        version: 'unknown',
+        commit: 'unknown',
+        build_date: 'unknown',
+        environment: 'unknown',
+        checks: [],
+      }),
+    ],
+    ...overrides,
+  };
+}
+
+/**
+ * A registered component as the registry publishes it (contracts/monitored-components.md):
+ * mailySoft-usuarios, a microservice with the routes of the v1 contract, enabled.
+ */
+export function monitoredComponentDto(
+  overrides: Partial<MonitoredComponentDto> = {},
+): MonitoredComponentDto {
+  return {
+    id: uuidOf(300),
+    code: 'mailysoft-usuarios',
+    name: 'MailySoft Usuarios',
+    kind: 'service',
+    base_url: 'http://mailysoft-usuarios:8000',
+    live_path: '/health/live',
+    ready_path: '/health/ready',
+    info_path: '/info',
+    enabled: true,
+    sort_order: 10,
+    created_at: '2026-10-24T17:00:00Z',
+    updated_at: '2026-10-24T17:30:00Z',
     ...overrides,
   };
 }

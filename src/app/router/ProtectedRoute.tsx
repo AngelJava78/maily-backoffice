@@ -2,13 +2,14 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { Navigate, Outlet, useLocation } from 'react-router';
 
 import {
-  AccessCheckFailedPage,
   SessionWatchers,
   useOperatorAccess,
   type AccessLocationState,
   type OperatorAccessState,
 } from '@/features/auth';
 import { PageLoader } from '@/shared/ui/PageLoader';
+
+import { AccessCheckFailedScreen } from './AccessCheckFailedScreen';
 
 /** What to show for a person who has a session, according to what is known about their access. */
 function ProtectedContent({ access }: { readonly access: OperatorAccessState }) {
@@ -20,7 +21,7 @@ function ProtectedContent({ access }: { readonly access: OperatorAccessState }) 
     case 'denied':
       return <Navigate to="/access-denied" replace />;
     case 'failed':
-      return <AccessCheckFailedPage refetch={access.refetch} email={access.accountEmail} />;
+      return <AccessCheckFailedScreen access={access} />;
     case 'granted':
       return <Outlet />;
   }

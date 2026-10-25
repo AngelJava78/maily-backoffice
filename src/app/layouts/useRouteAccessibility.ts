@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useLocation, useMatches } from 'react-router';
 import { z } from 'zod';
 
+import { parseComponentId } from '@/features/health';
 import { parseSubscriptionId } from '@/features/subscriptions';
 import { parseUserId } from '@/features/users';
 import { messages } from '@/shared/messages/es';
@@ -15,6 +16,8 @@ const routeHandleSchema = z.object({
   userIdParam: z.string().optional(),
   /** The same, for the id of a subscription, such as `:subscriptionId`. */
   subscriptionIdParam: z.string().optional(),
+  /** The same, for the id of a registered component of feature 016, such as `:componentId`. */
+  componentIdParam: z.string().optional(),
   titleKey: z.enum([
     'access',
     'home',
@@ -30,6 +33,11 @@ const routeHandleSchema = z.object({
     'subscriptionCreate',
     'subscriptionDetail',
     'subscriptionEdit',
+    'health',
+    'healthComponents',
+    'healthComponentCreate',
+    'healthComponentDetail',
+    'healthComponentEdit',
     'token',
   ]),
 });
@@ -41,11 +49,13 @@ function findTitleKey(matches: ReturnType<typeof useMatches>): TitleKey | undefi
   for (const match of [...matches].reverse()) {
     const handle = routeHandleSchema.safeParse(match.handle);
     if (handle.success) {
-      const { userIdParam, subscriptionIdParam, titleKey } = handle.data;
+      const { userIdParam, subscriptionIdParam, componentIdParam, titleKey } = handle.data;
       const isNotAnId =
         (userIdParam !== undefined && parseUserId(match.params[userIdParam]) === null) ||
         (subscriptionIdParam !== undefined &&
-          parseSubscriptionId(match.params[subscriptionIdParam]) === null);
+          parseSubscriptionId(match.params[subscriptionIdParam]) === null) ||
+        (componentIdParam !== undefined &&
+          parseComponentId(match.params[componentIdParam]) === null);
       return isNotAnId ? 'notFound' : titleKey;
     }
   }

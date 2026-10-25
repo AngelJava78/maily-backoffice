@@ -27,6 +27,8 @@ const env: AppEnv = {
   VITE_SUBSCRIPTIONS_API_URL: '/proxy/subscriptions',
   VITE_DASHBOARD_REFRESH_MINUTES: 5,
   VITE_MAILYSOFT_APP_URL: undefined,
+  VITE_HEALTH_REFRESH_SECONDS: 30,
+  VITE_HEALTH_DIRECT_SERVICES: [],
 };
 
 const pingSchema = z.object({ ok: z.boolean() });
@@ -167,5 +169,58 @@ describe('HttpClientsProvider', () => {
 
     expect(mocks.logout).not.toHaveBeenCalled();
     expect(result.current.notice).toBeUndefined();
+  });
+});
+
+describe('HttpClientsProvider and the services of the direct check (feature 016)', () => {
+  it('builds an anonymous client for each configured service, in order', async () => {
+    const authorizations: (string | null)[] = [];
+    server.use(
+      http.get('https://pacientes.example.test/health/live', ({ request }) => {
+        authorizations.push(request.headers.get('authorization'));
+        return HttpResponse.json({ status: 'ok' });
+      }),
+    );
+    const services = [
+      {
+        code: 'mailysoft-pacientes',
+        name: 'mailySoft-pacientes',
+        url: 'https://pacientes.example.test',
+      },
+      { code: 'mailysoft-agenda', name: 'Agenda', url: '/proxy/agenda' },
+    ];
+    const auth0 = createAuth0Double({ isAuthenticated: true });
+    const queryClient = new QueryClient();
+    function Wrapper({ children }: { readonly children: ReactNode }) {
+      return (
+        <Auth0Context.Provider value={auth0}>
+          <QueryClientProvider client={queryClient}>
+            <SessionProvider>
+              <HttpClientsProvider env={{ ...env, VITE_HEALTH_DIRECT_SERVICES: services }}>
+                {children}
+              </HttpClientsProvider>
+            </SessionProvider>
+          </QueryClientProvider>
+        </Auth0Context.Provider>
+      );
+    }
+    const { result } = renderHook(() => useHttpClients(), { wrapper: Wrapper });
+    const { healthServices } = result.current;
+
+    expect(healthServices.map(({ code, name }) => ({ code, name }))).toEqual([
+      { code: 'mailysoft-pacientes', name: 'mailySoft-pacientes' },
+      { code: 'mailysoft-agenda', name: 'Agenda' },
+    ]);
+    await expect(healthServices[0]?.client.probe('/health/live')).resolves.toMatchObject({
+      status: 200,
+    });
+    expect(authorizations).toEqual([null]);
+    expect(auth0.mocks.getAccessTokenSilently).not.toHaveBeenCalled();
+  });
+
+  it('has none without the variable', () => {
+    const { result } = setup();
+
+    expect(result.current.clients.healthServices).toEqual([]);
   });
 });

@@ -25,12 +25,33 @@ export interface RequestOptions<TSchema extends z.ZodType> {
   readonly query?: Readonly<Record<string, QueryValue>>;
   readonly body?: unknown;
   readonly signal?: AbortSignal;
+  /**
+   * For the public routes of the platform (feature 016, research D3): it neither asks for the
+   * token of the session nor sends it, it sends no cookies, and a 401 is one more error, so it
+   * works when the token cannot be obtained and never ends the session.
+   */
+  readonly anonymous?: boolean;
+  /** Time limit of this request, body included, instead of the one of the client. */
+  readonly timeoutMs?: number;
 }
 
 export type GetOptions<TSchema extends z.ZodType> = Pick<
   RequestOptions<TSchema>,
-  'schema' | 'query' | 'signal'
+  'schema' | 'query' | 'signal' | 'anonymous' | 'timeoutMs'
 >;
+
+export interface ProbeOptions {
+  readonly signal?: AbortSignal;
+  /** Time limit of the probe, instead of the one of the client. */
+  readonly timeoutMs?: number;
+}
+
+/** What a probe gets back, whatever the status of the answer. */
+export interface ProbeResult {
+  readonly status: number;
+  /** The JSON body, or `undefined` when it is empty or not JSON. Not validated: the caller does. */
+  readonly body: unknown;
+}
 
 export interface HttpClient {
   request: <TSchema extends z.ZodType>(
@@ -40,6 +61,13 @@ export interface HttpClient {
     path: string,
     options: GetOptions<TSchema>,
   ) => Promise<z.output<TSchema>>;
+  /**
+   * An anonymous `GET` for the public health routes of the services (feature 016, research D3): it
+   * answers with the status and the body whatever the status, because the 503 of `/health/ready`
+   * is an answer of the health contract, not an error. A network failure, a time-out and a
+   * cancellation still reject as in `request`. Only the direct check uses it (ESLint keeps it so).
+   */
+  probe: (path: string, options?: ProbeOptions) => Promise<ProbeResult>;
 }
 
 export interface HttpClientConfig {
@@ -52,9 +80,32 @@ export interface HttpClientConfig {
   readonly timeoutMs?: number;
 }
 
+export interface AnonymousHttpClientConfig {
+  /** Base URL of the service: an absolute URL or a path of this origin such as `/proxy/patients`. */
+  readonly baseUrl: string;
+  /** Time limit of each request, body included. */
+  readonly timeoutMs?: number;
+}
+
+/** How the client gets the token of the session and gives up on it; none for an anonymous one. */
+interface Session {
+  readonly getAccessToken: GetAccessToken;
+  readonly onSessionExpired: () => void;
+}
+
 interface RawResponse {
   readonly status: number;
   readonly text: string;
+}
+
+/** What `exchange` needs of a request. */
+interface Exchange {
+  readonly method: HttpMethod;
+  readonly body?: unknown;
+  readonly signal?: AbortSignal;
+  readonly timeoutMs: number;
+  readonly token: string | null;
+  readonly anonymous: boolean;
 }
 
 function hasName(value: unknown, name: string): boolean {
@@ -109,12 +160,15 @@ function abandonWhenAborted<T>(signal: AbortSignal, work: Promise<T>): Promise<T
 }
 
 /**
- * The only HTTP client of the application (constitution IV). It validates every response, tells
- * apart network failures, time-outs and contract failures, renews the token once on a 401 and
- * sends the token only to the host of its base URL.
+ * The only HTTP client of the application (constitution IV), built with or without a session. It
+ * validates every response, tells apart network failures, time-outs and contract failures, renews
+ * the token once on a 401 and sends the token only to the host of its base URL.
  */
-export function createHttpClient(config: HttpClientConfig): HttpClient {
-  const { getAccessToken, onSessionExpired, timeoutMs = DEFAULT_TIMEOUT_MS } = config;
+function buildClient(
+  config: { readonly baseUrl: string; readonly timeoutMs?: number },
+  session: Session | null,
+): HttpClient {
+  const timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const base = new URL(config.baseUrl.replace(/\/+$/, ''), window.location.origin);
   const baseHref = base.href.replace(/\/+$/, '');
 
@@ -130,12 +184,14 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
     return url;
   }
 
-  async function obtainToken(options?: GetTokenOptions): Promise<string> {
+  async function obtainToken(active: Session, options?: GetTokenOptions): Promise<string> {
     try {
-      return await (options === undefined ? getAccessToken() : getAccessToken(options));
+      return await (options === undefined
+        ? active.getAccessToken()
+        : active.getAccessToken(options));
     } catch (error) {
       if (error instanceof SessionExpiredError) {
-        onSessionExpired();
+        active.onSessionExpired();
       }
       throw error;
     }
@@ -159,43 +215,43 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
    * the time budget of the caller (FR-005) covers it.
    */
   async function acquireToken(
+    active: Session,
     callerSignal: AbortSignal | undefined,
+    limitMs: number,
     tokenOptions?: GetTokenOptions,
   ): Promise<string> {
     try {
-      return await runWithTimeout(callerSignal, timeoutMs, (limit) =>
-        abandonWhenAborted(limit, obtainToken(tokenOptions)),
+      return await runWithTimeout(callerSignal, limitMs, (limit) =>
+        abandonWhenAborted(limit, obtainToken(active, tokenOptions)),
       );
     } catch (error) {
       throw error instanceof Abandoned ? toTransportError(error.reason, callerSignal) : error;
     }
   }
 
-  async function exchange(
-    url: URL,
-    options: RequestOptions<z.ZodType>,
-    token: string | null,
-  ): Promise<RawResponse> {
+  async function exchange(url: URL, request: Exchange): Promise<RawResponse> {
     const headers = new Headers({ Accept: 'application/json' });
-    if (token !== null) {
-      headers.set('Authorization', `Bearer ${token}`);
+    if (request.token !== null) {
+      headers.set('Authorization', `Bearer ${request.token}`);
     }
-    if (options.body !== undefined) {
+    if (request.body !== undefined) {
       headers.set('Content-Type', 'application/json');
     }
 
     try {
-      return await runWithTimeout(options.signal, timeoutMs, async (signal) => {
+      return await runWithTimeout(request.signal, request.timeoutMs, async (signal) => {
         const response = await fetch(url, {
-          method: options.method ?? 'GET',
+          method: request.method,
           headers,
-          body: options.body === undefined ? null : JSON.stringify(options.body),
+          body: request.body === undefined ? null : JSON.stringify(request.body),
           signal,
+          // An anonymous request carries no credential of the browser either (FR-076 of 016).
+          ...(request.anonymous ? { credentials: 'omit' as const } : {}),
         });
         return { status: response.status, text: await response.text() };
       });
     } catch (error) {
-      throw toTransportError(error, options.signal);
+      throw toTransportError(error, request.signal);
     }
   }
 
@@ -203,22 +259,29 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
     options: RequestOptions<TSchema>,
   ): Promise<z.output<TSchema>> {
     const url = buildUrl(options.path, options.query);
+    const limitMs = options.timeoutMs ?? timeoutMs;
+    const anonymous = options.anonymous === true || session === null;
     // The token goes to the configured host only, never to an address that merely was asked for.
-    const sendsToken = url.origin === base.origin;
+    const active = !anonymous && url.origin === base.origin ? session : null;
+    const send = (token: string | null): Promise<RawResponse> =>
+      exchange(url, {
+        method: options.method ?? 'GET',
+        body: options.body,
+        signal: options.signal,
+        timeoutMs: limitMs,
+        token,
+        anonymous,
+      });
 
-    let response = await exchange(
-      url,
-      options,
-      sendsToken ? await acquireToken(options.signal) : null,
+    let response = await send(
+      active === null ? null : await acquireToken(active, options.signal, limitMs),
     );
-    if (sendsToken && response.status === 401) {
-      response = await exchange(
-        url,
-        options,
-        await acquireToken(options.signal, { cacheMode: 'off' }),
+    if (active !== null && response.status === 401) {
+      response = await send(
+        await acquireToken(active, options.signal, limitMs, { cacheMode: 'off' }),
       );
       if (response.status === 401) {
-        onSessionExpired();
+        active.onSessionExpired();
         throw new SessionExpiredError({
           cause: ApiError.fromResponse(response.status, parseJson(response.text)),
         });
@@ -239,8 +302,34 @@ export function createHttpClient(config: HttpClientConfig): HttpClient {
     return parsed.data;
   }
 
+  async function probe(path: string, options: ProbeOptions = {}): Promise<ProbeResult> {
+    const response = await exchange(buildUrl(path, undefined), {
+      method: 'GET',
+      signal: options.signal,
+      timeoutMs: options.timeoutMs ?? timeoutMs,
+      token: null,
+      anonymous: true,
+    });
+    return { status: response.status, body: parseJson(response.text) };
+  }
+
   return {
     request,
     get: (path, options) => request({ ...options, path, method: 'GET' }),
+    probe,
   };
+}
+
+/** The client of a service of the platform, with the token of the session. */
+export function createHttpClient(config: HttpClientConfig): HttpClient {
+  const { baseUrl, timeoutMs, getAccessToken, onSessionExpired } = config;
+  return buildClient({ baseUrl, timeoutMs }, { getAccessToken, onSessionExpired });
+}
+
+/**
+ * A client whose every request is anonymous: for the services that the direct check of feature
+ * 016 reaches from `VITE_HEALTH_DIRECT_SERVICES`, which never receive the token (research D4).
+ */
+export function createAnonymousHttpClient(config: AnonymousHttpClientConfig): HttpClient {
+  return buildClient(config, null);
 }

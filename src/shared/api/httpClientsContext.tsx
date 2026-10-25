@@ -3,6 +3,13 @@ import { createContext, useContext } from 'react';
 import type { HttpClient } from './httpClient';
 
 /** The HTTP clients of the platform services; each feature picks the one it needs. */
+/** A client of another service, named as the screens show it. */
+export interface NamedHttpClient {
+  readonly code: string;
+  readonly name: string;
+  readonly client: HttpClient;
+}
+
 export interface HttpClients {
   readonly users: HttpClient;
   /**
@@ -11,6 +18,11 @@ export interface HttpClients {
    * it (research D3 of feature 007).
    */
   readonly subscriptions: HttpClient;
+  /**
+   * Anonymous clients of other services configured when the application is built (feature 016),
+   * only for their public routes of health: they never receive the token.
+   */
+  readonly healthServices: readonly NamedHttpClient[];
 }
 
 export const HttpClientsContext = createContext<HttpClients | null>(null);

@@ -3,7 +3,11 @@ import { useMemo, type ReactNode } from 'react';
 
 import { mapAuth0TokenError, useSessionExpiry } from '@/features/auth';
 import { SessionExpiredError } from '@/shared/api/ApiError';
-import { createHttpClient, type GetAccessToken } from '@/shared/api/httpClient';
+import {
+  createAnonymousHttpClient,
+  createHttpClient,
+  type GetAccessToken,
+} from '@/shared/api/httpClient';
 import { HttpClientsContext } from '@/shared/api/httpClientsContext';
 
 import type { AppEnv } from '../config/env';
@@ -48,10 +52,17 @@ export function HttpClientsProvider({
         getAccessToken,
         onSessionExpired,
       }),
+      // Without the token: only the direct check of feature 016 asks them (research D4).
+      healthServices: env.VITE_HEALTH_DIRECT_SERVICES.map(({ code, name, url }) => ({
+        code,
+        name,
+        client: createAnonymousHttpClient({ baseUrl: url }),
+      })),
     };
   }, [
     env.VITE_USERS_API_URL,
     env.VITE_SUBSCRIPTIONS_API_URL,
+    env.VITE_HEALTH_DIRECT_SERVICES,
     getAccessTokenSilently,
     expireSession,
   ]);

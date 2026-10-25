@@ -209,5 +209,28 @@ for (const size of SIZES) {
       );
       expect(overflowsItsField).toBe(false);
     });
+
+    test('«Salud de servicios» and its registry (A1) reflow, with the shortcuts in the header', async ({
+      page,
+    }) => {
+      test.skip(!hasAccounts('A1'), 'Needs E2E_AUTH0_USER_A1 and E2E_AUTH0_PASSWORD_A1');
+      await page.goto('/health');
+      await signIn(page, account('A1'));
+
+      const text = messages.health;
+      await expect(page.getByRole('heading', { level: 1, name: text.page.title })).toBeVisible();
+      await expect(
+        page.getByRole('heading', { level: 2, name: text.page.componentsTitle }),
+      ).toBeVisible();
+      await expectNoHorizontalScroll(page);
+      await expectHeaderShortcuts(page);
+
+      await page.getByRole('link', { name: text.registry.link }).click();
+      await expect(
+        page.getByRole('heading', { level: 1, name: text.registry.title }),
+      ).toBeVisible();
+      await expectNoHorizontalScroll(page);
+      await expectHeaderShortcuts(page);
+    });
   });
 }

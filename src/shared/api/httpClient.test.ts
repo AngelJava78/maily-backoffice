@@ -2,10 +2,16 @@ import { http, HttpResponse } from 'msw';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
+import { watchFetchCalls } from '@/test/fetchCalls';
 import { server } from '@/test/server';
 
 import { ApiError, SessionExpiredError } from './ApiError';
-import { createHttpClient, type GetAccessToken, type HttpClient } from './httpClient';
+import {
+  createAnonymousHttpClient,
+  createHttpClient,
+  type GetAccessToken,
+  type HttpClient,
+} from './httpClient';
 import { runWithTimeout } from './timeout';
 
 const BASE_URL = 'http://localhost:5173/proxy/users';
@@ -32,6 +38,12 @@ function createClient(options: { baseUrl?: string; timeoutMs?: number } = {}) {
 afterEach(() => {
   vi.useRealTimers();
 });
+
+/** The credentials mode of each call to `fetch` since `watchFetchCalls` (MSW cannot see it). */
+function watchCredentials(): () => (RequestCredentials | undefined)[] {
+  const calls = watchFetchCalls();
+  return () => calls().map((call) => call.credentials);
+}
 
 describe('createHttpClient', () => {
   describe('successful requests', () => {
@@ -523,5 +535,210 @@ describe('createHttpClient', () => {
 
       await assertion;
     });
+
+    it('honours the time limit of a single request (feature 016, research D7)', async () => {
+      vi.useFakeTimers();
+      server.use(http.get(`${THINGS_URL}/1`, neverAnswers));
+      const { client } = createClient();
+      const outcome = client
+        .get('/api/v1/things/1', { schema: thingSchema, timeoutMs: 15_000 })
+        .catch((error: unknown) => error);
+      let settled = false;
+      void outcome.then(() => {
+        settled = true;
+      });
+
+      await vi.advanceTimersByTimeAsync(14_999);
+      expect(settled).toBe(false);
+
+      await vi.advanceTimersByTimeAsync(1);
+      expect(await outcome).toMatchObject({ kind: 'timeout' });
+    });
+  });
+
+  // The public routes of the platform (feature 016, research D3): the public status and the
+  // direct check never ask for the token, never send it nor cookies, and never end the session.
+  describe('anonymous requests', () => {
+    it('neither asks for the token nor sends it, and sends no cookies', async () => {
+      let authorization: string | null | undefined;
+      server.use(
+        http.get(`${THINGS_URL}/1`, ({ request }) => {
+          authorization = request.headers.get('authorization');
+          return HttpResponse.json(thingDto);
+        }),
+      );
+      const credentials = watchCredentials();
+      const { client, getAccessToken } = createClient();
+
+      await expect(
+        client.get('/api/v1/things/1', { schema: thingSchema, anonymous: true }),
+      ).resolves.toEqual({ id: 1, displayName: 'First' });
+
+      expect(authorization).toBeNull();
+      expect(credentials()).toEqual(['omit']);
+      expect(getAccessToken).not.toHaveBeenCalled();
+    });
+
+    it('works when the token of the session cannot be obtained', async () => {
+      server.use(http.get(`${THINGS_URL}/1`, () => HttpResponse.json(thingDto)));
+      const { client, getAccessToken, onSessionExpired } = createClient();
+      getAccessToken.mockRejectedValue(new SessionExpiredError());
+
+      await expect(
+        client.get('/api/v1/things/1', { schema: thingSchema, anonymous: true }),
+      ).resolves.toEqual({ id: 1, displayName: 'First' });
+
+      expect(onSessionExpired).not.toHaveBeenCalled();
+    });
+
+    it('treats a 401 as one more error: no renewal and the session goes on', async () => {
+      let requests = 0;
+      server.use(
+        http.get(`${THINGS_URL}/1`, () => {
+          requests += 1;
+          return HttpResponse.json(
+            { code: 'unauthenticated', message: 'Sin sesión' },
+            { status: 401 },
+          );
+        }),
+      );
+      const { client, getAccessToken, onSessionExpired } = createClient();
+
+      const failure: unknown = await client
+        .get('/api/v1/things/1', { schema: thingSchema, anonymous: true })
+        .catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(ApiError);
+      expect(failure).toMatchObject({ status: 401, code: 'unauthenticated' });
+      expect(requests).toBe(1);
+      expect(getAccessToken).not.toHaveBeenCalled();
+      expect(onSessionExpired).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('probe', () => {
+    const LIVE_URL = `${BASE_URL}/health/live`;
+
+    it('answers with the status and the JSON body', async () => {
+      server.use(http.get(LIVE_URL, () => HttpResponse.json({ status: 'ok' })));
+      const { client } = createClient({ baseUrl: '/proxy/users' });
+
+      await expect(client.probe('/health/live')).resolves.toEqual({
+        status: 200,
+        body: { status: 'ok' },
+      });
+    });
+
+    it('answers a 503 with its body instead of rejecting', async () => {
+      const body = {
+        status: 'unavailable',
+        checks: [{ name: 'database', status: 'error', latency_ms: 2001, error: 'timeout' }],
+      };
+      server.use(http.get(LIVE_URL, () => HttpResponse.json(body, { status: 503 })));
+      const { client } = createClient();
+
+      await expect(client.probe('/health/live')).resolves.toEqual({ status: 503, body });
+    });
+
+    it('gives no body when the answer is not JSON', async () => {
+      server.use(
+        http.get(LIVE_URL, () => new HttpResponse('<html>Backoffice</html>', { status: 200 })),
+      );
+      const { client } = createClient();
+
+      await expect(client.probe('/health/live')).resolves.toEqual({
+        status: 200,
+        body: undefined,
+      });
+    });
+
+    it('never asks for the token, never sends it and sends no cookies', async () => {
+      let authorization: string | null | undefined;
+      server.use(
+        http.get(LIVE_URL, ({ request }) => {
+          authorization = request.headers.get('authorization');
+          return HttpResponse.json({ status: 'ok' });
+        }),
+      );
+      const credentials = watchCredentials();
+      const { client, getAccessToken } = createClient();
+
+      await client.probe('/health/live');
+
+      expect(authorization).toBeNull();
+      expect(credentials()).toEqual(['omit']);
+      expect(getAccessToken).not.toHaveBeenCalled();
+    });
+
+    it('rejects a network failure as a network ApiError', async () => {
+      server.use(http.get(LIVE_URL, () => HttpResponse.error()));
+      const { client } = createClient();
+
+      await expect(client.probe('/health/live')).rejects.toMatchObject({ kind: 'network' });
+    });
+
+    it('rejects with a timeout when its own time limit runs out', async () => {
+      vi.useFakeTimers();
+      server.use(http.get(LIVE_URL, () => new Promise<Response>(() => undefined)));
+      const { client } = createClient();
+      const outcome = client
+        .probe('/health/live', { timeoutMs: 5_000 })
+        .catch((error: unknown) => error);
+
+      await vi.advanceTimersByTimeAsync(5_000);
+
+      expect(await outcome).toMatchObject({ kind: 'timeout' });
+    });
+
+    it('rejects with an AbortError when the caller cancels', async () => {
+      server.use(http.get(LIVE_URL, () => new Promise<Response>(() => undefined)));
+      const { client } = createClient();
+      const controller = new AbortController();
+      const outcome = client.probe('/health/live', { signal: controller.signal });
+      const assertion = expect(outcome).rejects.toMatchObject({ name: 'AbortError' });
+
+      controller.abort();
+
+      await assertion;
+    });
+  });
+});
+
+describe('createAnonymousHttpClient', () => {
+  const PATIENTS_URL = 'https://pacientes.example.test';
+
+  it('never sends the token nor cookies, in its requests and in its probes', async () => {
+    const authorizations: (string | null)[] = [];
+    server.use(
+      http.get(`${PATIENTS_URL}/health/live`, ({ request }) => {
+        authorizations.push(request.headers.get('authorization'));
+        return HttpResponse.json({ status: 'ok' });
+      }),
+    );
+    const credentials = watchCredentials();
+    const client = createAnonymousHttpClient({ baseUrl: PATIENTS_URL });
+
+    await client.get('/health/live', { schema: z.object({ status: z.literal('ok') }) });
+    await client.probe('/health/live');
+
+    expect(authorizations).toEqual([null, null]);
+    expect(credentials()).toEqual(['omit', 'omit']);
+  });
+
+  it('answers a 401 with an ApiError, never with the end of the session', async () => {
+    server.use(
+      http.get(`${PATIENTS_URL}/health/status`, () =>
+        HttpResponse.json({ code: 'unauthenticated', message: 'Sin sesión' }, { status: 401 }),
+      ),
+    );
+    const client = createAnonymousHttpClient({ baseUrl: PATIENTS_URL });
+
+    const failure: unknown = await client
+      .get('/health/status', { schema: z.unknown() })
+      .catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(ApiError);
+    expect(failure).not.toBeInstanceOf(SessionExpiredError);
+    expect(failure).toMatchObject({ status: 401 });
   });
 });

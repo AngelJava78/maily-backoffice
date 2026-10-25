@@ -24,7 +24,7 @@ Orden de decisión, sin mostrar nunca contenido protegido hasta el último paso 
 | El SDK de Auth0 inicializa (`isLoading`) | Indicador de progreso. |
 | Sin sesión | `Navigate` a `/access` con `returnTo` (ubicación actual) en el estado del router; solo la guarda redirige. Si la sesión terminó sola (venció, FR-013, o se cerró por inactividad en otra pestaña, FR-020), el motivo no viaja en el estado del router sino en el estado de sesión de la pestaña (`SessionProvider`), y `/access` lo lee de ahí. |
 | Sesión y acceso resolviéndose | Indicador de progreso (FR-006). |
-| Sesión y primera comprobación fallida | Pantalla "No se pudo comprobar el acceso" con el correo de la cuenta, Reintentar y Cerrar sesión (FR-005), como máximo 30 s después de iniciada la comprobación (SC-011). |
+| Sesión y primera comprobación fallida | Pantalla "No se pudo comprobar el acceso" con el correo de la cuenta, Reintentar y Cerrar sesión (FR-005), como máximo 30 s después de iniciada la comprobación (SC-011). Desde la feature 016, debajo de la línea de la cuenta, las secciones «Estado de la plataforma» y, si esta falla, «Comprobación directa», sin cambiar nada de lo anterior ([specs/016-health-dashboard/contracts/app-routes.md](../../016-health-dashboard/contracts/app-routes.md)). |
 | Sesión y acceso denegado | Pantalla de acceso denegado con motivo, correo de la cuenta y Cerrar sesión, en lugar de cualquier ruta protegida (FR-004; User Story 2, escenario 4). |
 | Sesión y acceso concedido | Layout de la aplicación con el `Outlet`. |
 

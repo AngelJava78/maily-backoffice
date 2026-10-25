@@ -25,7 +25,7 @@ import { accessKeys } from '@/features/auth/hooks/accessKeys';
 import { SessionProvider } from '@/features/auth/hooks/sessionContext';
 import type { AccessDecision, OperatorAccess } from '@/features/auth/policy/types';
 import { createHttpClient, type GetAccessToken } from '@/shared/api/httpClient';
-import { HttpClientsContext } from '@/shared/api/httpClientsContext';
+import { HttpClientsContext, type NamedHttpClient } from '@/shared/api/httpClientsContext';
 import { NotificationsProvider } from '@/shared/ui/Notifications';
 
 import { auth0User, createAuth0Double, type Auth0Double, type Auth0State } from './auth0Double';
@@ -50,6 +50,8 @@ export interface HarnessOptions {
   readonly onSessionExpired?: () => void;
   /** Defaults to `test-token:<sub of the Auth0 user>`, the token the users service mock expects. */
   readonly getAccessToken?: GetAccessToken;
+  /** The services of the direct check of feature 016 besides the two fixed ones; none by default. */
+  readonly healthServices?: readonly NamedHttpClient[];
 }
 
 /** A value that a test can change while the tree is mounted, read with `useSyncExternalStore`. */
@@ -95,6 +97,7 @@ function createHarness(options: HarnessOptions) {
       getAccessToken,
       onSessionExpired,
     }),
+    healthServices: options.healthServices ?? [],
   };
 
   function grantAccess(access: OperatorAccess): void {
@@ -108,8 +111,10 @@ function createHarness(options: HarnessOptions) {
   function Providers({ children }: { readonly children: ReactNode }) {
     const auth0Value = useSyncExternalStore(store.subscribe, store.get);
     return (
-      // The settings the routes read, with the refresh of the Panel of every 5 minutes.
-      <AppSettingsProvider env={{ VITE_DASHBOARD_REFRESH_MINUTES: 5 }}>
+      // The settings the routes read: the Panel refreshes every 5 minutes, the health page every 30 s.
+      <AppSettingsProvider
+        env={{ VITE_DASHBOARD_REFRESH_MINUTES: 5, VITE_HEALTH_REFRESH_SECONDS: 30 }}
+      >
         <Auth0Context.Provider value={auth0Value}>
           <QueryClientProvider client={queryClient}>
             <ThemeModeProvider>

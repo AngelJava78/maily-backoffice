@@ -1,9 +1,9 @@
 /**
  * Resources that have an entry in the navigation: the sections of the product (clarification 3),
- * the Token tool of feature 005 (`token:read`), Módulos (feature 013, `modules:read`) and Roles y
+ * the Token tool of feature 005 (`token:read`), Módulos (feature 013, `modules:read`), Roles y
  * permisos (feature 014, `roles:read`) — this last one the same resource feature 002 already used
  * to offer assigning a role to a user, now also its own section to administer roles and their
- * permissions.
+ * permissions — and «Salud de servicios» (feature 016, `health:read`).
  */
 export const SECTION_RESOURCES = [
   'modules',
@@ -11,6 +11,7 @@ export const SECTION_RESOURCES = [
   'users',
   'subscriptions',
   'tenants',
+  'health',
   'token',
 ] as const;
 

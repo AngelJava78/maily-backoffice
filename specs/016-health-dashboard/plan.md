@@ -21,7 +21,7 @@ Enfoque técnico, con el detalle y las alternativas en [research.md](research.md
 7. **Registro**: listado paginado en el navegador (Complexity Tracking), detalle, formulario compartido y eliminación con confirmación, con los rechazos del servicio (409, 422 por campo, 404) traducidos a textos propios (D15, D16).
 8. **Configuración y build**: `VITE_HEALTH_REFRESH_SECONDS` y `VITE_HEALTH_DIRECT_SERVICES` validadas al arrancar (D17); versión de `package.json` y commit y fecha inyectados al compilar con `define`, sin impedir nunca arrancar (D18).
 9. **Despliegue**: el token nunca sale del origen de maily-system-api; la CSP debe incluir los orígenes de `VITE_HEALTH_DIRECT_SERVICES`; cada servicio debe responder con CORS en sus rutas de salud, y un script lo verifica por ambiente (D19).
-10. **Tamaño**: todo lo de la feature es diferido, con guardas nuevas en `npm run size`; pero `main` ya excede el presupuesto (361,5 KB por la 014) y la feature necesita una decisión (D20).
+10. **Tamaño**: todo lo de la feature es diferido, con guardas nuevas en `npm run size`. Con la línea base medida en 299,7 KB, la enmienda 1.7.0 subió el presupuesto a 320 KB para dar cabida a lo que la feature suma a la entrada (D20).
 11. **Calidad**: simuladores MSW del agregador, el registro, el estado público y los sondeos; prueba primero en lo puro; reloj simulado; axe; E2E cuando haya ambiente (D22). Sin dependencias nuevas (D23).
 
 ## Technical Context
@@ -29,7 +29,7 @@ Enfoque técnico, con el detalle y las alternativas en [research.md](research.md
 **Language/Version**: TypeScript 6.0.3 (`strict`, `noUncheckedIndexedAccess`), React 19.3.1 y Node.js 24 LTS. Sin cambios.
 
 **Primary Dependencies**: las existentes, sin cambios:
-- Vite 8.3.4, react-router 8.4.0, @tanstack/react-query 5.104.4 (`queryOptions`, `fetchQuery`) y @auth0/auth0-react 2.28.2;
+- Vite 8.3.4, react-router 8.4.0, @tanstack/react-query 5.104.4 (`queryOptions` y `queryClient.query`, que en esa versión reemplaza a `fetchQuery`, ya obsoleto) y @auth0/auth0-react 2.28.2;
 - @mui/material 9.5.0 (`Alert`, `Collapse`, `Chip` por `Badge`), @mui/x-data-grid 9.15.0 (listado del registro), react-hook-form 7.90.0 con @hookform/resolvers 5.9.2, zod 4.6.7 y lucide-react 1.61.0 (iconos nuevos verificados en el paquete instalado).
 
 **Ninguna nueva** (D23).
@@ -104,21 +104,21 @@ Evaluado contra la constitución **v1.5.0** (2026-10-23) y revisado contra la **
 | Alcance del producto | En la 1.5.0 no estaban la página, el registro, el estado público ni la comprobación directa. La enmienda MINOR 1.5.0 → 1.6.0 (FR-054), aprobada y aplicada con `/speckit-constitution` el 2026-10-24, los agrega: (5) el registro de componentes monitoreados entre lo que se administra y un párrafo con el monitoreo de salud, como hizo la 007 con el Panel. Integrada en `main` el 2026-10-24 | ❌ | ✅ (v1.6.0) |
 | Stack: dependencias mínimas y licencias permisivas | Ninguna dependencia nueva (D23) | ✅ | ✅ |
 | Configuración: `VITE_*` validadas al arrancar y documentadas | Las dos variables en `env.ts` con su regla, `.env.example`, el README y `environment.md` de la 001. La identificación del build (versión de `package.json`, `APP_COMMIT_SHA` y `APP_BUILD_DATE`) no es configuración: no cambia el comportamiento. Va por `define`, se valida con Zod al arrancar (`parseBuildInfo`) y se documenta igual, pero un valor ausente o inválido se ve «No disponible» y nunca impide arrancar, como exige FR-045. Si la revisión no acepta esta lectura, se aclara con un PATCH de «Configuración y secretos» (D17, D18) | ✅ | ✅ |
-| **Rendimiento: rutas diferidas con `React.lazy`; presupuesto de 300 KB** (pedido del coordinador) | Las cinco páginas y la sección de la pantalla de fallo son diferidas, el Data Grid va con el listado y dos guardas nuevas impiden que `health` llegue a la entrada (D20). **Pero** `main` medía 361,5 KB por la 014 (corregido en `d3ae7f8`) y, aun corregida, el margen esperado (0 a 2 KB) no alcanza para lo que la feature añade a la entrada (unos 4 KB, sobre todo textos) | ❌ | ⚠️ (aprobación) |
+| **Rendimiento: rutas diferidas con `React.lazy`; presupuesto de la ruta de entrada** (pedido del coordinador) | Las cinco páginas y la sección de la pantalla de fallo son diferidas, el Data Grid va con el listado y dos guardas nuevas impiden que `health` llegue a la entrada (D20). **Pero** `main` medía 361,5 KB por la 014 (corregido en `d3ae7f8`) y, aun corregida, el margen esperado (0 a 2 KB) no alcanza para lo que la feature añade a la entrada (unos 4 KB, sobre todo textos). Medida la línea base en 299,7 KB (T001), la enmienda 1.7.0 subió el presupuesto a 320 KB | ❌ | ✅ (v1.7.0) |
 | Rendimiento: los listados no renderizan más filas que el `page_size` | `pageOf` con el tamaño elegido (D15) | ✅ | ✅ |
 | Observabilidad: `logger` y Error Boundaries | Las rutas tienen `RouteErrorBoundary`; la sección diferida, un `ErrorBoundary` con el fallo de FR-060; sin `console.*` (D9) | ✅ | ✅ |
 | Flujo: spec → (clarify) → plan → tasks → implement; documentación en español | Este plan; `/speckit-clarify` no se ejecutó (la spec lista sus decisiones como revisables). La enmienda 1.6.0 se aplicó antes de `/speckit-tasks`, como pide FR-054 | ✅ | ✅ |
 
-**Resultado**: el diseño no deja violaciones sin justificar. El alcance quedó resuelto con la enmienda 1.6.0. Queda **una excepción para aprobación**, que no bloquea este plan pero sí la implementación: el **presupuesto de la ruta de entrada**, que `main` ya excede y para el que la feature necesita margen (D20).
+**Resultado**: el diseño no deja violaciones sin justificar. El alcance quedó resuelto con la enmienda 1.6.0 y el presupuesto de la ruta de entrada, con la 1.7.0 (320 KB, D20).
 
 Además, dos desvíos registrados en Complexity Tracking: paginar el registro en el navegador (DEBE) y los esquemas Zod a mano (DEBERÍA).
 
 ## Lo que necesita aprobación
 
 1. ~~**Enmienda MINOR 1.5.0 → 1.6.0** (FR-054)~~: **aprobada, aplicada con `/speckit-constitution` e integrada en `main` el 2026-10-24**. Agrega al «Alcance del producto» la página «Salud de servicios» (de solo lectura, con actualización periódica), la administración del registro de componentes monitoreados que sirve maily-system-api, el estado público que se muestra cuando no se puede comprobar el acceso y la comprobación directa que lo respalda cuando maily-system-api no responde. Ningún principio cambia: el IV ya cubre la actualización periódica y el VI, el nuevo recurso administrado. El presupuesto del paquete no cambia en ella.
-2. **Presupuesto del paquete** (D20). Propuesta, en este orden:
+2. ~~**Presupuesto del paquete** (D20)~~: **resuelto el 2026-10-24** con la enmienda 1.7.0 (320 KB gzip), tras medir la línea base en T001. Lo que se propuso:
    - ~~corregir aparte la carga de Roles y permisos~~: hecho en `main` el 2026-10-24 (`d3ae7f8`, `RolesPage` diferida como `6de221e` hizo con Módulos, y `6389891`, el título de su pestaña);
-   - medir la línea base en esta rama;
+   - ~~medir la línea base en esta rama~~: 299,7 KB gzip (T001, «Notas de implementación»);
    - si el margen no alcanza para la 016, decidir entre una enmienda del presupuesto con la línea base medida (la constitución lo prevé: «ajustable mediante enmienda tras medir la línea base»; iría en una 1.7.0, porque la 1.6.0 ya está integrada) o recuperar margen con una mejora aparte de la entrada. Mi recomendación es la primera, con el valor que dé la medición, y abrir después el estudio de cargar los textos por feature, porque cada feature consume de 1 a 3 KB de textos en la entrada.
 3. ~~**Precisión de la cadena en la pantalla de fallo** (D9)~~: **aprobada el 2026-10-24** y aplicada en FR-071, SC-015 y SC-021 de la spec.
 
@@ -211,11 +211,11 @@ src/
 │   └── ui/iconRegistry.ts                  # + health, refresh y los seis iconos de estado (D12)
 ├── test/
 │   ├── factories.ts                        # + DTOs de salud
+│   ├── fetchCalls.ts                       # NUEVO: espía de fetch con el credentials de cada llamada
 │   ├── renderApp.tsx, renderWithProviders.tsx  # + variables, ajustes y healthServices
 │   └── handlers/
 │       ├── healthMonitoring/               # NUEVO: agregador, estado público y registro (D22)
-│       ├── healthProbes/                   # NUEVO: /health/live y /health/ready de los servicios
-│       └── shared/requestLog.ts            # + credentials de cada petición
+│       └── healthProbes/                   # NUEVO: /health/live y /health/ready de los servicios
 └── vite-env.d.ts                           # + las dos variables y las tres constantes de build
 
 scripts/
@@ -273,7 +273,7 @@ specs/001-auth-session-profile/contracts/environment.md  # filas de las variable
 - **Trampa de `queryOptions`**: los componentes observan cada paso con las **mismas** opciones y `enabled: false`, no con `skipToken`, para que un observador no reemplace la función ni los reintentos del paso que el ciclo ejecuta.
 - **Pruebas de visibilidad y reloj** (lecciones de la 007): `visibilitychange` sobre `window` (o `document` con `bubbles: true`), `focusManager.setFocused(undefined)` al terminar, `defer()` para retener respuestas y vueltas reales al bucle de eventos para afirmar que no se pidió nada.
 - **Simulador de usuarios**: el Administrator no recibe `health:*` por defecto; las pruebas de la feature lo conceden.
-- **`requestLog`** guarda `credentials` además de `authorization`, para las afirmaciones de FR-056 y FR-076.
+- **`credentials`**: MSW reconstruye la petición y pierde ese modo, así que `requestLog` guarda solo `authorization`, y `watchFetchCalls` (`src/test/fetchCalls.ts`, un espía de `fetch` que deja pasar la llamada) da el `credentials` de cada una, para las afirmaciones de FR-056 y FR-076 (cambio de la implementación, 2026-10-24).
 - **Observado fuera de alcance**: `useRouteAccessibility` no tiene la clave `roles` en su lista, aunque `routes.tsx` la usa (la pestaña de Roles y permisos queda sin título). No se corrige aquí; se reporta.
 - **Precisiones que conviene pasar a la spec** (como hizo la 007; T156): el reloj de 24 h en la línea de regreso (D13), que «Actualizar» no se deshabilita (D12) y que un «sin permiso» guardado muestra la carga al volver a entrar (data-model §10). Las de FR-014 (D5) y de la cadena interrumpida (D9) ya se aplicaron.
 - **Documentación**: README («Qué hace hoy», variables, «Despliegue» con CSP, CORS, el *fallback* de `/health` y la inyección del build, estructura y pruebas), `.env.example`, `environment.md` de la 001 y una nota en la spec de la 001 y la 006 sobre las secciones nuevas de su pantalla de fallo.
@@ -281,7 +281,7 @@ specs/001-auth-session-profile/contracts/environment.md  # filas de las variable
 ## Preguntas abiertas
 
 1. ~~**Enmienda 1.6.0**~~: aprobada y aplicada el 2026-10-24.
-2. **Presupuesto**: con la corrección de Roles ya en `main`, ¿ajustamos el presupuesto con la línea base medida si no alcanza el margen? Se decide en T001.
+2. ~~**Presupuesto**~~: resuelto el 2026-10-24 con la enmienda 1.7.0 (320 KB gzip).
 3. ~~**Cadena interrumpida** (D9)~~: aprobada el 2026-10-24.
 4. ~~**Versión inicial del Backoffice**~~: `1.0.0` en `package.json`, confirmada el 2026-10-24.
 5. **Coordinación con system-api 005** (su plan está en curso):
@@ -291,4 +291,21 @@ specs/001-auth-session-profile/contracts/environment.md  # filas de las variable
 
 ## Notas de implementación
 
-Se completa durante `/speckit-implement`: la línea base medida del paquete antes y después, y las decisiones que afinen lo planeado sin cambiar los requisitos.
+Mediciones y decisiones de `/speckit-implement` que afinan lo planeado sin cambiar los requisitos.
+
+### Tamaño del paquete
+
+- **Línea base** (T001, 2026-10-24, rama `016-health-dashboard` desde `678f17b`, que ya trae la corrección de Roles): `npm run build` y `npm run size` dan **299,7 KB gzip** de 300, igual que el CI de `6389891`: `index` 168,5 KB, `useFocusOnMount` 77,7 KB (núcleo de MUI), `Grow` 44,3 KB, `Menu` 6,1 KB, `MenuItem` 1,7 KB y piezas de menos de 1 KB.
+- **Margen**: 0,3 KB, frente a los unos 4 KB que la 016 suma a la entrada (research D20). No alcanzaba.
+- **Decisión** (2026-10-24, de la persona): enmienda 1.7.0 de la constitución, que sube el presupuesto a **320 KB gzip** con esta línea base; `scripts/check-entry-size.mjs` y el README pasan a 320 KB en el mismo cambio. Recuperar margen difiriendo el menú de perfil, el aviso de inactividad o las notificaciones queda como estudio aparte.
+- **Medición con la 016** (T151, 2026-10-25): **306,6 KB gzip** de 320 en la ruta de entrada, con las guardas de T150 en verde (ni `/api/v1/monitored-components` ni `/health/status` están en la entrada, y los dos están en fragmentos diferidos). La 016 suma **6,9 KB** a la entrada, más que los unos 4 KB estimados: los textos de `es.ts` (también los del registro y de las secciones), los iconos, la validación de las dos variables, el `index` de `health` con sus marcadores ligeros, `AccessCheckFailedScreen` y las rutas. Los fragmentos diferidos de `health` suman 18,3 KB gzip: la página 4,6 KB, las secciones de respaldo 4,0 KB (compartidas por las dos pantallas), la sección de la pantalla de fallo 0,6 KB y el registro unos 9 KB (listado 1,8, detalle 1,7, alta 0,8, edición 1,0, formulario 2,1, API 1,1 y hooks 0,7).
+
+### Precisiones de la implementación
+
+- **`fetchQuery` → `queryClient.query`**: en TanStack Query 5.104.4 `fetchQuery` está obsoleto; `query` hace lo mismo para la cadena (lo comprobé en su código).
+- **`credentials`**: MSW reconstruye la petición que intercepta y pierde ese modo, así que el registro de solicitudes no lo guarda y `watchFetchCalls` (`src/test/fetchCalls.ts`) lo lee de las llamadas a `fetch` (T030).
+- **La pantalla de fallo durante una comprobación**: TanStack Query devuelve a `pending`, sin error, una consulta sin datos mientras vuelve a pedir; `useOperatorAccess` sigue en `failed` (con `isChecking`) mientras `errorUpdatedAt > 0` y no hay datos, para que la pantalla no se desmonte en cada reintento ni en cada recomprobación (T118). Las pruebas de la 001 y la 006 pasan sin cambiar lo que afirman.
+- **Formulario del registro**: ninguna regla de `componentFormSchema` usa `abort`, porque Zod 4 saltaría la comprobación de las rutas (que depende del tipo) y no se avisaría junto a cada campo antes de enviar; el formulario muestra el primer error de cada campo.
+- **Data Grid vacío**: «Nuevo componente» queda junto al título y no dentro de la cuadrícula, porque axe no admite un enlace como hijo de una `grid`.
+- **Validación pendiente**: la de `quickstart.md` (V1 a V16, la verificación de CORS y CSP y la revisión con personas de SC-009 y SC-017) necesita los servicios reales y queda para cuando estén desplegados (T158).
+

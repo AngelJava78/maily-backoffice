@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ApiError } from './ApiError';
-import { MUTATION_RETRY, retryDelay, shouldRetryQuery } from './retry';
+import { MUTATION_RETRY, retryDelay, retryUpTo, shouldRetryQuery } from './retry';
 
 describe('shouldRetryQuery', () => {
   const retryable = [
@@ -37,6 +37,36 @@ describe('shouldRetryQuery', () => {
       expect(shouldRetryQuery(0, error)).toBe(false);
     },
   );
+});
+
+describe('retryUpTo', () => {
+  const retryOnce = retryUpTo(1);
+
+  it.each([
+    ['a network failure', ApiError.network()],
+    ['a timeout', ApiError.timeout()],
+    ['a 503', ApiError.fromResponse(503, undefined)],
+  ] as const)('retries %s only once', (_label, error) => {
+    expect(retryOnce(0, error)).toBe(true);
+    expect(retryOnce(1, error)).toBe(false);
+  });
+
+  it.each([
+    ['a 404', ApiError.fromResponse(404, undefined)],
+    ['a contract failure', ApiError.contract(200, 'bad shape')],
+    ['an error that is not an ApiError', new Error('boom')],
+  ] as const)('never retries %s', (_label, error) => {
+    expect(retryOnce(0, error)).toBe(false);
+  });
+
+  it('gives the rule of shouldRetryQuery with two retries', () => {
+    const retryTwice = retryUpTo(2);
+    const error = ApiError.network();
+
+    expect([0, 1, 2].map((count) => retryTwice(count, error))).toEqual(
+      [0, 1, 2].map((count) => shouldRetryQuery(count, error)),
+    );
+  });
 });
 
 describe('retryDelay', () => {

@@ -46,8 +46,8 @@ describe('getVisibleSections', () => {
   // The registry lists only the sections that exist (FR-009): each feature adds its own. The order
   // (FR-002 of feature 014) is Panel, Módulos, Roles y Permisos, Usuarios, Suscripciones, Token,
   // until Clínicas becomes a section of its own (inserted after Suscripciones to reach the final
-  // order the feature documents).
-  it('registers modules (feature 013), then roles (014), users (002), subscriptions (003) and the Token tool (005)', () => {
+  // order the feature documents); «Salud de servicios» (FR-003 of 016) goes right before Token.
+  it('registers modules (feature 013), then roles (014), users (002), subscriptions (003), health (016) and the Token tool (005)', () => {
     expect(sections).toEqual([
       {
         id: 'modules',
@@ -65,6 +65,7 @@ describe('getVisibleSections', () => {
         resource: 'subscriptions',
         icon: 'subscriptions',
       },
+      { id: 'health', path: '/health', labelKey: 'health', resource: 'health', icon: 'health' },
       {
         id: 'token',
         path: '/tools/postman-token',
@@ -92,5 +93,20 @@ describe('getVisibleSections', () => {
         sections,
       ),
     ).toEqual([]);
+  });
+
+  it('shows «Salud de servicios» only to someone who can read the health of the services (FR-003)', () => {
+    expect(
+      getVisibleSections(accessWith('health:read'), sections).map((section) => section.id),
+    ).toEqual(['health']);
+    expect(
+      getVisibleSections(accessWith('health:write', 'health:update', 'health:delete'), sections),
+    ).toEqual([]);
+    expect(
+      getVisibleSections(
+        accessWith('subscriptions:read', 'health:read', 'token:read'),
+        sections,
+      ).map((section) => section.id),
+    ).toEqual(['subscriptions', 'health', 'token']);
   });
 });

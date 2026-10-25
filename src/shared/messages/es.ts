@@ -110,6 +110,7 @@ export const messages = {
       clinics: 'Clínicas',
       token: 'Token',
       roles: 'Roles y permisos',
+      health: 'Salud de servicios',
     },
   },
   idleDialog: {
@@ -788,6 +789,10 @@ export const messages = {
       apiUrl:
         'Ruta que empieza con `/` o URL `http(s)`; en builds de producción una URL absoluta debe ser `https`. Sin `/` final.',
       refreshMinutes: 'Entero de 1 a 60 (minutos), escrito solo con dígitos; si no se define, 5.',
+      healthRefreshSeconds:
+        'Entero de 10 a 300 (segundos), escrito solo con dígitos; si no se define, 30.',
+      healthDirectServices:
+        'Lista JSON de hasta 20 objetos { code, name, url }: code con el formato del código de un componente, único y distinto de maily-system-api y mailysoft-usuarios; name de 1 a 100 caracteres; url con las reglas de las URL base de las APIs.',
       mailySoftAppUrl: 'URL http(s) completa; en builds de producción debe ser https.',
     },
   },
@@ -807,6 +812,11 @@ export const messages = {
     subscriptionEdit: 'Editar suscripción',
     token: 'Token',
     roles: 'Roles y permisos',
+    health: 'Salud de servicios',
+    healthComponents: 'Componentes monitoreados',
+    healthComponentCreate: 'Nuevo componente',
+    healthComponentDetail: 'Detalle del componente',
+    healthComponentEdit: 'Editar componente',
   },
   // Feature 014: "Roles y permisos" — pantalla maestro-detalle (pestañas Clínica/Sistema, lista y
   // matriz de permisos por módulo y acción).
@@ -878,6 +888,215 @@ export const messages = {
       saveIncomplete: (failed: number) =>
         `No se pudieron guardar ${failed} ${failed === 1 ? 'cambio' : 'cambios'}. Vuelve a intentarlo.`,
       retryable: 'No pudimos completar la operación. Inténtalo de nuevo.',
+    },
+  },
+  // Feature 016: «Salud de servicios», the health of the components of Maily (data-model §2).
+  health: {
+    status: {
+      up: 'Operativo',
+      degraded: 'Degradado',
+      down: 'Caído',
+      stopped: 'Detenida por horario',
+      unknown: 'Desconocido',
+    },
+    overall: {
+      ok: 'Todo operativo',
+      degraded: 'Degradado',
+      down: 'Con componentes caídos',
+      unknown: 'Desconocido',
+      operationalCount: (up: number, total: number) => `${up} de ${total} operativos`,
+    },
+    kinds: {
+      service: 'Microservicio',
+      database: 'Base de datos',
+      frontend: 'Frontend',
+      unknown: 'Componente',
+    },
+    checks: {
+      ok: 'Correcto',
+      error: 'Con error',
+      unknown: 'Desconocido',
+      names: { database: 'Base de datos' },
+    },
+    // What each error code of a component means (FR-016).
+    errors: {
+      timeout: 'No respondió a tiempo.',
+      connection_error: 'No se pudo conectar.',
+      dns_error: 'No se encontró la dirección del servicio.',
+      host_not_allowed: 'Su dirección no está en la lista permitida; no se comprobó.',
+      unexpected_status: 'Respondió con un código inesperado.',
+      invalid_response: 'Su respuesta no cumple el contrato de salud.',
+      response_too_large: 'Su respuesta fue demasiado grande.',
+      not_ready: 'Está en línea, pero no está listo para atender.',
+      not_configured: 'Le falta configuración, por ejemplo la conexión a la base de datos.',
+      unexpected_error: 'Ocurrió un error inesperado al comprobarlo.',
+      unknownCode: 'Ocurrió un problema al comprobar este componente.',
+    },
+    notAvailable: 'No disponible',
+    latency: (ms: string) => `${ms} ms`,
+    page: {
+      title: 'Salud de servicios',
+      componentsTitle: 'Componentes',
+      empty: 'No hay componentes para mostrar.',
+      noPermission: 'No tienes permiso para ver la salud de los servicios.',
+      loadError: {
+        title: 'No se pudo consultar la salud de los servicios',
+        message: 'Ocurrió un problema al consultar el monitoreo. Puedes reintentar.',
+      },
+      authorizationUnavailable:
+        'Puede deberse a que mailySoft-usuarios o la base de datos no están disponibles, por ejemplo fuera del horario de encendido.',
+      refresh: 'Actualizar',
+      updating: 'Actualizando…',
+      updatedSecondsAgo: (seconds: number) => `Actualizado hace ${seconds} s`,
+      updatedMinutesAgo: (minutes: number) => `Actualizado hace ${minutes} min`,
+      updatedAt: (when: string) => `Actualizado: ${when}`,
+      refreshFailed:
+        'No se pudo actualizar la salud de los servicios. Se muestran los datos de la última actualización correcta.',
+    },
+    fields: {
+      kind: 'Tipo',
+      status: 'Estado',
+      latency: 'Latencia',
+      checkedAt: 'Última comprobación',
+      version: 'Versión',
+      commit: 'Commit',
+      buildDate: 'Fecha de build',
+      environment: 'Entorno',
+    },
+    details: {
+      toggle: 'Detalle',
+      toggleLabel: (name: string) => `Detalle de ${name}`,
+      checksTitle: 'Chequeos',
+      none: 'Sin detalles adicionales.',
+    },
+    notices: {
+      databaseStopped:
+        'La base de datos está detenida por horario: se apaga a propósito fuera de su horario de encendido y, mientras tanto, los servicios que dependen de ella pueden aparecer degradados.',
+      databaseDown:
+        'La base de datos no responde, así que los servicios que dependen de ella pueden aparecer degradados.',
+      registryUnavailable:
+        'No se pudo leer el registro de componentes: la lista puede estar incompleta o desactualizada.',
+    },
+    // The registry of components (user story 3, FR-034 to FR-043).
+    registry: {
+      title: 'Componentes monitoreados',
+      link: 'Componentes monitoreados',
+      backToHealth: 'Salud de servicios',
+      backToList: 'Volver a Componentes monitoreados',
+      builtInNote: 'maily-system-api y la base de datos se monitorean siempre, sin registrarlos.',
+      empty: 'Todavía no hay componentes registrados.',
+      noPermission: 'No tienes permiso para ver los componentes monitoreados.',
+      create: 'Nuevo componente',
+      edit: 'Editar',
+      delete: 'Eliminar',
+      enabled: 'Habilitado',
+      disabled: 'Deshabilitado',
+      gridLabel: 'Componentes registrados',
+      kinds: { service: 'Microservicio', frontend: 'Frontend', unknown: 'Componente' },
+      columns: {
+        name: 'Nombre',
+        code: 'Código',
+        kind: 'Tipo',
+        baseUrl: 'URL base',
+        enabled: 'Habilitado',
+        sortOrder: 'Orden',
+      },
+      fields: {
+        name: 'Nombre',
+        code: 'Código',
+        kind: 'Tipo',
+        baseUrl: 'URL base',
+        livePath: 'Ruta de vida',
+        readyPath: 'Ruta de disponibilidad',
+        infoPath: 'Ruta de información',
+        healthPath: 'Ruta de salud',
+        enabled: 'Habilitado',
+        sortOrder: 'Orden',
+        createdAt: 'Fecha de alta',
+        updatedAt: 'Última modificación',
+      },
+      form: {
+        frontendWarning:
+          'En un frontend que responde con su página a cualquier dirección, una ruta que no existe parecería sana: comprueba que la ruta de salud exista.',
+        fixedInfo:
+          'El código y el tipo no se pueden cambiar. Para cambiarlos, elimina el componente y regístralo de nuevo.',
+        optional: 'Opcional.',
+        sortOrderHelper: 'Opcional. Si lo dejas vacío, vale 0.',
+        required: 'Este campo es obligatorio.',
+        name: 'Escribe un nombre de 1 a 100 caracteres.',
+        code: 'Usa de 2 a 50 caracteres: minúsculas, números y guiones, empezando con una letra, sin guion al final ni dos seguidos.',
+        baseUrl:
+          'Escribe una dirección http:// o https:// con dominio, sin usuario, contraseña, parámetros (?) ni fragmento (#), de hasta 255 caracteres.',
+        path: 'Escribe una ruta que empiece con una sola /, de hasta 200 caracteres, sin espacios, sin los caracteres \\ ? # % y sin segmentos . o ...',
+        sortOrder: 'Escribe un número entero de 0 a 9999.',
+      },
+      notices: {
+        created: 'Componente registrado.',
+        updated: 'Componente actualizado.',
+        deleted: 'Componente eliminado.',
+      },
+      errors: {
+        codeTaken: 'Ya existe un componente con este código.',
+        hostNotAllowed:
+          'Esta dirección no se puede monitorear. Su dominio debe agregarse a la lista permitida del servicio de salud.',
+        notFound: 'Este componente ya no existe.',
+        form: 'No se pudo guardar el componente. Revisa los datos e inténtalo de nuevo.',
+        unavailable: 'No pudimos completar la operación. Inténtalo de nuevo.',
+        loadError: {
+          listTitle: 'No se pudieron cargar los componentes monitoreados',
+          detailTitle: 'No se pudo cargar el componente',
+          message:
+            'Ocurrió un problema al consultar el registro de componentes. Puedes reintentar.',
+        },
+      },
+      deleteDialog: {
+        title: (name: string) => `¿Eliminar ${name}?`,
+        message: 'Dejará de monitorearse y de aparecer en Salud de servicios.',
+        confirm: 'Eliminar',
+        cancel: 'Cancelar',
+      },
+    },
+    // The section of the public status, in the failure screen and in the page (user story 5).
+    platform: {
+      title: 'Estado de la plataforma',
+      loading: 'Consultando el estado de la plataforma…',
+      failed: 'No se pudo obtener el estado de la plataforma.',
+      empty: 'No hay componentes para mostrar.',
+      databaseStopped: 'Base de datos detenida por horario',
+      refreshing: 'Actualizando…',
+    },
+    // The block of the build of this Backoffice (user story 4).
+    backoffice: {
+      title: 'Backoffice',
+      version: 'Versión',
+      commit: 'Commit',
+      buildDate: 'Fecha de build',
+    },
+    // The direct check from the browser, when neither the aggregator nor the public status answer
+    // (user story 6).
+    direct: {
+      title: 'Comprobación directa',
+      intro:
+        'No se pudo consultar el monitoreo central (maily-system-api). Esto es lo que tu navegador pudo comprobar directamente:',
+      names: { systemApi: 'maily-system-api', users: 'mailySoft-usuarios' },
+      status: { operational: 'Operativo', degraded: 'Degradado', unreachable: 'No responde' },
+      explanations: {
+        database: 'Su base de datos no responde.',
+        notConfigured: 'Le falta configuración, por ejemplo la conexión a la base de datos.',
+        unknownCheck: 'Falló uno de sus chequeos.',
+        notReady: 'Está en línea, pero no está listo para atender.',
+      },
+      others:
+        'Los demás componentes (base de datos, MailySoft y los componentes registrados que no aparecen en esta lista) no se pueden comprobar desde el navegador: Sin información.',
+      loading: 'Comprobando los servicios desde tu navegador…',
+      refreshing: 'Actualizando…',
+    },
+    // When the database comes back (FR-059): «a la» for the hour 1 (1:00 to 1:59), «a las» otherwise.
+    returnLine: {
+      future: (date: string, time: string) =>
+        `Vuelve a estar disponible el ${date} ${time.startsWith('1:') ? 'a la' : 'a las'} ${time}`,
+      past: (date: string, time: string) =>
+        `Su encendido estaba programado para el ${date} ${time.startsWith('1:') ? 'a la' : 'a las'} ${time}`,
     },
   },
 } as const;

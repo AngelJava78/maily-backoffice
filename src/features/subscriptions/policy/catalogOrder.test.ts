@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
+import { pageOf } from '@/shared/lib/pageOf';
+
 import type { Subscription } from '../schemas/subscription';
-import { pageOf, sortCatalog } from './catalogOrder';
+import { sortCatalog } from './catalogOrder';
 
 const STATUS_NAMES = new Map([
   [1, 'Activa'],
@@ -140,11 +142,11 @@ describe('sortCatalog', () => {
   });
 });
 
-describe('pageOf', () => {
-  const sorted = sortCatalog(quickstartCatalog());
-
-  it('gives the page asked for, with the total and the number of pages', () => {
-    const page = pageOf(sorted, 2, 10);
+// `pageOf` moved to `shared/lib` with its tests (feature 016, research D15); here, the page 2 of
+// the sorted catalog, which is what the list of subscriptions shows.
+describe('pageOf with the sorted catalog', () => {
+  it('gives the second page of ten of the catalog in its fixed order', () => {
+    const page = pageOf(sortCatalog(quickstartCatalog()), 2, 10);
 
     expect(names(page.items)).toEqual([
       'Plan prueba 10',
@@ -159,29 +161,5 @@ describe('pageOf', () => {
       'Suspendido',
     ]);
     expect(page).toMatchObject({ total: 20, pages: 2, page: 2, pageWasClamped: false });
-  });
-
-  it('gives at most the size of the page, and what is left on the last one', () => {
-    expect(pageOf(sorted, 1, 25).items).toHaveLength(20);
-    expect(pageOf(sorted, 1, 25)).toMatchObject({ pages: 1, page: 1 });
-    expect(pageOf(sorted.slice(0, 13), 2, 10).items).toHaveLength(3);
-  });
-
-  it('gives the last page instead of one after it, and says so', () => {
-    const page = pageOf(sorted, 99, 10);
-
-    expect(page).toMatchObject({ page: 2, pages: 2, pageWasClamped: true });
-    expect(page.items).toHaveLength(10);
-  });
-
-  it('gives the first page, without pages, for an empty catalog', () => {
-    expect(pageOf([], 1, 10)).toEqual({
-      items: [],
-      total: 0,
-      pages: 0,
-      page: 1,
-      pageWasClamped: false,
-    });
-    expect(pageOf([], 3, 10)).toMatchObject({ page: 1, pageWasClamped: true });
   });
 });

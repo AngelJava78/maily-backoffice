@@ -1,6 +1,7 @@
 {
   "name": "maily-backoffice",
   "private": true,
+  "version": "1.0.0",
   "type": "module",
   "engines": {
     "node": ">=24.15.0"
@@ -17,7 +18,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "size": "node scripts/check-entry-size.mjs"
+    "size": "node scripts/check-entry-size.mjs",
+    "check:health-cors": "node scripts/check-health-cors.mjs"
   },
   "overrides": {
     "eslint-plugin-jsx-a11y": {

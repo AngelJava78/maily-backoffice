@@ -95,6 +95,24 @@ archivo de `src/features/**` importa `lucide-react` ni ningún icono directament
 inglés/kebab-case → componente de `lucide-react`), nunca un import inline en el componente que lo
 usa.
 
+### Estados de salud (feature 016)
+
+Los estados de «Salud de servicios» y de sus secciones de respaldo se pintan con `Badge` (a través de
+`StatusBadge`): texto, tono e icono propio, para que ningún estado dependa solo del color
+(WCAG 1.4.1). «Detenida por horario» y «Desconocido» comparten tono pero no icono.
+
+| Estado                                              | Texto                | Tono de `Badge` | Icono (registro → lucide)           |
+| --------------------------------------------------- | -------------------- | --------------- | ----------------------------------- |
+| `up` (y estado general `ok`, «Todo operativo»)      | Operativo            | `success`       | `status-up` → `CircleCheck`         |
+| `degraded`                                          | Degradado            | `warning`       | `status-degraded` → `TriangleAlert` |
+| `down` (y estado general, «Con componentes caídos») | Caído                | `danger`        | `status-down` → `CircleX`           |
+| `stopped`                                           | Detenida por horario | `neutral`       | `status-stopped` → `Clock`          |
+| `unknown` y cualquier otro                          | Desconocido          | `neutral`       | `status-unknown` → `CircleHelp`     |
+| Comprobación directa: no responde                   | No responde          | `danger`        | `status-unreachable` → `Unplug`     |
+
+La sección se registra en la navegación con `health` → `Activity`, y «Actualizar» usa `refresh` →
+`RefreshCw`. Fuente: research D12 de [la 016](../specs/016-health-dashboard/research.md).
+
 ## Tabla de equivalencias
 
 | Archivo/clase de web-soft                                          | Archivo del Backoffice                                                                            | Tipo       | Notas                                                                                                                                                                             |

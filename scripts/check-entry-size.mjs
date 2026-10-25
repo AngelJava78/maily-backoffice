@@ -1,6 +1,6 @@
 // Bundle guards (constitution, "Rendimiento y observabilidad"; research D16 of 001, D2 and D15 of 002).
 // 1. Sums the gzip size of the entry-route JS referenced by `dist/index.html` (the module <script>
-//    tags and the <link rel="modulepreload"> tags) and fails above 300 KB.
+//    tags and the <link rel="modulepreload"> tags) and fails above 320 KB (constitution 1.7.0).
 // 2. Fails when that entry-route JS contains the Data Grid, which must stay in a lazy chunk even
 //    when the size would still fit the budget. The Data Grid is recognised by DOM attributes it needs
 //    as literals; `MuiDataGrid` cannot be used (the theme of the entry carries that key for the
@@ -13,14 +13,20 @@
 //    `tokenFailure.ts` assigns as a literal so that minifying cannot rename it.
 // 5. Fails when the build has lazy chunks but none of them contains that marker, which means it was
 //    renamed and guard 4 no longer protects.
+// 6. Fails when that entry-route JS contains the API layer of «Salud de servicios» (feature 016,
+//    research D20): the pages, the registry and the section of the access-check failure screen are
+//    lazy. It is recognised by paths that only that layer has as literals.
+// 7. Fails when the build has lazy chunks but none of them contains those paths, which means they
+//    changed and guard 6 no longer protects.
 // No dependencies.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
-const BUDGET_BYTES = 300 * 1024;
+const BUDGET_BYTES = 320 * 1024;
 const DATA_GRID_MARKERS = ['data-rowindex', 'data-colindex'];
 const TOKEN_TOOL_MARKERS = ['TokenRequestError'];
+const HEALTH_MARKERS = ['/api/v1/monitored-components', '/health/status'];
 const distDir = 'dist';
 const indexPath = join(distDir, 'index.html');
 
@@ -75,7 +81,7 @@ console.log(
 let failed = false;
 
 if (totalBytes > BUDGET_BYTES) {
-  console.error('The entry-route JavaScript exceeds the 300 KB gzip budget.');
+  console.error('The entry-route JavaScript exceeds the 320 KB gzip budget.');
   failed = true;
 }
 
@@ -92,6 +98,15 @@ for (const row of rows) {
     if (row.content.includes(marker)) {
       console.error(
         `${row.file} (entry route) contains "${marker}": the token tool must be loaded lazily.`,
+      );
+      failed = true;
+    }
+  }
+  for (const marker of HEALTH_MARKERS) {
+    if (row.content.includes(marker)) {
+      console.error(
+        `${row.file} (entry route) contains "${marker}": the API layer of «Salud de servicios» ` +
+          'must be loaded lazily (research D20 of 016).',
       );
       failed = true;
     }
@@ -126,6 +141,17 @@ if (lazyChunks.length > 0 && !tokenToolInLazyChunks) {
   console.error(
     `The build has lazy chunks but none of them contains ${TOKEN_TOOL_MARKERS.join(', ')}: ` +
       'review TOKEN_TOOL_MARKERS in scripts/check-entry-size.mjs (research D15 of 005).',
+  );
+  failed = true;
+}
+
+const healthInLazyChunks = HEALTH_MARKERS.every((marker) =>
+  lazyChunks.some((content) => content.includes(marker)),
+);
+if (lazyChunks.length > 0 && !healthInLazyChunks) {
+  console.error(
+    `The build has lazy chunks but not all of ${HEALTH_MARKERS.join(', ')} appear in them: ` +
+      'review HEALTH_MARKERS in scripts/check-entry-size.mjs (research D20 of 016).',
   );
   failed = true;
 }

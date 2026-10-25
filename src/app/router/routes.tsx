@@ -8,6 +8,7 @@ import { AppLayout } from '../layouts/AppLayout';
 import { PublicLayout } from '../layouts/PublicLayout';
 import { NotFoundPage } from '../pages/LazyNotFoundPage';
 import { AccessDeniedRoute } from './AccessDeniedRoute';
+import { healthRoute } from './health/healthRoutes';
 import { HomeRoute } from './HomeRoute';
 import { ModulesRoute } from './modules/ModulesRoute';
 import { ProtectedRoute } from './ProtectedRoute';
@@ -212,6 +213,8 @@ export const appRoutes: RouteObject[] = [
                   },
                 ],
               },
+              // «Salud de servicios» (feature 016): after Suscripciones and before the Token tool.
+              healthRoute,
               // The Token tool (feature 005, contracts/app-routes.md): seeing it needs `token:read`,
               // and whoever lacks it is told so on the home page, in the words of the tool.
               {

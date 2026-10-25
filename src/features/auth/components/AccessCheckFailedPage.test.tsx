@@ -30,6 +30,20 @@ describe('AccessCheckFailedPage', () => {
     expect(screen.queryByText(/Cuenta:/)).not.toBeInTheDocument();
   });
 
+  it('draws what the application gives it below the line of the account (feature 016)', () => {
+    renderWithProviders(
+      <AccessCheckFailedPage email="cuenta@ejemplo.com" refetch={vi.fn()}>
+        <section aria-label="Estado de la plataforma">Estado</section>
+      </AccessCheckFailedPage>,
+    );
+
+    const account = screen.getByText(messages.common.account('cuenta@ejemplo.com'));
+    const section = screen.getByRole('region', { name: 'Estado de la plataforma' });
+    expect(
+      account.compareDocumentPosition(section) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
   it('checks again when the person asks to retry', async () => {
     const refetch = vi.fn<() => void>();
     const { user } = renderWithProviders(

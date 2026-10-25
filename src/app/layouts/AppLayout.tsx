@@ -4,7 +4,8 @@ import Link from '@mui/material/Link';
 import { Suspense } from 'react';
 import { Outlet } from 'react-router';
 
-import { useGrantedAccess } from '@/features/auth';
+import { can, useGrantedAccess } from '@/features/auth';
+import { useForgetHealthData } from '@/features/health';
 import { messages } from '@/shared/messages/es';
 import { PageLoader } from '@/shared/ui/PageLoader';
 
@@ -28,6 +29,9 @@ export function AppLayout({ sections = registeredSections }: AppLayoutProps) {
   useRouteAccessibility();
   const access = useGrantedAccess();
   const visibleSections = getVisibleSections(access, sections);
+  // Losing `health:read` discards what «Salud de servicios» kept for the session (FR-032), from
+  // here because the page is no longer mounted when the person is sent away from it.
+  useForgetHealthData(!can(access, { resource: 'health', action: 'read' }));
 
   return (
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>

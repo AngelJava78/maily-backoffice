@@ -17,13 +17,14 @@ function accessWith(...permissions: string[]) {
 }
 
 describe('SECTION_RESOURCES', () => {
-  it('lists modules (013), roles (014), the four sections and the token tool (002/003/004, 005)', () => {
+  it('lists modules (013), roles (014), the four sections, the health page (016) and the token tool (002/003/004, 005)', () => {
     expect([...SECTION_RESOURCES]).toEqual([
       'modules',
       'roles',
       'users',
       'subscriptions',
       'tenants',
+      'health',
       'token',
     ]);
   });
@@ -121,6 +122,7 @@ describe('the roles resource (features 002, 014)', () => {
       'users',
       'subscriptions',
       'tenants',
+      'health',
       'token',
       'dashboard',
     ]);
@@ -130,6 +132,7 @@ describe('the roles resource (features 002, 014)', () => {
       'users',
       'subscriptions',
       'tenants',
+      'health',
       'token',
     ]);
   });
@@ -188,6 +191,7 @@ describe('the dashboard resource (feature 007)', () => {
       'users',
       'subscriptions',
       'tenants',
+      'health',
       'token',
     ]);
   });
@@ -204,5 +208,38 @@ describe('the dashboard resource (feature 007)', () => {
 
   it('counts for the notice of "no permissions assigned": who only sees the indicators is not told they have nothing (FR-012)', () => {
     expect(hasAnythingToSee(accessWith('dashboard:read'))).toBe(true);
+  });
+});
+
+describe('the health resource (feature 016)', () => {
+  it('is a section of its own, «Salud de servicios», before the token tool', () => {
+    expect(SECTION_RESOURCES).toContain('health');
+    expect(PERMISSION_RESOURCES).toContain('health');
+    expect(SECTION_RESOURCES.indexOf('health')).toBe(SECTION_RESOURCES.indexOf('token') - 1);
+  });
+
+  it('is read if and only if health:read is there', () => {
+    const read = { resource: 'health', action: 'read' } as const;
+
+    expect(can(accessWith('health:read'), read)).toBe(true);
+    expect(can(accessWith(), read)).toBe(false);
+    expect(can(accessWith('dashboard:read', 'users:read', 'token:read'), read)).toBe(false);
+    expect(can(accessWith('health:write', 'health:update', 'health:delete'), read)).toBe(false);
+  });
+
+  it.each(['write', 'update', 'delete'] as const)(
+    'allows %s only together with health:read',
+    (action) => {
+      expect(can(accessWith(`health:${action}`), { resource: 'health', action })).toBe(false);
+      expect(
+        can(accessWith('health:read', `health:${action}`), { resource: 'health', action }),
+      ).toBe(true);
+      expect(can(accessWith('health:read'), { resource: 'health', action })).toBe(false);
+    },
+  );
+
+  it('counts for the notice of "no permissions assigned": who only sees the health page has something', () => {
+    expect(hasAnythingToSee(accessWith('health:read'))).toBe(true);
+    expect(hasAnythingToSee(accessWith('health:write'))).toBe(false);
   });
 });

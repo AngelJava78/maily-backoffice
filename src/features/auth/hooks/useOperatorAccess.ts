@@ -26,6 +26,8 @@ export type OperatorAccessState =
   | {
       readonly status: 'failed';
       readonly refetch: () => void;
+      /** The access is being checked again: the screen of the failure waits (feature 016, FR-065). */
+      readonly isChecking: boolean;
       readonly accountEmail: string | null;
     }
   | {
@@ -93,7 +95,7 @@ export function useOperatorAccess(): OperatorAccessState {
   }
   if (!claims.success) {
     // A session whose token has no usable subject cannot be checked: nothing to ask or retry.
-    return { status: 'failed', refetch: doNothing, accountEmail: auth0Email };
+    return { status: 'failed', refetch: doNothing, isChecking: false, accountEmail: auth0Email };
   }
 
   const decision = query.data;
@@ -105,12 +107,16 @@ export function useOperatorAccess(): OperatorAccessState {
     // FR-014: the MailySoft user's e-mail, if the query found one; the Auth0 account's otherwise.
     return { status: 'denied', accountEmail: decision.userEmail ?? auth0Email };
   }
-  if (query.isError) {
+  // A query without data goes back to `pending` while it asks again (TanStack Query 5.104.4), so
+  // a check that already failed is still told as failed, checking, until it ends: the screen of
+  // the failure stays and waits, and so do its sections (feature 016, FR-065).
+  if (query.isError || query.errorUpdatedAt > 0) {
     return {
       status: 'failed',
       refetch: () => {
         void query.refetch();
       },
+      isChecking: query.isFetching,
       accountEmail: auth0Email,
     };
   }

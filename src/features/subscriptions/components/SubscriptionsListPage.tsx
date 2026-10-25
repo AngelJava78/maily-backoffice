@@ -7,6 +7,7 @@ import Typography from '@mui/material/Typography';
 import { useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router';
 
+import { pageOf } from '@/shared/lib/pageOf';
 import { messages } from '@/shared/messages/es';
 import { ErrorState } from '@/shared/ui/ErrorState';
 import { EmptyState } from '@/shared/ui/EmptyState';
@@ -16,7 +17,6 @@ import { useFocusOnMount } from '@/shared/ui/useFocusOnMount';
 
 import { useSubscriptionCatalog } from '../hooks/useSubscriptionCatalog';
 import { useSubscriptionsLocation } from '../hooks/useSubscriptionsLocation';
-import { pageOf } from '../policy/catalogOrder';
 import type { SubscriptionCapabilities } from '../policy/subscriptionActions';
 import type { SubscriptionsTab } from '../schemas/subscriptionsLocation';
 import { PriceCycleToggle, type PriceCycle } from './PriceCycleToggle';

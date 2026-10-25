@@ -1,10 +1,15 @@
 import {
+  Activity,
   ArrowLeft,
   Ban,
   Blocks,
   Building2,
   Camera,
   ChevronDown,
+  CircleCheck,
+  CircleHelp,
+  CircleX,
+  Clock,
   CreditCard,
   Eye,
   EyeOff,
@@ -14,11 +19,14 @@ import {
   Moon,
   Pencil,
   Plus,
+  RefreshCw,
   RotateCcw,
   ShieldCheck,
   Sun,
   Trash2,
+  TriangleAlert,
   Unlock,
+  Unplug,
   Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -50,6 +58,16 @@ export const iconRegistry = {
   'theme-light': Sun,
   'theme-dark': Moon,
   'change-photo': Camera,
+  // «Salud de servicios» (feature 016, research D12): every status has an icon of its own, so a
+  // status is never told by its color alone.
+  health: Activity,
+  refresh: RefreshCw,
+  'status-up': CircleCheck,
+  'status-degraded': TriangleAlert,
+  'status-down': CircleX,
+  'status-stopped': Clock,
+  'status-unknown': CircleHelp,
+  'status-unreachable': Unplug,
 } as const satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof iconRegistry;

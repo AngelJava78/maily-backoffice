@@ -40,6 +40,9 @@ export const sections: readonly SectionDefinition[] = [
     resource: 'subscriptions',
     icon: 'subscriptions',
   },
+  // «Salud de servicios» (feature 016, FR-003): listed for whoever has `health:read`, after
+  // Suscripciones and before the Token tool, which stays last.
+  { id: 'health', path: '/health', labelKey: 'health', resource: 'health', icon: 'health' },
   // The Token tool of feature 005 (specs/005-postman-token-tool/contracts/app-routes.md): listed
   // for whoever has `token:read`, and for nobody else.
   {
