@@ -52,6 +52,7 @@ describe('useCreateSubscription', () => {
     expect(catalog.requestsTo('POST', PATH)[0]?.body).toEqual({
       name: 'Clínica Plus',
       subscription_type_id: 1,
+      clinics_limit: 1,
       monthly_price: '3200.5',
       annual_price: '32000.5',
       trial_days: 14,

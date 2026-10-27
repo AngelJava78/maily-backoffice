@@ -36,6 +36,8 @@ function Harness({
     defaultValues: {
       name: 'Pro',
       description: '',
+      subscriptionTypeId: 1,
+      clinicsLimit: '1',
       monthlyPrice: '1',
       annualPrice: '10',
       trialDays: '0',

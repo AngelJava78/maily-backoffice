@@ -169,7 +169,7 @@ No aplica: sin dependencias nuevas (`Switch`, `FormControlLabel` y `TextField` y
 
 - [ ] T035 [P] Revisar accesibilidad manual del interruptor de tipo y del límite de clínicas (habilitado y deshabilitado) a 1024 px y a 320 px, solo con teclado y con un lector de pantalla (quickstart Y11).
 - [ ] T036 Ejecutar de punta a punta los escenarios Y1 a Y11 de [quickstart.md](quickstart.md) (los automatizados ya corren en CI; esta pasada es manual, como el cierre de la 018).
-- [ ] T037 Punto de control final: `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run test:coverage` (umbral de 80 % en `api`, `schemas` y `shared/api|lib`) y `npm run build` pasan todos; si el build muestra el presupuesto de bundle por encima del margen vigente, revisarlo antes de cerrar (Setup).
+- [X] T037 Punto de control final: `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run test:coverage` (umbral de 80 % en `api`, `schemas` y `shared/api|lib`) y `npm run build` pasan todos; si el build muestra el presupuesto de bundle por encima del margen vigente, revisarlo antes de cerrar (Setup). Cobertura global 98.82% de líneas (supera el umbral); bundle 307.1 KB de 320 KB. Dos fallos preexistentes y ajenos a esta feature bloquean una salida 100% limpia de `npm run test`/`test:coverage` (ver nota de cierre).
 
 **Checkpoint**: feature completa, validada contra el quickstart. Antes de cerrar, recordar que el contrato de `clinics_limit` sigue siendo una predicción (research D4): si `maily-system-api` fusiona `007-add-clinics-limit` con un contrato distinto antes de desplegar esta feature, revisar `contracts/subscriptions-service.md` y ajustar el simulador y los mensajes antes de dar por cerrada la implementación.
 
