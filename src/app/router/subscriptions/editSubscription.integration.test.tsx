@@ -85,6 +85,29 @@ describe(
       ]);
     });
 
+    it('shows the subscription type fixed and disabled, and never sends it in the PATCH (US2-2, US2-3, X5)', async () => {
+      const { catalog } = start();
+      const { user } = open('/subscriptions/2/edit');
+      await formOf('Pro');
+
+      expect(
+        screen.getByRole('button', {
+          name: new RegExp(`^${text.types.catalog[1].name}`),
+          pressed: true,
+        }),
+      ).toBeDisabled();
+
+      await user.clear(field(text.form.fields.name));
+      await user.type(field(text.form.fields.name), 'Pro Plus');
+      await user.click(save());
+
+      expect(await screen.findByText(text.edit.saved)).toBeInTheDocument();
+      expect(catalog.requestsTo('PATCH', '/api/v1/subscriptions/2')[0]?.body).not.toHaveProperty(
+        'subscription_type_id',
+      );
+      expect(catalog.state.find(2)?.subscriptionTypeId).toBe(1);
+    });
+
     it('changes the annual price, a limit and adds a module with a dependency, reflected in the detail (W11)', async () => {
       const { catalog } = start();
       const { user } = open('/subscriptions/2/edit');

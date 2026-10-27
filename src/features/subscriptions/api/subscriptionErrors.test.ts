@@ -30,6 +30,10 @@ describe('describeSubscriptionError', () => {
       refusal(422, 'validation_error', [
         { field: 'name', message: 'El nombre de la suscripción es obligatorio.' },
         { field: 'description', message: 'La descripción no puede tener más de 500 caracteres.' },
+        {
+          field: 'subscription_type_id',
+          message: 'El tipo de suscripción es obligatorio y debe ser un número entero positivo.',
+        },
         { field: 'monthly_price', message: 'El precio mensual es obligatorio.' },
         { field: 'annual_price', message: 'El precio anual es obligatorio.' },
         { field: 'trial_days', message: 'Los días de prueba deben ser un entero de 0 a 3650.' },
@@ -53,6 +57,7 @@ describe('describeSubscriptionError', () => {
       fields: {
         name: text.fields.name,
         description: text.fields.description,
+        subscriptionTypeId: text.fields.subscriptionTypeId,
         monthlyPrice: text.fields.monthlyPrice,
         annualPrice: text.fields.annualPrice,
         trialDays: text.fields.trialDays,
@@ -77,6 +82,19 @@ describe('describeSubscriptionError', () => {
       kind: 'field',
       message: text.fields.moduleKeys,
       fields: { moduleKeys: text.fields.moduleKeys },
+    });
+  });
+
+  it('puts a subscription type not found next to the type control, with an own text', () => {
+    const outcome = describeSubscriptionError(
+      refusal(422, 'subscription_type_not_found'),
+      'create',
+    );
+
+    expect(outcome).toEqual({
+      kind: 'field',
+      message: text.fields.subscriptionTypeId,
+      fields: { subscriptionTypeId: text.fields.subscriptionTypeId },
     });
   });
 

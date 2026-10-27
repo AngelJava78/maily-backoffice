@@ -17,6 +17,7 @@ const create = (body: unknown) => callSubscriptions(PATH, { method: 'POST', body
 
 /** Every field the API requires on create, besides `name` and `monthly_price`. */
 const REQUIRED_FIELDS = {
+  subscription_type_id: 1,
   annual_price: '32000.5',
   consulting_rooms_limit: 3,
   doctors_limit: 4,
@@ -41,6 +42,7 @@ describe('POST /api/v1/subscriptions', () => {
       id: 8,
       name: 'Clínica Plus',
       description: 'Para clínicas medianas.',
+      subscription_type: { id: 1, name: 'Individual' },
       monthly_price: '3200.50',
       annual_price: '32000.50',
       trial_days: 0,
@@ -115,6 +117,44 @@ describe('POST /api/v1/subscriptions', () => {
     ).toMatchObject({ status: 409, body: { code: 'subscription_module_prerequisite_missing' } });
   });
 
+  it.each([1, 2])(
+    'creates with the subscription type %i, echoed back as a nested object',
+    async (id) => {
+      setup();
+
+      expect(
+        await create({
+          name: 'Con tipo',
+          monthly_price: '1',
+          ...REQUIRED_FIELDS,
+          subscription_type_id: id,
+        }),
+      ).toMatchObject({
+        status: 201,
+        body: { subscription_type: { id } },
+      });
+    },
+  );
+
+  it('refuses a subscription_type_id that is not in the catalog, with its own code', async () => {
+    setup();
+
+    expect(
+      await create({
+        name: 'Tipo inexistente',
+        monthly_price: '1',
+        ...REQUIRED_FIELDS,
+        subscription_type_id: 99,
+      }),
+    ).toMatchObject({
+      status: 422,
+      body: {
+        code: 'subscription_type_not_found',
+        message: 'No se encontró el tipo de suscripción con el identificador 99.',
+      },
+    });
+  });
+
   it.each(['pro', ' PRO ', 'Pro'])(
     'refuses the name %j, which another subscription that is not deleted uses',
     async (name) => {
@@ -177,6 +217,24 @@ describe('POST /api/v1/subscriptions', () => {
       { name: 'A', ...REQUIRED_FIELDS },
       'monthly_price',
       'El precio mensual es obligatorio.',
+    ],
+    [
+      'no subscription_type_id',
+      { name: 'A', monthly_price: '1', ...REQUIRED_FIELDS, subscription_type_id: undefined },
+      'subscription_type_id',
+      'El tipo de suscripción es obligatorio y debe ser un número entero positivo.',
+    ],
+    [
+      'a subscription_type_id of 0',
+      { name: 'A', monthly_price: '1', ...REQUIRED_FIELDS, subscription_type_id: 0 },
+      'subscription_type_id',
+      'El tipo de suscripción es obligatorio y debe ser un número entero positivo.',
+    ],
+    [
+      'a subscription_type_id that is not an integer',
+      { name: 'A', monthly_price: '1', ...REQUIRED_FIELDS, subscription_type_id: '1' },
+      'subscription_type_id',
+      'El tipo de suscripción es obligatorio y debe ser un número entero positivo.',
     ],
     [
       'a negative monthly price',
@@ -294,6 +352,7 @@ describe('POST /api/v1/subscriptions', () => {
 
     expect(answer.body).toMatchObject({
       errors: [
+        { field: 'subscription_type_id' },
         { field: 'name', message: 'El nombre de la suscripción es obligatorio.' },
         { field: 'monthly_price' },
         { field: 'annual_price' },

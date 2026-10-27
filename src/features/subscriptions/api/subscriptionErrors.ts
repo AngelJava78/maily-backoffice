@@ -11,6 +11,7 @@ export type SubscriptionOperation =
 export type SubscriptionFormField =
   | 'name'
   | 'description'
+  | 'subscriptionTypeId'
   | 'monthlyPrice'
   | 'annualPrice'
   | 'trialDays'
@@ -51,6 +52,7 @@ export type SubscriptionErrorOutcome =
 const FORM_FIELDS = new Map<string, SubscriptionFormField>([
   ['name', 'name'],
   ['description', 'description'],
+  ['subscription_type_id', 'subscriptionTypeId'],
   ['monthly_price', 'monthlyPrice'],
   ['annual_price', 'annualPrice'],
   ['trial_days', 'trialDays'],
@@ -129,6 +131,12 @@ export function describeSubscriptionError(
         kind: 'field',
         message: text.fields.moduleKeys,
         fields: { moduleKeys: text.fields.moduleKeys },
+      };
+    case 'subscription_type_not_found':
+      return {
+        kind: 'field',
+        message: text.fields.subscriptionTypeId,
+        fields: { subscriptionTypeId: text.fields.subscriptionTypeId },
       };
     case 'validation_error':
       return FORM_OPERATIONS.has(operation)

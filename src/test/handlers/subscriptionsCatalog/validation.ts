@@ -52,6 +52,9 @@ const MESSAGES = {
     `El campo «${field}» debe ser un número entero de 0 a 1 000 000.`,
   statusRequired: 'El estatus es obligatorio y debe ser un número entero.',
   idInvalid: 'El identificador de la suscripción debe ser un número entero positivo.',
+  subscriptionTypeRequired:
+    'El tipo de suscripción es obligatorio y debe ser un número entero positivo.',
+  subscriptionTypeImmutable: 'El tipo de suscripción no puede modificarse una vez creada.',
 } as const;
 
 type JsonObject = Readonly<Record<string, unknown>>;
@@ -159,6 +162,14 @@ function otherFeaturesError(value: unknown): string | null {
   return valid ? null : MESSAGES.otherFeatureLength;
 }
 
+/** Obligatory and strict on create (contracts/subscriptions-service.md); never checked here on
+ * update, because that operation does not declare the field at all (see `validateUpdate`). */
+function subscriptionTypeIdError(value: unknown): string | null {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0
+    ? null
+    : MESSAGES.subscriptionTypeRequired;
+}
+
 function limitError(field: string) {
   return (value: unknown): string | null => {
     if (value === undefined || value === null) {
@@ -235,13 +246,25 @@ function optionalTextList(value: unknown): readonly string[] | undefined {
   return Array.isArray(value) ? value.map(text) : undefined;
 }
 
+/** `subscription_type_id` is writable only at creation (contracts/subscriptions-service.md). */
+const CREATE_ALLOWED_FIELDS: ReadonlySet<string> = new Set([
+  ...WRITABLE_FIELDS,
+  'subscription_type_id',
+]);
+
 /** The body of a creation (S3), once it is valid. */
 export function validateCreate(body: unknown): SubscriptionInput {
   const data = objectBody(body);
-  throwIfAny([...notAllowed(data, WRITABLE_FIELDS), ...fieldErrors(data, { onlyPresent: false })]);
+  const typeError = subscriptionTypeIdError(data.subscription_type_id);
+  throwIfAny([
+    ...notAllowed(data, CREATE_ALLOWED_FIELDS),
+    ...(typeError === null ? [] : [{ field: 'subscription_type_id', message: typeError }]),
+    ...fieldErrors(data, { onlyPresent: false }),
+  ]);
   return {
     name: text(data.name),
     description: typeof data.description === 'string' ? data.description : null,
+    subscription_type_id: integer(data.subscription_type_id),
     monthly_price: price(data.monthly_price),
     annual_price: price(data.annual_price),
     trial_days: optionalInteger(data.trial_days),
@@ -255,13 +278,30 @@ export function validateCreate(body: unknown): SubscriptionInput {
   };
 }
 
+/**
+ * `subscription_type_id` is excluded from the generic "not allowed" check (`notAllowed` below) so
+ * that sending it gets this operation's own immutability message instead of the generic "field not
+ * allowed" one — same distinction the real API makes (contracts/subscriptions-service.md).
+ */
+const UPDATE_KNOWN_FIELDS: ReadonlySet<string> = new Set([
+  ...WRITABLE_FIELDS,
+  'subscription_type_id',
+]);
+
 /** The body of an edition (S4), once it is valid: at least one datum, and only those received. */
 export function validateUpdate(body: unknown): SubscriptionChanges {
   const data = objectBody(body);
   if (Object.keys(data).length === 0) {
     throw validationError([{ field: 'body', message: MESSAGES.emptyUpdate }]);
   }
-  throwIfAny([...notAllowed(data, WRITABLE_FIELDS), ...fieldErrors(data, { onlyPresent: true })]);
+  const errors = [
+    ...notAllowed(data, UPDATE_KNOWN_FIELDS),
+    ...fieldErrors(data, { onlyPresent: true }),
+  ];
+  if ('subscription_type_id' in data) {
+    errors.push({ field: 'subscription_type_id', message: MESSAGES.subscriptionTypeImmutable });
+  }
+  throwIfAny(errors);
   return {
     ...('name' in data ? { name: text(data.name) } : {}),
     ...('description' in data

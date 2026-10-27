@@ -47,6 +47,7 @@ describe('GET /api/v1/subscriptions', () => {
       id: 1,
       name: 'Básico',
       description: null,
+      subscription_type: { id: 1, name: 'Individual' },
       monthly_price: '1500.00',
       annual_price: '1000.00',
       trial_days: 0,

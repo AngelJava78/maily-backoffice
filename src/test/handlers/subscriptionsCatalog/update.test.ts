@@ -56,6 +56,30 @@ describe('PATCH /api/v1/subscriptions/{id}', () => {
     });
   });
 
+  it.each([1, 2, 99])(
+    'refuses subscription_type_id %i, with its own immutability message, never the generic one',
+    async (subscriptionTypeId) => {
+      const { catalog } = setup();
+      const before = catalog.state.find(2);
+
+      const answer = await update(2, { subscription_type_id: subscriptionTypeId });
+
+      expect(answer).toMatchObject({
+        status: 422,
+        body: {
+          code: 'validation_error',
+          errors: [
+            {
+              field: 'subscription_type_id',
+              message: 'El tipo de suscripción no puede modificarse una vez creada.',
+            },
+          ],
+        },
+      });
+      expect(catalog.state.find(2)).toEqual(before);
+    },
+  );
+
   it('refuses an empty body', async () => {
     setup();
 

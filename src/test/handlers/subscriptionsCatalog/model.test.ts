@@ -21,6 +21,7 @@ function modelWith(...subscriptions: ReturnType<typeof catalogSubscription>[]) {
 
 /** The fields `create` requires besides `name` and `monthly_price`, for tests that do not care. */
 const REQUIRED_CREATE_FIELDS = {
+  subscription_type_id: 1,
   annual_price: '0',
   consulting_rooms_limit: 0,
   doctors_limit: 0,
@@ -29,6 +30,12 @@ const REQUIRED_CREATE_FIELDS = {
 };
 
 const names = (items: readonly { readonly name: string }[]) => items.map(({ name }) => name);
+
+describe('catalogSubscription', () => {
+  it('defaults to subscription type 1 (Individual), like the real column default', () => {
+    expect(catalogSubscription().subscriptionTypeId).toBe(1);
+  });
+});
 
 describe('createCatalogModel', () => {
   describe('list and find', () => {
@@ -71,6 +78,16 @@ describe('createCatalogModel', () => {
         clinics_count: 2,
       });
     });
+
+    it.each([
+      [1, 'Individual'],
+      [2, 'Empresarial'],
+    ])('gives the DTO with the subscription type %i (%s), as a nested object', (id, name) => {
+      const model = modelWith(catalogSubscription({ id: 1, subscriptionTypeId: id }));
+      const [subscription] = model.list();
+
+      expect(subscription && model.toDto(subscription).subscription_type).toEqual({ id, name });
+    });
   });
 
   describe('create', () => {
@@ -80,6 +97,7 @@ describe('createCatalogModel', () => {
       const created = model.create({
         name: '  Pro  ',
         description: '  Para clínicas.  ',
+        subscription_type_id: 1,
         monthly_price: '4500',
         annual_price: '45000',
         other_features: ['  Uno ', 'Dos'],
@@ -197,6 +215,34 @@ describe('createCatalogModel', () => {
           module_keys: [dependent, prerequisite],
         }).moduleKeys,
       ).toEqual(expect.arrayContaining([dependent, prerequisite]));
+    });
+
+    it.each([1, 2])('creates with the subscription type %i, found in its own catalog', (id) => {
+      const created = modelWith().create({
+        name: 'A',
+        monthly_price: '0',
+        ...REQUIRED_CREATE_FIELDS,
+        subscription_type_id: id,
+      });
+
+      expect(created.subscriptionTypeId).toBe(id);
+    });
+
+    it('refuses a subscription_type_id that is not in the catalog, discovered at creation', () => {
+      const refusal = refusalOf(() =>
+        modelWith().create({
+          name: 'A',
+          monthly_price: '0',
+          ...REQUIRED_CREATE_FIELDS,
+          subscription_type_id: 99,
+        }),
+      );
+
+      expect(refusal).toMatchObject({
+        status: 422,
+        code: 'subscription_type_not_found',
+        message: 'No se encontró el tipo de suscripción con el identificador 99.',
+      });
     });
 
     it('gives the next id and moves the dates forward', () => {

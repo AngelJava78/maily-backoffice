@@ -16,6 +16,7 @@ const PATH = '/api/v1/subscriptions';
 const VALUES: SubscriptionFormValues = {
   name: ' Clínica Plus ',
   description: '',
+  subscriptionTypeId: 1,
   monthlyPrice: '3200.5',
   annualPrice: '32000.5',
   trialDays: '14',
@@ -49,6 +50,7 @@ describe('useCreateSubscription', () => {
     });
     expect(catalog.requestsTo('POST', PATH)[0]?.body).toEqual({
       name: 'Clínica Plus',
+      subscription_type_id: 1,
       monthly_price: '3200.5',
       annual_price: '32000.5',
       trial_days: 14,

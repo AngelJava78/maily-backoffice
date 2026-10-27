@@ -14,6 +14,7 @@ const LIST_URL = subscriptionsUrl('/api/v1/subscriptions');
 const BODY: CreateSubscriptionBody = {
   name: 'Clínica Plus',
   description: 'Para clínicas medianas.',
+  subscription_type_id: 2,
   monthly_price: '3200.5',
   annual_price: '32000.5',
   trial_days: 14,

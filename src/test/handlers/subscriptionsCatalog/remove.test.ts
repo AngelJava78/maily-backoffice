@@ -42,6 +42,7 @@ describe('DELETE /api/v1/subscriptions/{id}', () => {
           body: {
             name: 'Pro',
             monthly_price: '1',
+            subscription_type_id: 1,
             annual_price: '10',
             consulting_rooms_limit: 1,
             doctors_limit: 1,

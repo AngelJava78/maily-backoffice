@@ -86,6 +86,12 @@ describe('SubscriptionCreatePage', { timeout: 30_000 }, () => {
     expect(name()).toHaveValue('');
     expect(price()).toHaveValue('');
     expect(screen.queryByLabelText(/estatus/i)).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: new RegExp(`^${text.types.catalog[1].name}`),
+        pressed: true,
+      }),
+    ).toBeInTheDocument();
   });
 
   it('shows the preview panel next to the form, updated live (FR-014)', async () => {
@@ -151,6 +157,7 @@ describe('SubscriptionCreatePage', { timeout: 30_000 }, () => {
       expect(catalog.requestsTo('POST', PATH)[0]?.body).toEqual({
         name: 'Clínica Plus',
         description: 'Para clínicas medianas.',
+        subscription_type_id: 1,
         monthly_price: '3200.50',
         annual_price: '32000.50',
         trial_days: 0,
@@ -163,6 +170,37 @@ describe('SubscriptionCreatePage', { timeout: 30_000 }, () => {
         new_patients_per_year_limit: 8000,
       });
       expect(catalog.state.find(8)).toMatchObject({ statusId: 1, clinicsCount: 0 });
+    });
+
+    it('creates it as Empresarial when the operator chooses it on the control (US1-2, X3)', async () => {
+      const catalog = start();
+      const { user } = renderCreate();
+      await fillIn(user);
+      await user.click(
+        screen.getByRole('button', { name: new RegExp(`^${text.types.catalog[2].name}`) }),
+      );
+
+      await user.click(save());
+
+      await screen.findByText(/^Detalle 8:/);
+      expect(catalog.requestsTo('POST', PATH)[0]?.body).toMatchObject({ subscription_type_id: 2 });
+    });
+
+    it('keeps only the last option chosen on the control (US1-4)', async () => {
+      const catalog = start();
+      const { user } = renderCreate();
+      await fillIn(user);
+      await user.click(
+        screen.getByRole('button', { name: new RegExp(`^${text.types.catalog[2].name}`) }),
+      );
+      await user.click(
+        screen.getByRole('button', { name: new RegExp(`^${text.types.catalog[1].name}`) }),
+      );
+
+      await user.click(save());
+
+      await screen.findByText(/^Detalle 8:/);
+      expect(catalog.requestsTo('POST', PATH)[0]?.body).toMatchObject({ subscription_type_id: 1 });
     });
 
     it('creates it with autoconsumo, trial days and modules with a dependency (US2-4, W9)', async () => {
@@ -291,6 +329,22 @@ describe('SubscriptionCreatePage', { timeout: 30_000 }, () => {
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
       expect(screen.queryByText('Un texto de la API')).not.toBeInTheDocument();
+    });
+
+    it('shows a refusal of the subscription type next to its control, keeping what was typed (US1-5)', async () => {
+      start();
+      server.use(
+        http.post(subscriptionsUrl(PATH), () =>
+          HttpResponse.json(errorBody('subscription_type_not_found'), { status: 422 }),
+        ),
+      );
+      const { user } = renderCreate();
+      await fillIn(user);
+
+      await user.click(save());
+
+      expect(await screen.findByText(text.errors.fields.subscriptionTypeId)).toBeInTheDocument();
+      expect(name()).toHaveValue('Clínica Plus');
     });
 
     it('shows a refusal of the modules next to the modules section, with an own text (research D10)', async () => {

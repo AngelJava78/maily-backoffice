@@ -83,6 +83,22 @@ describe('SubscriptionEditPage', { timeout: 30_000 }, () => {
     expect(screen.queryByLabelText(/estatus/i)).not.toBeInTheDocument();
   });
 
+  it('shows the subscription type fixed and disabled, marked on its own current type', async () => {
+    start();
+    renderEdit();
+    await formReady();
+
+    const individual = screen.getByRole('button', {
+      name: new RegExp(`^${text.types.catalog[1].name}`),
+      pressed: true,
+    });
+    expect(individual).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: new RegExp(`^${text.types.catalog[2].name}`) }),
+    ).toBeDisabled();
+    expect(screen.getByText(text.form.subscriptionTypeImmutableHelper)).toBeInTheDocument();
+  });
+
   it('opens with the annual price, trial days, autoconsumo, modules and limits already set', async () => {
     start();
     renderEdit();
@@ -128,6 +144,21 @@ describe('SubscriptionEditPage', { timeout: 30_000 }, () => {
       expect(catalog.requestsTo('PATCH', PATCHES).map((request) => request.body)).toEqual([
         { monthly_price: '5000' },
       ]);
+    });
+
+    it('never sends the subscription type, even though it marks the current one on a disabled control', async () => {
+      const catalog = start();
+      const { user } = renderEdit();
+      await formReady();
+
+      await user.clear(price());
+      await user.type(price(), '5000');
+      await user.click(save());
+
+      await screen.findByText(/^Detalle 2:/);
+      expect(catalog.requestsTo('PATCH', PATCHES)[0]?.body).not.toHaveProperty(
+        'subscription_type_id',
+      );
     });
 
     it('sends the name when only its upper case changed', async () => {

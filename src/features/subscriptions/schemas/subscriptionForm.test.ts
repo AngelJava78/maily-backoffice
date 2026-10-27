@@ -11,12 +11,14 @@ import {
   toUpdateSubscriptionBody,
   type SubscriptionFormValues,
 } from './subscriptionForm';
+import { SUBSCRIPTION_TYPE } from './subscriptionTypeCatalog';
 
 const text = messages.subscriptions.validation;
 
 const valid: SubscriptionFormValues = {
   name: 'Pro',
   description: 'Para clínicas en crecimiento.',
+  subscriptionTypeId: SUBSCRIPTION_TYPE.INDIVIDUAL,
   monthlyPrice: '4500',
   annualPrice: '45000',
   trialDays: '14',
@@ -75,6 +77,22 @@ describe('subscriptionFormSchema', () => {
       );
       expect(errorAt({ ...valid, description: 'a'.repeat(501) }, 'description')).toBe(
         text.descriptionTooLong,
+      );
+    });
+  });
+
+  describe('the subscription type', () => {
+    it.each([SUBSCRIPTION_TYPE.INDIVIDUAL, SUBSCRIPTION_TYPE.ENTERPRISE])('accepts %j', (id) => {
+      expect(errorAt({ ...valid, subscriptionTypeId: id }, 'subscriptionTypeId')).toBeUndefined();
+    });
+
+    it('accepts an id outside today’s two: a disabled control editing a subscription of an unknown type must not block saving other fields', () => {
+      expect(errorAt({ ...valid, subscriptionTypeId: 3 }, 'subscriptionTypeId')).toBeUndefined();
+    });
+
+    it.each([0, -1, 1.5])('rejects a non-positive or fractional id (%j)', (id) => {
+      expect(subscriptionFormSchema.safeParse({ ...valid, subscriptionTypeId: id }).success).toBe(
+        false,
       );
     });
   });
@@ -181,6 +199,7 @@ describe('toFormValues', () => {
   const subscription = {
     name: 'Pro',
     description: 'Para clínicas en crecimiento.',
+    subscriptionType: { id: SUBSCRIPTION_TYPE.INDIVIDUAL, name: 'Individual' },
     monthlyPrice: '4500.00',
     annualPrice: '45000.00',
     trialDays: 14,
@@ -197,6 +216,7 @@ describe('toFormValues', () => {
     expect(toFormValues(subscription)).toEqual({
       name: 'Pro',
       description: 'Para clínicas en crecimiento.',
+      subscriptionTypeId: SUBSCRIPTION_TYPE.INDIVIDUAL,
       monthlyPrice: '4500.00',
       annualPrice: '45000.00',
       trialDays: '14',
@@ -208,6 +228,15 @@ describe('toFormValues', () => {
       newPatientsPerYearLimit: '15000',
       otherFeatures: [{ value: 'Hasta 5 consultorios' }, { value: 'Usuarios ilimitados' }],
     });
+  });
+
+  it('opens the edition with the subscription type of the subscription, Individual or Enterprise', () => {
+    expect(
+      toFormValues({
+        ...subscription,
+        subscriptionType: { id: SUBSCRIPTION_TYPE.ENTERPRISE, name: 'Empresarial' },
+      }).subscriptionTypeId,
+    ).toBe(SUBSCRIPTION_TYPE.ENTERPRISE);
   });
 
   it('opens a subscription without description with the field empty', () => {
@@ -236,6 +265,7 @@ describe('toCreateSubscriptionBody', () => {
     ).toEqual({
       name: 'Pro',
       description: 'Para clínicas.',
+      subscription_type_id: SUBSCRIPTION_TYPE.INDIVIDUAL,
       monthly_price: '4500.5',
       annual_price: '45000.5',
       trial_days: 14,
@@ -269,8 +299,18 @@ describe('toCreateSubscriptionBody', () => {
       'new_patients_per_year_limit',
       'other_features',
       'self_service',
+      'subscription_type_id',
       'trial_days',
     ]);
+  });
+
+  it('sends the subscription type chosen on the control, Individual or Enterprise', () => {
+    expect(
+      toCreateSubscriptionBody({
+        ...valid,
+        subscriptionTypeId: SUBSCRIPTION_TYPE.ENTERPRISE,
+      }).subscription_type_id,
+    ).toBe(SUBSCRIPTION_TYPE.ENTERPRISE);
   });
 });
 
@@ -278,6 +318,7 @@ describe('toUpdateSubscriptionBody', () => {
   const initial = {
     name: 'Pro',
     description: 'Para clínicas en crecimiento.',
+    subscriptionType: { id: SUBSCRIPTION_TYPE.INDIVIDUAL, name: 'Individual' },
     monthlyPrice: '4500.00',
     annualPrice: '45000.00',
     trialDays: 14,
@@ -360,5 +401,16 @@ describe('toUpdateSubscriptionBody', () => {
         monthlyPrice: '5000',
       }),
     ).toEqual({ name: 'Pro 2', description: null, monthly_price: '5000' });
+  });
+
+  it('never sends the subscription type, even if it somehow differs from the one it was opened with', () => {
+    const body = toUpdateSubscriptionBody(initial, {
+      ...unchanged,
+      name: 'Pro 2',
+      subscriptionTypeId: SUBSCRIPTION_TYPE.ENTERPRISE,
+    });
+
+    expect(body).toEqual({ name: 'Pro 2' });
+    expect(body).not.toHaveProperty('subscription_type_id');
   });
 });

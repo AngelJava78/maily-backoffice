@@ -43,6 +43,12 @@ export const subscriptionFormSchema = z.object({
     .min(1, { error: text.nameRequired, abort: true })
     .max(100, text.nameTooLong),
   description: z.string().trim().max(500, text.descriptionTooLong),
+  // A positive integer, not a union of 1|2 (same looseness as the API's own `subscription_type_id`
+  // on create, research D1): the control always marks one of SUBSCRIPTION_TYPE_ORDER, so there is
+  // no "required" message to show for it; a stricter union would also wrongly block editing any
+  // other field of a subscription whose type the control cannot show (an id outside today's two,
+  // which the schema of `Subscription` deliberately does not reject either).
+  subscriptionTypeId: z.number().int().positive(),
   monthlyPrice: z
     .string()
     .trim()
@@ -82,6 +88,9 @@ type EditableData = Pick<
   Subscription,
   | 'name'
   | 'description'
+  // Only read, to open the edition with it marked (toFormValues); never compared or sent back
+  // (toUpdateSubscriptionBody): the subscription type is fixed forever once created (research D4).
+  | 'subscriptionType'
   | 'monthlyPrice'
   | 'annualPrice'
   | 'trialDays'
@@ -98,6 +107,7 @@ type EditableData = Pick<
 export interface CreateSubscriptionBody {
   readonly name: string;
   readonly description?: string;
+  readonly subscription_type_id: number;
   readonly monthly_price: string;
   readonly annual_price: string;
   readonly trial_days: number;
@@ -135,6 +145,7 @@ export function toFormValues(subscription: EditableData): SubscriptionFormValues
   return {
     name: subscription.name,
     description: subscription.description ?? '',
+    subscriptionTypeId: subscription.subscriptionType.id,
     monthlyPrice: subscription.monthlyPrice,
     annualPrice: subscription.annualPrice,
     trialDays: String(subscription.trialDays),
@@ -165,6 +176,7 @@ export function toCreateSubscriptionBody(values: SubscriptionFormValues): Create
   return {
     name: values.name.trim(),
     ...(description === '' ? {} : { description }),
+    subscription_type_id: values.subscriptionTypeId,
     monthly_price: values.monthlyPrice.trim(),
     annual_price: values.annualPrice.trim(),
     trial_days: Number(values.trialDays.trim()),

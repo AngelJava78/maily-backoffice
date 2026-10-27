@@ -110,8 +110,11 @@ describe(
         'new_patients_per_year_limit',
         'other_features',
         'self_service',
+        'subscription_type_id',
         'trial_days',
       ]);
+      // Never touched the type control: created as Individual, the default (Clarifications, X2).
+      expect(catalog.requestsTo('POST', PATH)[0]?.body).toMatchObject({ subscription_type_id: 1 });
 
       await user.click(screen.getByRole('link', { name: text.detail.backToList }));
       await screen.findByRole('link', { name: 'Clínica Plus' });
@@ -129,6 +132,27 @@ describe(
         'Solo',
         'Suspendido',
       ]);
+    });
+
+    it('creates it with the subscription type last chosen on the control (US1-2, US1-4, X3)', async () => {
+      const { catalog } = start();
+      const { user } = open('/subscriptions/new');
+      await screen.findByRole('heading', { level: 1, name: text.form.createTitle });
+
+      await user.type(field(text.form.fields.name), 'Clínica Empresarial');
+      await user.type(field(text.form.fields.monthlyPrice), '1000');
+      await user.type(field(text.form.fields.annualPrice), '10000');
+      await fillRequiredLimits(user);
+      await user.click(
+        screen.getByRole('button', { name: new RegExp(`^${text.types.catalog[2].name}`) }),
+      );
+      await user.click(
+        screen.getByRole('button', { name: new RegExp(`^${text.types.catalog[1].name}`) }),
+      );
+      await user.click(save());
+
+      await screen.findByRole('heading', { level: 1, name: text.detail.title });
+      expect(catalog.requestsTo('POST', PATH)[0]?.body).toMatchObject({ subscription_type_id: 1 });
     });
 
     it('refuses « pro », which is the name of Pro with other spaces and upper case, next to the name (US2-6)', async () => {

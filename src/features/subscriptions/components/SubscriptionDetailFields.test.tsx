@@ -44,6 +44,7 @@ describe('SubscriptionDetailFields', () => {
     renderFields();
 
     expect(valueOf(text.fields.name)).toHaveTextContent('Pro');
+    expect(valueOf(text.fields.type)).toHaveTextContent('Individual');
     expect(valueOf(text.fields.description)).toHaveTextContent('Para clínicas en crecimiento.');
     expect(valueOf(text.fields.monthlyPrice)).toHaveTextContent('$4,500.00/mes');
     expect(
@@ -90,6 +91,24 @@ describe('SubscriptionDetailFields', () => {
     renderFields({ self_service: selfService });
 
     expect(screen.getByText(label)).toBeInTheDocument();
+  });
+
+  it.each([
+    [1, 'Individual'],
+    [2, 'Empresarial'],
+  ])(
+    'shows the subscription type %i by its own catalog name (%s), not the name of the API',
+    (id) => {
+      renderFields({ subscription_type: { id, name: 'Otro nombre que la API pudiera enviar' } });
+
+      expect(valueOf(text.fields.type)).toHaveTextContent(id === 1 ? 'Individual' : 'Empresarial');
+    },
+  );
+
+  it('falls back to the type name of the API for an id outside today’s catalog of two', () => {
+    renderFields({ subscription_type: { id: 3, name: 'Futuro' } });
+
+    expect(valueOf(text.fields.type)).toHaveTextContent('Futuro');
   });
 
   it('lists the included modules by name, in the fixed catalog order', () => {

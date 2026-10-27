@@ -15,6 +15,7 @@ import { useCreateSubscription } from '../hooks/useCreateSubscription';
 import { REQUIRED_MODULE_KEY } from '../schemas/clinicModuleCatalog';
 import { parseSubscriptionDetailState } from '../schemas/subscriptionDetailState';
 import { subscriptionFormSchema, type SubscriptionFormValues } from '../schemas/subscriptionForm';
+import { SUBSCRIPTION_TYPE } from '../schemas/subscriptionTypeCatalog';
 import { applyRefusal } from './applyRefusal';
 import { SubscriptionFormFields } from './SubscriptionFormFields';
 import { SubscriptionPreviewPanel } from './SubscriptionPreviewPanel';
@@ -24,6 +25,7 @@ const text = messages.subscriptions;
 const EMPTY: SubscriptionFormValues = {
   name: '',
   description: '',
+  subscriptionTypeId: SUBSCRIPTION_TYPE.INDIVIDUAL,
   monthlyPrice: '',
   annualPrice: '',
   trialDays: '0',

@@ -10,6 +10,15 @@ import type { SubscriptionDto } from '../../factories';
 const ACTIVE = 1;
 const DELETED = 4;
 
+/**
+ * The names of the subscription type catalog, kept by the simulator itself (like the status names
+ * above), never imported from `es.ts`: that is frontend text, not the "server" this imitates.
+ */
+const SUBSCRIPTION_TYPE_NAMES = new Map([
+  [1, 'Individual'],
+  [2, 'Empresarial'],
+]);
+
 /** The statuses an operator can set (S5). */
 const CHANGEABLE: ReadonlySet<number> = new Set([1, 2, 3]);
 
@@ -25,6 +34,7 @@ export interface CatalogSubscription {
   readonly id: number;
   readonly name: string;
   readonly description: string | null;
+  readonly subscriptionTypeId: number;
   /** Always with two decimals, as the API keeps it: `4500.00`. */
   readonly monthlyPrice: string;
   /** Always with two decimals, independent of the monthly price. */
@@ -61,6 +71,7 @@ export interface CatalogInitial {
 export interface SubscriptionInput {
   readonly name: string;
   readonly description?: string | null;
+  readonly subscription_type_id: number;
   readonly monthly_price: string | number;
   readonly annual_price: string | number;
   readonly trial_days?: number;
@@ -142,6 +153,7 @@ export function catalogSubscription(
     id,
     name: `Plan ${id}`,
     description: null,
+    subscriptionTypeId: 1,
     monthlyPrice: '100.00',
     annualPrice: '1000.00',
     trialDays: 0,
@@ -172,6 +184,21 @@ function orNull(text: string | null | undefined): string | null {
 }
 
 const KNOWN_MODULE_KEYS: ReadonlySet<string> = new Set(CLINIC_MODULE_ORDER);
+
+/**
+ * `subscription_type_id` is discovered at the `INSERT`, by the foreign key, not with an earlier
+ * read (same order as `normalizeModuleKeys` below, and as the real API, research D1/D5 of the
+ * plan): a positive integer that is not `1` nor `2` today refuses, it is never silently accepted.
+ */
+function requireKnownSubscriptionType(id: number): void {
+  if (!SUBSCRIPTION_TYPE_NAMES.has(id)) {
+    throw new CatalogError(
+      422,
+      'subscription_type_not_found',
+      `No se encontró el tipo de suscripción con el identificador ${id}.`,
+    );
+  }
+}
 
 /**
  * The module keys a creation or an edition sends, always including `patients`, validated the way
@@ -327,6 +354,10 @@ export function createCatalogModel(initial: CatalogInitial) {
         id: subscription.id,
         name: subscription.name,
         description: subscription.description,
+        subscription_type: {
+          id: subscription.subscriptionTypeId,
+          name: SUBSCRIPTION_TYPE_NAMES.get(subscription.subscriptionTypeId) ?? 'Desconocido',
+        },
         monthly_price: subscription.monthlyPrice,
         annual_price: subscription.annualPrice,
         trial_days: subscription.trialDays,
@@ -348,14 +379,16 @@ export function createCatalogModel(initial: CatalogInitial) {
     create(input: SubscriptionInput): CatalogSubscription {
       const name = input.name.trim();
       requireFreeName(name);
-      // Modules are validated before anything is created, same order as the real API (create vs.
-      // update): an invalid request changes nothing.
+      // Modules and the subscription type are validated before anything is created, same order as
+      // the real API (create vs. update): an invalid request changes nothing.
       const moduleKeys = normalizeModuleKeys(input.module_keys);
+      requireKnownSubscriptionType(input.subscription_type_id);
       const at = now();
       const created: CatalogSubscription = {
         id: subscriptions.reduce((highest, current) => Math.max(highest, current.id), 0) + 1,
         name,
         description: orNull(input.description),
+        subscriptionTypeId: input.subscription_type_id,
         monthlyPrice: keepPrice(input.monthly_price),
         annualPrice: keepPrice(input.annual_price),
         trialDays: input.trial_days ?? 0,

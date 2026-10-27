@@ -17,6 +17,7 @@ const modules = messages.subscriptions.modules;
 const VALUES: SubscriptionFormValues = {
   name: 'Profesional',
   description: 'Para consultorios con varios doctores.',
+  subscriptionTypeId: 1,
   monthlyPrice: '1299.00',
   annualPrice: '12990.00',
   trialDays: '14',

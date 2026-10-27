@@ -5,6 +5,7 @@ import type { SubscriptionFormValues } from '../schemas/subscriptionForm';
 
 /** The inputs a refusal can name, in the order in which they appear on screen. */
 const FORM_FIELDS: readonly SubscriptionFormField[] = [
+  'subscriptionTypeId',
   'name',
   'description',
   'monthlyPrice',

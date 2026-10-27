@@ -16,6 +16,24 @@ import { SubscriptionStatusChip } from './SubscriptionStatusChip';
 const text = messages.subscriptions;
 
 /**
+ * The name of the subscription type, from this backoffice's own catalog (research D2 of 018), not
+ * the `name` the API sends: that is catalog data an administrator can edit by hand, and the type
+ * is recognized by its id, not its name (data-model.md, `SubscriptionTypeCatalog`). An id outside
+ * today's two falls back to the API's own name, the same treatment FR-020 of the 003 gives an
+ * unknown status, built once from `Object.entries` (no `as`, same idiom as `checkNameLabel`).
+ */
+const SUBSCRIPTION_TYPE_NAMES: ReadonlyMap<number, string> = new Map(
+  Object.entries(text.types.catalog).map(([id, { name }]) => [Number(id), name]),
+);
+
+function subscriptionTypeName(subscriptionType: {
+  readonly id: number;
+  readonly name: string;
+}): string {
+  return SUBSCRIPTION_TYPE_NAMES.get(subscriptionType.id) ?? subscriptionType.name;
+}
+
+/**
  * A label and its value; they reflow to one column on narrow screens, and long texts wrap.
  * `keepLines` keeps the line breaks that were written, as in the description.
  */
@@ -110,6 +128,7 @@ export function SubscriptionDetailFields({
         }}
       >
         <Field label={fields.name}>{subscription.name}</Field>
+        <Field label={fields.type}>{subscriptionTypeName(subscription.subscriptionType)}</Field>
         <Field label={fields.description} keepLines>
           {subscription.description ?? text.detail.emptyValue}
         </Field>

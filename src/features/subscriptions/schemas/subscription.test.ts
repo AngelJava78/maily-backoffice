@@ -6,6 +6,7 @@ const validDto = {
   id: 2,
   name: 'Pro',
   description: 'Para clínicas en crecimiento.',
+  subscription_type: { id: 1, name: 'Individual' },
   monthly_price: '4500.00',
   annual_price: '45000.00',
   trial_days: 14,
@@ -28,6 +29,7 @@ describe('subscriptionSchema', () => {
       id: 2,
       name: 'Pro',
       description: 'Para clínicas en crecimiento.',
+      subscriptionType: { id: 1, name: 'Individual' },
       monthlyPrice: '4500.00',
       annualPrice: '45000.00',
       trialDays: 14,
@@ -122,6 +124,13 @@ describe('subscriptionSchema', () => {
     ).toEqual({ id: 5, name: 'En revisión' });
   });
 
+  it('accepts any subscription_type id, not just 1 or 2, because a third one is a catalog row, not a contract change', () => {
+    expect(
+      subscriptionSchema.parse({ ...validDto, subscription_type: { id: 3, name: 'Otro' } })
+        .subscriptionType,
+    ).toEqual({ id: 3, name: 'Otro' });
+  });
+
   it.each([
     ['an id of 0', { id: 0 }],
     ['an id that is too big', { id: 2_147_483_648 }],
@@ -130,6 +139,12 @@ describe('subscriptionSchema', () => {
     ['an empty name', { name: '' }],
     ['a missing name', { name: undefined }],
     ['a missing description', { description: undefined }],
+    ['a missing subscription_type', { subscription_type: undefined }],
+    [
+      'a subscription_type with a fractional id',
+      { subscription_type: { id: 1.5, name: 'Individual' } },
+    ],
+    ['a subscription_type without name', { subscription_type: { id: 1 } }],
     ['a monthly price without decimals', { monthly_price: '4500' }],
     ['a monthly price with one decimal', { monthly_price: '4500.5' }],
     ['a monthly price that is a number', { monthly_price: 4500 }],

@@ -50,6 +50,7 @@ describe('listSubscriptions', () => {
       id: 2,
       name: 'Pro',
       description: 'Para clínicas en crecimiento.',
+      subscriptionType: { id: 1, name: 'Individual' },
       monthlyPrice: '4500.00',
       annualPrice: '45000.00',
       trialDays: 14,

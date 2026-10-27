@@ -18,6 +18,7 @@ function subscription(id: number, name: string, monthlyPrice: string, statusId =
     id,
     name,
     description: null,
+    subscriptionType: { id: 1, name: 'Individual' },
     monthlyPrice,
     annualPrice: monthlyPrice,
     trialDays: 0,

@@ -114,7 +114,12 @@ function EditSubscriptionForm({
       cancelTo={backTo.pathname}
       cancelState={backTo.state}
     >
-      <SubscriptionFormFields register={register} control={control} errors={errors} />
+      <SubscriptionFormFields
+        register={register}
+        control={control}
+        errors={errors}
+        disableSubscriptionType
+      />
     </FormFrame>
   );
 }

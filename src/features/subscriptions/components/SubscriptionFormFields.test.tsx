@@ -9,12 +9,14 @@ import { messages } from '@/shared/messages/es';
 
 import { REQUIRED_MODULE_KEY } from '../schemas/clinicModuleCatalog';
 import { subscriptionFormSchema, type SubscriptionFormValues } from '../schemas/subscriptionForm';
+import { SUBSCRIPTION_TYPE } from '../schemas/subscriptionTypeCatalog';
 import { SubscriptionFormFields } from './SubscriptionFormFields';
 
 const text = messages.subscriptions.form;
 const validation = messages.subscriptions.validation;
+const typeCatalog = messages.subscriptions.types.catalog;
 
-function Harness() {
+function Harness({ disableSubscriptionType }: { readonly disableSubscriptionType?: boolean } = {}) {
   const {
     register,
     control,
@@ -25,6 +27,7 @@ function Harness() {
     defaultValues: {
       name: '',
       description: '',
+      subscriptionTypeId: SUBSCRIPTION_TYPE.INDIVIDUAL,
       monthlyPrice: '',
       annualPrice: '',
       trialDays: '0',
@@ -44,15 +47,20 @@ function Harness() {
         void handleSubmit(() => undefined)(event);
       }}
     >
-      <SubscriptionFormFields register={register} control={control} errors={errors} />
+      <SubscriptionFormFields
+        register={register}
+        control={control}
+        errors={errors}
+        disableSubscriptionType={disableSubscriptionType}
+      />
       <button type="submit">Enviar</button>
     </form>
   );
 }
 
-function setup() {
+function setup(props: { readonly disableSubscriptionType?: boolean } = {}) {
   const user = userEvent.setup();
-  const view = render(<Harness />);
+  const view = render(<Harness {...props} />);
   return { ...view, user };
 }
 
@@ -151,6 +159,26 @@ describe('SubscriptionFormFields', () => {
 
     expect(screen.queryByLabelText(/estatus/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  });
+
+  it('asks for the subscription type first, enabled, with Individual marked by default', () => {
+    setup();
+
+    const individual = screen.getByRole('button', {
+      name: new RegExp(`^${typeCatalog[1].name}`),
+      pressed: true,
+    });
+    expect(individual).toBeInTheDocument();
+    expect(individual).not.toBeDisabled();
+  });
+
+  it('disables the subscription type control when disableSubscriptionType is passed', () => {
+    setup({ disableSubscriptionType: true });
+
+    expect(
+      screen.getByRole('button', { name: new RegExp(`^${typeCatalog[1].name}`) }),
+    ).toBeDisabled();
+    expect(screen.getByText(text.subscriptionTypeImmutableHelper)).toBeInTheDocument();
   });
 
   it('associates each error with its field', async () => {

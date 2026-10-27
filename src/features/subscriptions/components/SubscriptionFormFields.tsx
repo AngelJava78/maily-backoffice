@@ -10,6 +10,7 @@ import { ClinicLimitsFields } from './ClinicLimitsFields';
 import { ModulesField } from './ModulesField';
 import { OtherFeaturesField } from './OtherFeaturesField';
 import { SelfServiceAndTrialFields } from './SelfServiceAndTrialFields';
+import { SubscriptionTypeField } from './SubscriptionTypeField';
 
 const text = messages.subscriptions.form;
 
@@ -17,16 +18,23 @@ interface SubscriptionFormFieldsProps {
   readonly register: UseFormRegister<SubscriptionFormValues>;
   readonly control: Control<SubscriptionFormValues>;
   readonly errors: FieldErrors<SubscriptionFormValues>;
+  /** Only the edition passes this: the type is fixed forever once created (FR-004, research D3). */
+  readonly disableSubscriptionType?: boolean;
 }
 
 /**
  * The fields that the creation and the edition of a subscription share (constitution VI: one form
- * for both): data generales, autoconsumo and trial days, the clinic modules, the clinic limits and
- * other features. There is no status: a subscription is born active, and its status changes with
- * its own action. They receive the registrations and the errors of the form, so they know nothing
- * about the form that holds them.
+ * for both): the subscription type, data generales, autoconsumo and trial days, the clinic
+ * modules, the clinic limits and other features. There is no status: a subscription is born
+ * active, and its status changes with its own action. They receive the registrations and the
+ * errors of the form, so they know nothing about the form that holds them.
  */
-export function SubscriptionFormFields({ register, control, errors }: SubscriptionFormFieldsProps) {
+export function SubscriptionFormFields({
+  register,
+  control,
+  errors,
+  disableSubscriptionType = false,
+}: SubscriptionFormFieldsProps) {
   // The references go to the inputs themselves, so the form can put the focus on a field with an error.
   const { ref: nameRef, ...name } = register('name');
   const { ref: descriptionRef, ...description } = register('description');
@@ -35,6 +43,7 @@ export function SubscriptionFormFields({ register, control, errors }: Subscripti
 
   return (
     <Stack spacing={3}>
+      <SubscriptionTypeField control={control} errors={errors} disabled={disableSubscriptionType} />
       <Stack spacing={2}>
         <TextField
           {...name}

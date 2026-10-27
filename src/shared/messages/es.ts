@@ -473,6 +473,19 @@ export const messages = {
     },
     clinics: { notAvailable: 'No disponible' },
     badge: { selfService: 'Autoconsumo', custom: 'A la medida' },
+    // Who a subscription is for (FR-002), fixed content of the frontend (research D1 of 018).
+    types: {
+      catalog: {
+        1: {
+          name: 'Individual',
+          description: 'Médico independiente con un solo consultorio.',
+        },
+        2: {
+          name: 'Empresarial',
+          description: 'Empresa con varias clínicas y varios consultorios por clínica.',
+        },
+      },
+    },
     // The nine clinic modules a plan can include (FR-007), in the order of CLINIC_MODULE_ORDER.
     modules: {
       catalog: {
@@ -540,6 +553,7 @@ export const messages = {
       backToList: 'Volver al listado',
       fields: {
         name: 'Nombre',
+        type: 'Tipo',
         description: 'Descripción',
         monthlyPrice: 'Precio mensual',
         annualPrice: 'Precio anual',
@@ -576,6 +590,7 @@ export const messages = {
       fields: {
         name: 'Nombre',
         description: 'Descripción',
+        subscriptionType: 'Tipo de suscripción',
         monthlyPrice: 'Precio mensual',
         annualPrice: 'Precio anual',
         trialDays: 'Días de prueba',
@@ -586,6 +601,7 @@ export const messages = {
         newPatientsPerYearLimit: 'Pacientes nuevos al año',
         otherFeatures: 'Otras funcionalidades',
       },
+      subscriptionTypeImmutableHelper: 'El tipo no se puede modificar después de creada.',
       descriptionHelper: 'Opcional. Hasta 500 caracteres.',
       priceHelper: 'Solo números y punto decimal, por ejemplo 4500 o 4500.50.',
       pricePrefix: '$',
@@ -675,6 +691,7 @@ export const messages = {
       fields: {
         name: 'Revisa el nombre: debe tener de 1 a 100 caracteres.',
         description: 'Revisa la descripción: admite hasta 500 caracteres.',
+        subscriptionTypeId: 'El tipo de suscripción no es válido.',
         monthlyPrice: PRICE_RULE,
         annualPrice: PRICE_RULE,
         trialDays: 'Revisa los días de prueba: deben ser un número entero de 0 a 3650.',
