@@ -34,6 +34,10 @@ describe('describeSubscriptionError', () => {
           field: 'subscription_type_id',
           message: 'El tipo de suscripción es obligatorio y debe ser un número entero positivo.',
         },
+        {
+          field: 'clinics_limit',
+          message: 'El límite de clínicas debe ser un número entero de 1 a 100.',
+        },
         { field: 'monthly_price', message: 'El precio mensual es obligatorio.' },
         { field: 'annual_price', message: 'El precio anual es obligatorio.' },
         { field: 'trial_days', message: 'Los días de prueba deben ser un entero de 0 a 3650.' },
@@ -58,6 +62,7 @@ describe('describeSubscriptionError', () => {
         name: text.fields.name,
         description: text.fields.description,
         subscriptionTypeId: text.fields.subscriptionTypeId,
+        clinicsLimit: text.fields.clinicsLimit,
         monthlyPrice: text.fields.monthlyPrice,
         annualPrice: text.fields.annualPrice,
         trialDays: text.fields.trialDays,
@@ -71,6 +76,26 @@ describe('describeSubscriptionError', () => {
       },
     });
   });
+
+  it.each([
+    'El límite de clínicas debe ser un número entero de 1 a 100.',
+    'El límite de clínicas de una suscripción Individual debe ser exactamente 1.',
+    'El límite de clínicas no se puede modificar en una suscripción Individual.',
+  ])(
+    'puts any of the three predicted clinics-limit rejections next to its control, with an own text (contracts/subscriptions-service.md)',
+    (serverMessage) => {
+      const outcome = describeSubscriptionError(
+        refusal(422, 'validation_error', [{ field: 'clinics_limit', message: serverMessage }]),
+        'create',
+      );
+
+      expect(outcome).toEqual({
+        kind: 'field',
+        message: text.formInvalid,
+        fields: { clinicsLimit: text.fields.clinicsLimit },
+      });
+    },
+  );
 
   it.each([
     [409, 'subscription_module_prerequisite_missing'],

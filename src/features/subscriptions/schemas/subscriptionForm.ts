@@ -5,6 +5,7 @@ import { messages } from '@/shared/messages/es';
 import { CLINIC_MODULE_ORDER, type ClinicModuleKey } from './clinicModuleCatalog';
 import { PRICE_INPUT_PATTERN, toCents } from './price';
 import type { Subscription } from './subscription';
+import { SUBSCRIPTION_TYPE } from './subscriptionTypeCatalog';
 
 const text = messages.subscriptions.validation;
 
@@ -31,55 +32,89 @@ const clinicLimitSchema = (message: string) =>
     .regex(CLINIC_LIMIT_PATTERN, { error: message })
     .refine((value) => Number(value) <= 1_000_000, { error: message });
 
+/**
+ * Shape only (digits, 1 to 7 characters, same as the other limits): the business range depends on
+ * the subscription type (research D5 of 019), so it is not checked here but in the object-level
+ * `.superRefine()` below.
+ */
+const clinicsLimitShapeSchema = z
+  .string()
+  .trim()
+  .min(1, { error: text.clinicsLimitInvalid, abort: true })
+  .regex(CLINIC_LIMIT_PATTERN, { error: text.clinicsLimitInvalid });
+
 const moduleKeysSchema = z.custom<ReadonlySet<ClinicModuleKey>>((value) => value instanceof Set);
 
 // None of these schemas transforms its value (`trim` does not change the type), so what the form
 // holds and what it submits have the same type. A check that fails stops the next ones, so an
 // empty price is told as required and not also as invalid.
-export const subscriptionFormSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, { error: text.nameRequired, abort: true })
-    .max(100, text.nameTooLong),
-  description: z.string().trim().max(500, text.descriptionTooLong),
-  // A positive integer, not a union of 1|2 (same looseness as the API's own `subscription_type_id`
-  // on create, research D1): the control always marks one of SUBSCRIPTION_TYPE_ORDER, so there is
-  // no "required" message to show for it; a stricter union would also wrongly block editing any
-  // other field of a subscription whose type the control cannot show (an id outside today's two,
-  // which the schema of `Subscription` deliberately does not reject either).
-  subscriptionTypeId: z.number().int().positive(),
-  monthlyPrice: z
-    .string()
-    .trim()
-    .min(1, { error: text.priceRequired, abort: true })
-    .regex(PRICE_INPUT_PATTERN, text.priceInvalid),
-  annualPrice: z
-    .string()
-    .trim()
-    .min(1, { error: text.annualPriceRequired, abort: true })
-    .regex(PRICE_INPUT_PATTERN, text.annualPriceInvalid),
-  trialDays: trialDaysSchema,
-  selfService: z.boolean(),
-  moduleKeys: moduleKeysSchema,
-  consultingRoomsLimit: clinicLimitSchema(text.consultingRoomsLimitInvalid),
-  doctorsLimit: clinicLimitSchema(text.doctorsLimitInvalid),
-  assistantsLimit: clinicLimitSchema(text.assistantsLimitInvalid),
-  newPatientsPerYearLimit: clinicLimitSchema(text.newPatientsPerYearLimitInvalid),
-  // Each element is an object, as the field array of React Hook Form needs; its error goes next to
-  // it (`otherFeatures.<i>.value`) and the one of the whole list, above the list.
-  otherFeatures: z
-    .array(
-      z.object({
-        value: z
-          .string()
-          .trim()
-          .min(1, { error: text.otherFeatureRequired, abort: true })
-          .max(150, text.otherFeatureTooLong),
-      }),
-    )
-    .max(MAX_OTHER_FEATURES, text.otherFeaturesTooMany),
-});
+export const subscriptionFormSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(1, { error: text.nameRequired, abort: true })
+      .max(100, text.nameTooLong),
+    description: z.string().trim().max(500, text.descriptionTooLong),
+    // A positive integer, not a union of 1|2 (same looseness as the API's own `subscription_type_id`
+    // on create, research D1): the control always marks one of SUBSCRIPTION_TYPE_ORDER, so there is
+    // no "required" message to show for it; a stricter union would also wrongly block editing any
+    // other field of a subscription whose type the control cannot show (an id outside today's two,
+    // which the schema of `Subscription` deliberately does not reject either).
+    subscriptionTypeId: z.number().int().positive(),
+    clinicsLimit: clinicsLimitShapeSchema,
+    monthlyPrice: z
+      .string()
+      .trim()
+      .min(1, { error: text.priceRequired, abort: true })
+      .regex(PRICE_INPUT_PATTERN, text.priceInvalid),
+    annualPrice: z
+      .string()
+      .trim()
+      .min(1, { error: text.annualPriceRequired, abort: true })
+      .regex(PRICE_INPUT_PATTERN, text.annualPriceInvalid),
+    trialDays: trialDaysSchema,
+    selfService: z.boolean(),
+    moduleKeys: moduleKeysSchema,
+    consultingRoomsLimit: clinicLimitSchema(text.consultingRoomsLimitInvalid),
+    doctorsLimit: clinicLimitSchema(text.doctorsLimitInvalid),
+    assistantsLimit: clinicLimitSchema(text.assistantsLimitInvalid),
+    newPatientsPerYearLimit: clinicLimitSchema(text.newPatientsPerYearLimitInvalid),
+    // Each element is an object, as the field array of React Hook Form needs; its error goes next to
+    // it (`otherFeatures.<i>.value`) and the one of the whole list, above the list.
+    otherFeatures: z
+      .array(
+        z.object({
+          value: z
+            .string()
+            .trim()
+            .min(1, { error: text.otherFeatureRequired, abort: true })
+            .max(150, text.otherFeatureTooLong),
+        }),
+      )
+      .max(MAX_OTHER_FEATURES, text.otherFeaturesTooMany),
+  })
+  // The clinics limit's business range depends on the subscription type, a sibling field (research
+  // D5 of 019): exactly 1 for Individual; 1 to 100 otherwise. In normal use this branch is
+  // unreachable for Individual, because the type control resets the field to '1' in the same event
+  // it changes the type (research D6); it stays as a defensive check of the schema itself.
+  .superRefine((values, ctx) => {
+    const limit = Number(values.clinicsLimit);
+    if (Number.isNaN(limit)) {
+      return;
+    }
+    if (values.subscriptionTypeId === SUBSCRIPTION_TYPE.INDIVIDUAL) {
+      if (limit !== 1) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['clinicsLimit'],
+          message: text.clinicsLimitMustBeOneForIndividual,
+        });
+      }
+    } else if (limit < 1 || limit > 100) {
+      ctx.addIssue({ code: 'custom', path: ['clinicsLimit'], message: text.clinicsLimitInvalid });
+    }
+  });
 
 export type SubscriptionFormValues = z.infer<typeof subscriptionFormSchema>;
 
@@ -91,6 +126,9 @@ type EditableData = Pick<
   // Only read, to open the edition with it marked (toFormValues); never compared or sent back
   // (toUpdateSubscriptionBody): the subscription type is fixed forever once created (research D4).
   | 'subscriptionType'
+  // Same as subscriptionType: only read to open the edition (toFormValues); toUpdateSubscriptionBody
+  // never compares or sends it back when the subscription is Individual (research D4 of 019).
+  | 'clinicsLimit'
   | 'monthlyPrice'
   | 'annualPrice'
   | 'trialDays'
@@ -108,6 +146,7 @@ export interface CreateSubscriptionBody {
   readonly name: string;
   readonly description?: string;
   readonly subscription_type_id: number;
+  readonly clinics_limit: number;
   readonly monthly_price: string;
   readonly annual_price: string;
   readonly trial_days: number;
@@ -129,6 +168,12 @@ export interface UpdateSubscriptionBody {
   readonly annual_price?: string;
   readonly trial_days?: number;
   readonly self_service?: boolean;
+  /**
+   * Unlike `subscription_type_id` (never sent), this one can be sent — but only while the
+   * subscription being edited is not Individual (research D4 of 019): `toUpdateSubscriptionBody`
+   * never adds it at all when the subscription is Individual, regardless of what the form shows.
+   */
+  readonly clinics_limit?: number;
   /** The whole set, which replaces the one there was. */
   readonly module_keys?: readonly string[];
   /** The whole list, which replaces the one there was. */
@@ -146,6 +191,9 @@ export function toFormValues(subscription: EditableData): SubscriptionFormValues
     name: subscription.name,
     description: subscription.description ?? '',
     subscriptionTypeId: subscription.subscriptionType.id,
+    // `clinicsLimit` is `null` while the API does not implement it yet (research D4 of 019); '1' is
+    // always a valid starting value, never left blank (Clarifications of 019).
+    clinicsLimit: String(subscription.clinicsLimit ?? 1),
     monthlyPrice: subscription.monthlyPrice,
     annualPrice: subscription.annualPrice,
     trialDays: String(subscription.trialDays),
@@ -177,6 +225,7 @@ export function toCreateSubscriptionBody(values: SubscriptionFormValues): Create
     name: values.name.trim(),
     ...(description === '' ? {} : { description }),
     subscription_type_id: values.subscriptionTypeId,
+    clinics_limit: Number(values.clinicsLimit),
     monthly_price: values.monthlyPrice.trim(),
     annual_price: values.annualPrice.trim(),
     trial_days: Number(values.trialDays.trim()),
@@ -230,6 +279,12 @@ export function toUpdateSubscriptionBody(
     ...(toCents(annualPrice) === toCents(initial.annualPrice) ? {} : { annual_price: annualPrice }),
     ...(trialDays === initial.trialDays ? {} : { trial_days: trialDays }),
     ...(values.selfService === initial.selfService ? {} : { self_service: values.selfService }),
+    // Never sent while the subscription is Individual (research D4 of 019): fixed forever in that
+    // case, same treatment as subscriptionTypeId itself.
+    ...(initial.subscriptionType.id === SUBSCRIPTION_TYPE.INDIVIDUAL ||
+    Number(values.clinicsLimit.trim()) === initial.clinicsLimit
+      ? {}
+      : { clinics_limit: Number(values.clinicsLimit.trim()) }),
     ...(sameSet(values.moduleKeys, new Set(initial.moduleKeys))
       ? {}
       : { module_keys: [...values.moduleKeys].sort() }),

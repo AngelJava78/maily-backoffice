@@ -7,6 +7,7 @@ const validDto = {
   name: 'Pro',
   description: 'Para clínicas en crecimiento.',
   subscription_type: { id: 1, name: 'Individual' },
+  clinics_limit: 1,
   monthly_price: '4500.00',
   annual_price: '45000.00',
   trial_days: 14,
@@ -30,6 +31,7 @@ describe('subscriptionSchema', () => {
       name: 'Pro',
       description: 'Para clínicas en crecimiento.',
       subscriptionType: { id: 1, name: 'Individual' },
+      clinicsLimit: 1,
       monthlyPrice: '4500.00',
       annualPrice: '45000.00',
       trialDays: 14,
@@ -69,6 +71,23 @@ describe('subscriptionSchema', () => {
     );
 
     expect(subscriptionSchema.parse(withoutClinics).clinicsCount).toBeNull();
+  });
+
+  it('takes a clinics limit that is not available as null (contract transition)', () => {
+    expect(subscriptionSchema.parse({ ...validDto, clinics_limit: null }).clinicsLimit).toBeNull();
+  });
+
+  it('takes a missing clinics limit as null too: the API does not implement it yet', () => {
+    const withoutClinicsLimit = Object.fromEntries(
+      Object.entries(validDto).filter(([key]) => key !== 'clinics_limit'),
+    );
+
+    expect(subscriptionSchema.parse(withoutClinicsLimit).clinicsLimit).toBeNull();
+  });
+
+  it('accepts a clinics limit of 1 and of 100, the lowest and highest valid values', () => {
+    expect(subscriptionSchema.parse({ ...validDto, clinics_limit: 1 }).clinicsLimit).toBe(1);
+    expect(subscriptionSchema.parse({ ...validDto, clinics_limit: 100 }).clinicsLimit).toBe(100);
   });
 
   it('accepts a monthly or annual price of 0 and the highest one', () => {

@@ -157,6 +157,7 @@ export function subscriptionDto(overrides: Partial<SubscriptionDto> = {}): Subsc
     name: 'Pro',
     description: 'Para clínicas en crecimiento.',
     subscription_type: { id: 1, name: 'Individual' },
+    clinics_limit: 1,
     monthly_price: '4500.00',
     annual_price: '45000.00',
     trial_days: 14,

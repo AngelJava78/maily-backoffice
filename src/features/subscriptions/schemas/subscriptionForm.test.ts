@@ -19,6 +19,7 @@ const valid: SubscriptionFormValues = {
   name: 'Pro',
   description: 'Para clínicas en crecimiento.',
   subscriptionTypeId: SUBSCRIPTION_TYPE.INDIVIDUAL,
+  clinicsLimit: '1',
   monthlyPrice: '4500',
   annualPrice: '45000',
   trialDays: '14',
@@ -93,6 +94,53 @@ describe('subscriptionFormSchema', () => {
     it.each([0, -1, 1.5])('rejects a non-positive or fractional id (%j)', (id) => {
       expect(subscriptionFormSchema.safeParse({ ...valid, subscriptionTypeId: id }).success).toBe(
         false,
+      );
+    });
+  });
+
+  describe('the clinics limit', () => {
+    it.each(['1', '50', '100'])('accepts %j when the type is Empresarial', (limit) => {
+      expect(
+        errorAt(
+          { ...valid, subscriptionTypeId: SUBSCRIPTION_TYPE.ENTERPRISE, clinicsLimit: limit },
+          'clinicsLimit',
+        ),
+      ).toBeUndefined();
+    });
+
+    it('accepts only 1 when the type is Individual', () => {
+      expect(
+        errorAt(
+          { ...valid, subscriptionTypeId: SUBSCRIPTION_TYPE.INDIVIDUAL, clinicsLimit: '1' },
+          'clinicsLimit',
+        ),
+      ).toBeUndefined();
+    });
+
+    it.each(['0', '2', '100'])(
+      'rejects %j when the type is Individual: it must be exactly 1',
+      (limit) => {
+        expect(
+          errorAt(
+            { ...valid, subscriptionTypeId: SUBSCRIPTION_TYPE.INDIVIDUAL, clinicsLimit: limit },
+            'clinicsLimit',
+          ),
+        ).toBe(text.clinicsLimitMustBeOneForIndividual);
+      },
+    );
+
+    it.each(['0', '101'])('rejects %j when the type is Empresarial: out of 1 to 100', (limit) => {
+      expect(
+        errorAt(
+          { ...valid, subscriptionTypeId: SUBSCRIPTION_TYPE.ENTERPRISE, clinicsLimit: limit },
+          'clinicsLimit',
+        ),
+      ).toBe(text.clinicsLimitInvalid);
+    });
+
+    it.each(['', '1.5', 'abc'])('rejects %j regardless of type: not a plain integer', (limit) => {
+      expect(errorAt({ ...valid, clinicsLimit: limit }, 'clinicsLimit')).toBe(
+        text.clinicsLimitInvalid,
       );
     });
   });
@@ -200,6 +248,7 @@ describe('toFormValues', () => {
     name: 'Pro',
     description: 'Para clínicas en crecimiento.',
     subscriptionType: { id: SUBSCRIPTION_TYPE.INDIVIDUAL, name: 'Individual' },
+    clinicsLimit: 1,
     monthlyPrice: '4500.00',
     annualPrice: '45000.00',
     trialDays: 14,
@@ -217,6 +266,7 @@ describe('toFormValues', () => {
       name: 'Pro',
       description: 'Para clínicas en crecimiento.',
       subscriptionTypeId: SUBSCRIPTION_TYPE.INDIVIDUAL,
+      clinicsLimit: '1',
       monthlyPrice: '4500.00',
       annualPrice: '45000.00',
       trialDays: '14',
@@ -237,6 +287,11 @@ describe('toFormValues', () => {
         subscriptionType: { id: SUBSCRIPTION_TYPE.ENTERPRISE, name: 'Empresarial' },
       }).subscriptionTypeId,
     ).toBe(SUBSCRIPTION_TYPE.ENTERPRISE);
+  });
+
+  it('opens the edition with the clinics limit as text, or "1" when it is not available yet', () => {
+    expect(toFormValues({ ...subscription, clinicsLimit: 40 }).clinicsLimit).toBe('40');
+    expect(toFormValues({ ...subscription, clinicsLimit: null }).clinicsLimit).toBe('1');
   });
 
   it('opens a subscription without description with the field empty', () => {
@@ -266,6 +321,7 @@ describe('toCreateSubscriptionBody', () => {
       name: 'Pro',
       description: 'Para clínicas.',
       subscription_type_id: SUBSCRIPTION_TYPE.INDIVIDUAL,
+      clinics_limit: 1,
       monthly_price: '4500.5',
       annual_price: '45000.5',
       trial_days: 14,
@@ -290,6 +346,7 @@ describe('toCreateSubscriptionBody', () => {
     expect(Object.keys(body).sort()).toEqual([
       'annual_price',
       'assistants_limit',
+      'clinics_limit',
       'consulting_rooms_limit',
       'description',
       'doctors_limit',
@@ -312,6 +369,16 @@ describe('toCreateSubscriptionBody', () => {
       }).subscription_type_id,
     ).toBe(SUBSCRIPTION_TYPE.ENTERPRISE);
   });
+
+  it('sends the clinics limit chosen on the control', () => {
+    expect(
+      toCreateSubscriptionBody({
+        ...valid,
+        subscriptionTypeId: SUBSCRIPTION_TYPE.ENTERPRISE,
+        clinicsLimit: '40',
+      }).clinics_limit,
+    ).toBe(40);
+  });
 });
 
 describe('toUpdateSubscriptionBody', () => {
@@ -319,6 +386,7 @@ describe('toUpdateSubscriptionBody', () => {
     name: 'Pro',
     description: 'Para clínicas en crecimiento.',
     subscriptionType: { id: SUBSCRIPTION_TYPE.INDIVIDUAL, name: 'Individual' },
+    clinicsLimit: 1,
     monthlyPrice: '4500.00',
     annualPrice: '45000.00',
     trialDays: 14,
@@ -412,5 +480,32 @@ describe('toUpdateSubscriptionBody', () => {
 
     expect(body).toEqual({ name: 'Pro 2' });
     expect(body).not.toHaveProperty('subscription_type_id');
+  });
+
+  it('never sends the clinics limit when the subscription being edited is Individual', () => {
+    const body = toUpdateSubscriptionBody(initial, {
+      ...unchanged,
+      name: 'Pro 2',
+      clinicsLimit: '50',
+    });
+
+    expect(body).toEqual({ name: 'Pro 2' });
+    expect(body).not.toHaveProperty('clinics_limit');
+  });
+
+  describe('editing an Empresarial subscription', () => {
+    const enterpriseInitial = {
+      ...initial,
+      subscriptionType: { id: SUBSCRIPTION_TYPE.ENTERPRISE, name: 'Empresarial' },
+      clinicsLimit: 10,
+    };
+    const enterpriseUnchanged = toFormValues(enterpriseInitial);
+
+    it('sends the new clinics limit only when it changed', () => {
+      expect(toUpdateSubscriptionBody(enterpriseInitial, enterpriseUnchanged)).toBeNull();
+      expect(
+        toUpdateSubscriptionBody(enterpriseInitial, { ...enterpriseUnchanged, clinicsLimit: '50' }),
+      ).toEqual({ clinics_limit: 50 });
+    });
   });
 });

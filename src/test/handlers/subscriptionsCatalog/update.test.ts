@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { callSubscriptions } from '@/test/subscriptionsClient';
 
 import { createUsersDirectoryMock } from '../usersDirectory';
-import { createSubscriptionsCatalogMock, defaultCatalog } from './index';
+import { catalogSubscription, createSubscriptionsCatalogMock, defaultCatalog } from './index';
 
 function setup() {
   const directory = createUsersDirectoryMock();
@@ -79,6 +79,73 @@ describe('PATCH /api/v1/subscriptions/{id}', () => {
       expect(catalog.state.find(2)).toEqual(before);
     },
   );
+
+  it.each([1, 2, 50])(
+    'refuses clinics_limit %i on an Individual subscription, with its own immutability message, never the generic one',
+    async (clinicsLimit) => {
+      const { catalog } = setup();
+      const before = catalog.state.find(2);
+
+      const answer = await update(2, { clinics_limit: clinicsLimit });
+
+      expect(answer).toMatchObject({
+        status: 422,
+        body: {
+          code: 'validation_error',
+          errors: [
+            {
+              field: 'clinics_limit',
+              message: 'El límite de clínicas no se puede modificar en una suscripción Individual.',
+            },
+          ],
+        },
+      });
+      expect(catalog.state.find(2)).toEqual(before);
+    },
+  );
+
+  describe('on an Empresarial subscription', () => {
+    function setupEnterprise() {
+      const { directory, catalog } = setup();
+      catalog.addSubscription(
+        catalogSubscription({
+          id: 30,
+          name: 'Empresarial',
+          subscriptionTypeId: 2,
+          clinicsLimit: 1,
+        }),
+      );
+      return { directory, catalog };
+    }
+
+    it.each([1, 50, 100])('applies a clinics_limit of %i', async (clinicsLimit) => {
+      setupEnterprise();
+
+      expect(await update(30, { clinics_limit: clinicsLimit })).toMatchObject({
+        status: 200,
+        body: { clinics_limit: clinicsLimit },
+      });
+    });
+
+    it.each([0, 101])('refuses a clinics_limit of %i, outside 1 to 100', async (clinicsLimit) => {
+      const { catalog } = setupEnterprise();
+      const before = catalog.state.find(30);
+
+      expect(await update(30, { clinics_limit: clinicsLimit })).toMatchObject({
+        status: 422,
+        body: {
+          code: 'validation_error',
+          errors: [
+            {
+              field: 'clinics_limit',
+              message: 'El límite de clínicas debe ser un número entero de 1 a 100.',
+            },
+          ],
+        },
+      });
+      expect(catalog.state.find(30)).toEqual(before);
+    });
+  });
 
   it('refuses an empty body', async () => {
     setup();

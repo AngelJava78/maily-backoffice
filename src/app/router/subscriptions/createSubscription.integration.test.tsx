@@ -102,6 +102,7 @@ describe(
       expect(Object.keys(catalog.requestsTo('POST', PATH)[0]?.body ?? {}).sort()).toEqual([
         'annual_price',
         'assistants_limit',
+        'clinics_limit',
         'consulting_rooms_limit',
         'doctors_limit',
         'module_keys',
@@ -143,17 +144,114 @@ describe(
       await user.type(field(text.form.fields.monthlyPrice), '1000');
       await user.type(field(text.form.fields.annualPrice), '10000');
       await fillRequiredLimits(user);
-      await user.click(
-        screen.getByRole('button', { name: new RegExp(`^${text.types.catalog[2].name}`) }),
-      );
-      await user.click(
-        screen.getByRole('button', { name: new RegExp(`^${text.types.catalog[1].name}`) }),
-      );
+      const typeSwitch = screen.getByRole('switch', {
+        name: new RegExp(`^${text.types.catalog[1].name}`),
+      });
+      await user.click(typeSwitch);
+      await user.click(typeSwitch);
       await user.click(save());
 
       await screen.findByRole('heading', { level: 1, name: text.detail.title });
       expect(catalog.requestsTo('POST', PATH)[0]?.body).toMatchObject({ subscription_type_id: 1 });
     });
+
+    it('shows the type as a one-line switch, off by default, which enables the clinics limit when turned on (Y1, Y3)', async () => {
+      start();
+      const { user } = open('/subscriptions/new');
+      await screen.findByRole('heading', { level: 1, name: text.form.createTitle });
+
+      expect(
+        screen.queryByRole('button', { name: new RegExp(`^${text.types.catalog[1].name}`) }),
+      ).not.toBeInTheDocument();
+      const typeSwitch = screen.getByRole('switch', {
+        name: new RegExp(`^${text.types.catalog[1].name}`),
+      });
+      expect(typeSwitch).not.toBeChecked();
+      const clinicsLimit = field(text.form.fields.clinicsLimit);
+      expect(clinicsLimit).toHaveValue('1');
+      expect(clinicsLimit).toBeDisabled();
+
+      await user.click(typeSwitch);
+
+      expect(
+        screen.getByRole('switch', { name: new RegExp(`^${text.types.catalog[2].name}`) }),
+      ).toBeChecked();
+      expect(clinicsLimit).toHaveValue('1');
+      expect(clinicsLimit).not.toBeDisabled();
+    });
+
+    it('always leaves the clinics limit at 1 when going back and forth between types, never what was typed before (Y6)', async () => {
+      start();
+      const { user } = open('/subscriptions/new');
+      await screen.findByRole('heading', { level: 1, name: text.form.createTitle });
+
+      const typeSwitch = screen.getByRole('switch', {
+        name: new RegExp(`^${text.types.catalog[1].name}`),
+      });
+      const clinicsLimit = field(text.form.fields.clinicsLimit);
+      await user.click(typeSwitch);
+      await user.clear(clinicsLimit);
+      await user.type(clinicsLimit, '25');
+
+      await user.click(typeSwitch);
+
+      expect(clinicsLimit).toHaveValue('1');
+      expect(clinicsLimit).toBeDisabled();
+
+      await user.click(typeSwitch);
+
+      expect(clinicsLimit).toHaveValue('1');
+      expect(clinicsLimit).not.toBeDisabled();
+    });
+
+    it('creates an Empresarial subscription with the clinics limit typed (Y4)', async () => {
+      const { catalog } = start();
+      const { user } = open('/subscriptions/new');
+      await screen.findByRole('heading', { level: 1, name: text.form.createTitle });
+
+      await user.type(field(text.form.fields.name), 'Clínica Empresarial');
+      await user.type(field(text.form.fields.monthlyPrice), '1000');
+      await user.type(field(text.form.fields.annualPrice), '10000');
+      await fillRequiredLimits(user);
+      await user.click(
+        screen.getByRole('switch', { name: new RegExp(`^${text.types.catalog[1].name}`) }),
+      );
+      const clinicsLimit = field(text.form.fields.clinicsLimit);
+      await user.clear(clinicsLimit);
+      await user.type(clinicsLimit, '25');
+      await user.click(save());
+
+      await screen.findByRole('heading', { level: 1, name: text.detail.title });
+      expect(catalog.requestsTo('POST', PATH)[0]?.body).toMatchObject({ clinics_limit: 25 });
+    });
+
+    it.each(['0', '101', ''])(
+      'refuses a clinics limit of %j for an Empresarial subscription, with an error next to the field (Y5)',
+      async (typed) => {
+        const { catalog } = start();
+        const { user } = open('/subscriptions/new');
+        await screen.findByRole('heading', { level: 1, name: text.form.createTitle });
+
+        await user.type(field(text.form.fields.name), 'Clínica Empresarial');
+        await user.type(field(text.form.fields.monthlyPrice), '1000');
+        await user.type(field(text.form.fields.annualPrice), '10000');
+        await fillRequiredLimits(user);
+        await user.click(
+          screen.getByRole('switch', { name: new RegExp(`^${text.types.catalog[1].name}`) }),
+        );
+        const clinicsLimit = field(text.form.fields.clinicsLimit);
+        await user.clear(clinicsLimit);
+        if (typed !== '') {
+          await user.type(clinicsLimit, typed);
+        }
+        await user.click(save());
+
+        await waitFor(() => {
+          expect(clinicsLimit).toHaveAccessibleDescription(text.validation.clinicsLimitInvalid);
+        });
+        expect(catalog.requestsTo('POST', PATH)).toHaveLength(0);
+      },
+    );
 
     it('refuses « pro », which is the name of Pro with other spaces and upper case, next to the name (US2-6)', async () => {
       const { catalog } = start();

@@ -26,10 +26,11 @@ const EMPTY: SubscriptionFormValues = {
   name: '',
   description: '',
   subscriptionTypeId: SUBSCRIPTION_TYPE.INDIVIDUAL,
+  clinicsLimit: '1',
   monthlyPrice: '',
   annualPrice: '',
   trialDays: '0',
-  selfService: false,
+  selfService: true,
   moduleKeys: new Set([REQUIRED_MODULE_KEY]),
   consultingRoomsLimit: '',
   doctorsLimit: '',
@@ -54,6 +55,7 @@ export function SubscriptionCreatePage() {
   const {
     register,
     control,
+    setValue,
     handleSubmit,
     setError,
     watch,
@@ -104,7 +106,12 @@ export function SubscriptionCreatePage() {
             error={generalError}
             cancelTo={`/subscriptions${listSearch ?? ''}`}
           >
-            <SubscriptionFormFields register={register} control={control} errors={errors} />
+            <SubscriptionFormFields
+              register={register}
+              control={control}
+              setValue={setValue}
+              errors={errors}
+            />
           </FormFrame>
         </Stack>
         <Stack

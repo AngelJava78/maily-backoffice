@@ -18,12 +18,16 @@ const catalog = messages.subscriptions.types.catalog;
 function Harness({
   disabled,
   initial = SUBSCRIPTION_TYPE.INDIVIDUAL,
+  clinicsLimit = '30',
 }: {
   readonly disabled?: boolean;
   readonly initial?: number;
+  readonly clinicsLimit?: string;
 }) {
   const {
     control,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<SubscriptionFormValues>({
     resolver: zodResolver(subscriptionFormSchema),
@@ -31,6 +35,7 @@ function Harness({
       name: 'Pro',
       description: '',
       subscriptionTypeId: initial,
+      clinicsLimit,
       monthlyPrice: '1',
       annualPrice: '10',
       trialDays: '0',
@@ -43,27 +48,70 @@ function Harness({
       otherFeatures: [],
     },
   });
-  return <SubscriptionTypeField control={control} errors={errors} disabled={disabled} />;
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const watchedClinicsLimit = watch('clinicsLimit');
+  return (
+    <>
+      <SubscriptionTypeField
+        control={control}
+        setValue={setValue}
+        errors={errors}
+        disabled={disabled}
+      />
+      <p data-testid="clinics-limit-value">{watchedClinicsLimit}</p>
+    </>
+  );
 }
 
-function setup(props: { readonly disabled?: boolean; readonly initial?: number } = {}) {
+function setup(
+  props: {
+    readonly disabled?: boolean;
+    readonly initial?: number;
+    readonly clinicsLimit?: string;
+  } = {},
+) {
   const user = userEvent.setup();
   const view = render(<Harness {...props} />);
   return { ...view, user };
 }
 
 describe('SubscriptionTypeField', () => {
-  it('shows the two options with their name and explanation, Individual marked by default', () => {
+  it('shows a switch, off by default, with the name and explanation of Individual', () => {
     setup();
 
-    expect(
-      screen.getByRole('button', { name: new RegExp(`^${catalog[1].name}`), pressed: true }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: new RegExp(`^${catalog[2].name}`), pressed: false }),
-    ).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    const control = screen.getByRole('switch');
+    expect(control).not.toBeChecked();
+    expect(screen.getByText(catalog[1].name)).toBeInTheDocument();
     expect(screen.getByText(catalog[1].description)).toBeInTheDocument();
+  });
+
+  it('switches to Empresarial when turned on, and back to Individual when turned off', async () => {
+    const { user } = setup();
+    const control = screen.getByRole('switch');
+
+    await user.click(control);
+
+    expect(control).toBeChecked();
+    expect(screen.getByText(catalog[2].name)).toBeInTheDocument();
     expect(screen.getByText(catalog[2].description)).toBeInTheDocument();
+
+    await user.click(control);
+
+    expect(control).not.toBeChecked();
+    expect(screen.getByText(catalog[1].name)).toBeInTheDocument();
+  });
+
+  it('leaves the clinics limit at 1 when turned on, and again at 1 when turned off (research D6)', async () => {
+    const { user } = setup({ clinicsLimit: '30' });
+
+    await user.click(screen.getByRole('switch'));
+
+    expect(screen.getByTestId('clinics-limit-value')).toHaveTextContent('1');
+
+    await user.click(screen.getByRole('switch'));
+
+    expect(screen.getByTestId('clinics-limit-value')).toHaveTextContent('1');
   });
 
   it('has an accessible group name of "Tipo de suscripción"', () => {
@@ -72,52 +120,28 @@ describe('SubscriptionTypeField', () => {
     expect(screen.getByRole('group', { name: text.fields.subscriptionType })).toBeInTheDocument();
   });
 
-  it('can be changed to Empresarial', async () => {
-    const { user } = setup();
-
-    await user.click(screen.getByRole('button', { name: new RegExp(`^${catalog[2].name}`) }));
-
-    expect(
-      screen.getByRole('button', { name: new RegExp(`^${catalog[2].name}`), pressed: true }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: new RegExp(`^${catalog[1].name}`), pressed: false }),
-    ).toBeInTheDocument();
-  });
-
-  it('never ends up with neither option marked: deselecting the only pressed one is ignored', async () => {
-    const { user } = setup();
-    const individual = screen.getByRole('button', { name: new RegExp(`^${catalog[1].name}`) });
-
-    await user.click(individual);
-
-    expect(individual).toHaveAttribute('aria-pressed', 'true');
-  });
-
-  it('disables both options and shows the immutability notice when disabled', () => {
+  it('disables the switch and shows the immutability notice when disabled', () => {
     setup({ disabled: true, initial: SUBSCRIPTION_TYPE.ENTERPRISE });
 
-    expect(screen.getByRole('button', { name: new RegExp(`^${catalog[2].name}`) })).toBeDisabled();
-    expect(screen.getByRole('button', { name: new RegExp(`^${catalog[1].name}`) })).toBeDisabled();
+    expect(screen.getByRole('switch')).toBeDisabled();
     expect(screen.getByText(text.subscriptionTypeImmutableHelper)).toBeInTheDocument();
   });
 
   it('keeps showing the subscription’s own type while disabled', () => {
     setup({ disabled: true, initial: SUBSCRIPTION_TYPE.ENTERPRISE });
 
-    expect(
-      screen.getByRole('button', { name: new RegExp(`^${catalog[2].name}`), pressed: true }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('switch')).toBeChecked();
+    expect(screen.getByText(catalog[2].name)).toBeInTheDocument();
   });
 
-  it('is operable with the keyboard', async () => {
+  it('is operable with the keyboard (Tab + Espacio)', async () => {
     const user = userEvent.setup();
     setup();
 
     await user.tab();
-    expect(screen.getByRole('button', { name: new RegExp(`^${catalog[1].name}`) })).toHaveFocus();
-    await user.keyboard('{ArrowRight}');
-    expect(screen.getByRole('button', { name: new RegExp(`^${catalog[2].name}`) })).toHaveFocus();
+    expect(screen.getByRole('switch')).toHaveFocus();
+    await user.keyboard(' ');
+    expect(screen.getByRole('switch')).toBeChecked();
   });
 
   it('has no accessibility violations, enabled or disabled', async () => {

@@ -20,6 +20,7 @@ function Harness({ disableSubscriptionType }: { readonly disableSubscriptionType
   const {
     register,
     control,
+    setValue,
     handleSubmit,
     formState: { errors },
   } = useForm<SubscriptionFormValues>({
@@ -28,6 +29,7 @@ function Harness({ disableSubscriptionType }: { readonly disableSubscriptionType
       name: '',
       description: '',
       subscriptionTypeId: SUBSCRIPTION_TYPE.INDIVIDUAL,
+      clinicsLimit: '1',
       monthlyPrice: '',
       annualPrice: '',
       trialDays: '0',
@@ -50,6 +52,7 @@ function Harness({ disableSubscriptionType }: { readonly disableSubscriptionType
       <SubscriptionFormFields
         register={register}
         control={control}
+        setValue={setValue}
         errors={errors}
         disableSubscriptionType={disableSubscriptionType}
       />
@@ -161,24 +164,46 @@ describe('SubscriptionFormFields', () => {
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
-  it('asks for the subscription type first, enabled, with Individual marked by default', () => {
+  it('asks for the subscription type first, enabled, off (Individual) by default', () => {
     setup();
 
-    const individual = screen.getByRole('button', {
+    const typeSwitch = screen.getByRole('switch', {
       name: new RegExp(`^${typeCatalog[1].name}`),
-      pressed: true,
     });
-    expect(individual).toBeInTheDocument();
-    expect(individual).not.toBeDisabled();
+    expect(typeSwitch).toBeInTheDocument();
+    expect(typeSwitch).not.toBeChecked();
+    expect(typeSwitch).not.toBeDisabled();
   });
 
   it('disables the subscription type control when disableSubscriptionType is passed', () => {
     setup({ disableSubscriptionType: true });
 
     expect(
-      screen.getByRole('button', { name: new RegExp(`^${typeCatalog[1].name}`) }),
+      screen.getByRole('switch', { name: new RegExp(`^${typeCatalog[1].name}`) }),
     ).toBeDisabled();
     expect(screen.getByText(text.subscriptionTypeImmutableHelper)).toBeInTheDocument();
+  });
+
+  it('shows the clinics limit next to the subscription type, before the name', () => {
+    setup();
+
+    const clinicsLimit = screen.getByRole('textbox', {
+      name: new RegExp(`^${text.fields.clinicsLimit}`),
+    });
+    expect(clinicsLimit).toBeInTheDocument();
+    expect(
+      clinicsLimit.compareDocumentPosition(name()) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('shows the clinics limit disabled at 1 while the subscription type is Individual', () => {
+    setup();
+
+    const clinicsLimit = screen.getByRole('textbox', {
+      name: new RegExp(`^${text.fields.clinicsLimit}`),
+    });
+    expect(clinicsLimit).toBeDisabled();
+    expect(clinicsLimit).toHaveValue('1');
   });
 
   it('associates each error with its field', async () => {

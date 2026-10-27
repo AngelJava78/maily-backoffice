@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { messages } from '@/shared/messages/es';
 import {
+  catalogSubscription,
   createSubscriptionsCatalogMock,
   defaultCatalog,
 } from '@/test/handlers/subscriptionsCatalog';
@@ -43,6 +44,16 @@ async function formOf(value: string) {
   await waitFor(() => {
     expect(field(text.form.fields.name)).toHaveValue(value);
   });
+}
+
+/** The value next to a label of the detail's list of definitions. */
+function valueOf(label: string): HTMLElement {
+  const term = screen.getByText(label, { selector: 'dt' });
+  const value = term.nextElementSibling;
+  if (!(value instanceof HTMLElement)) {
+    throw new Error(`There is no value for ${label}`);
+  }
+  return value;
 }
 
 describe(
@@ -91,10 +102,7 @@ describe(
       await formOf('Pro');
 
       expect(
-        screen.getByRole('button', {
-          name: new RegExp(`^${text.types.catalog[1].name}`),
-          pressed: true,
-        }),
+        screen.getByRole('switch', { name: new RegExp(`^${text.types.catalog[1].name}`) }),
       ).toBeDisabled();
 
       await user.clear(field(text.form.fields.name));
@@ -106,6 +114,60 @@ describe(
         'subscription_type_id',
       );
       expect(catalog.state.find(2)?.subscriptionTypeId).toBe(1);
+    });
+
+    it('shows the clinics limit fixed at 1 in the detail and the edit form, and never sends it when only the name changes (Y7, Y9)', async () => {
+      const { catalog } = start();
+      const { user } = open('/subscriptions/2');
+      await screen.findByText('Para clínicas en crecimiento.');
+
+      expect(valueOf(text.detail.fields.clinicsLimit)).toHaveTextContent('1');
+
+      await user.click(screen.getByRole('link', { name: text.actions.edit }));
+      await formOf('Pro');
+      expect(field(text.form.fields.clinicsLimit)).toHaveValue('1');
+      expect(field(text.form.fields.clinicsLimit)).toBeDisabled();
+
+      await user.clear(field(text.form.fields.name));
+      await user.type(field(text.form.fields.name), 'Pro Plus');
+      await user.click(save());
+
+      expect(await screen.findByText(text.edit.saved)).toBeInTheDocument();
+      expect(catalog.requestsTo('PATCH', '/api/v1/subscriptions/2')[0]?.body).not.toHaveProperty(
+        'clinics_limit',
+      );
+    });
+
+    it('shows and changes the clinics limit of an Empresarial subscription, in the detail and the edit form (Y7, Y8)', async () => {
+      const { catalog } = start();
+      catalog.addSubscription(
+        catalogSubscription({
+          id: 30,
+          name: 'Plan Empresarial',
+          subscriptionTypeId: 2,
+          clinicsLimit: 40,
+        }),
+      );
+      const { user } = open('/subscriptions/30');
+      await screen.findByText('Plan Empresarial');
+
+      expect(valueOf(text.detail.fields.clinicsLimit)).toHaveTextContent('40');
+
+      await user.click(screen.getByRole('link', { name: text.actions.edit }));
+      await formOf('Plan Empresarial');
+      const clinicsLimitField = field(text.form.fields.clinicsLimit);
+      expect(clinicsLimitField).toHaveValue('40');
+      await user.clear(clinicsLimitField);
+      await user.type(clinicsLimitField, '60');
+      await user.click(save());
+
+      expect(await screen.findByText(text.edit.saved)).toBeInTheDocument();
+      expect(catalog.requestsTo('PATCH', '/api/v1/subscriptions/30')[0]?.body).toEqual({
+        clinics_limit: 60,
+      });
+      await waitFor(() => {
+        expect(valueOf(text.detail.fields.clinicsLimit)).toHaveTextContent('60');
+      });
     });
 
     it('changes the annual price, a limit and adds a module with a dependency, reflected in the detail (W11)', async () => {

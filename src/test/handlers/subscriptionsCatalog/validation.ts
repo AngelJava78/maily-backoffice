@@ -13,6 +13,10 @@ const PRICE_TEXT = /^[0-9]{1,8}(\.[0-9]{1,2})?$/;
 const WRITABLE_FIELDS: ReadonlySet<string> = new Set([
   'name',
   'description',
+  // Unlike `subscription_type_id`, writable at both create and update (007, predicted): the
+  // business rule that locks it on an Individual subscription is checked in the model, not here,
+  // because it needs to know the subscription's own type, not just the shape of the body.
+  'clinics_limit',
   'monthly_price',
   'annual_price',
   'trial_days',
@@ -55,6 +59,11 @@ const MESSAGES = {
   subscriptionTypeRequired:
     'El tipo de suscripción es obligatorio y debe ser un número entero positivo.',
   subscriptionTypeImmutable: 'El tipo de suscripción no puede modificarse una vez creada.',
+  // One message for missing, non-integer or out-of-range alike (contracts/subscriptions-service.md,
+  // predicted), same shape as the frontend's own clinicsLimitInvalid (research D5 of 019's plan):
+  // the type-dependent business rules (exactly 1 for Individual; immutable on update) are the
+  // model's job, not this shape-only check.
+  clinicsLimitInvalid: 'El límite de clínicas debe ser un número entero de 1 a 100.',
 } as const;
 
 type JsonObject = Readonly<Record<string, unknown>>;
@@ -170,6 +179,16 @@ function subscriptionTypeIdError(value: unknown): string | null {
     : MESSAGES.subscriptionTypeRequired;
 }
 
+/** Shape only (1 to 100): the type-dependent business rule is the model's job (research D4). */
+function clinicsLimitError(value: unknown): string | null {
+  if (value === undefined || value === null) {
+    return MESSAGES.clinicsLimitInvalid;
+  }
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 100
+    ? null
+    : MESSAGES.clinicsLimitInvalid;
+}
+
 function limitError(field: string) {
   return (value: unknown): string | null => {
     if (value === undefined || value === null) {
@@ -184,6 +203,7 @@ function limitError(field: string) {
 const CHECKS: readonly (readonly [string, (value: unknown) => string | null])[] = [
   ['name', nameError],
   ['description', descriptionError],
+  ['clinics_limit', clinicsLimitError],
   ['monthly_price', priceError(MESSAGES.priceRequired, MESSAGES.priceInvalid)],
   ['annual_price', priceError(MESSAGES.annualPriceRequired, MESSAGES.annualPriceInvalid)],
   ['trial_days', trialDaysError],
@@ -265,6 +285,7 @@ export function validateCreate(body: unknown): SubscriptionInput {
     name: text(data.name),
     description: typeof data.description === 'string' ? data.description : null,
     subscription_type_id: integer(data.subscription_type_id),
+    clinics_limit: integer(data.clinics_limit),
     monthly_price: price(data.monthly_price),
     annual_price: price(data.annual_price),
     trial_days: optionalInteger(data.trial_days),
@@ -311,6 +332,7 @@ export function validateUpdate(body: unknown): SubscriptionChanges {
     ...('annual_price' in data ? { annual_price: price(data.annual_price) } : {}),
     ...('trial_days' in data ? { trial_days: integer(data.trial_days) } : {}),
     ...('self_service' in data ? { self_service: data.self_service === true } : {}),
+    ...('clinics_limit' in data ? { clinics_limit: integer(data.clinics_limit) } : {}),
     ...('module_keys' in data ? { module_keys: textList(data.module_keys) } : {}),
     ...('other_features' in data ? { other_features: textList(data.other_features) } : {}),
     ...('consulting_rooms_limit' in data

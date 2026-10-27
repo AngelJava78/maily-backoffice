@@ -18,6 +18,7 @@ const create = (body: unknown) => callSubscriptions(PATH, { method: 'POST', body
 /** Every field the API requires on create, besides `name` and `monthly_price`. */
 const REQUIRED_FIELDS = {
   subscription_type_id: 1,
+  clinics_limit: 1,
   annual_price: '32000.5',
   consulting_rooms_limit: 3,
   doctors_limit: 4,
@@ -154,6 +155,83 @@ describe('POST /api/v1/subscriptions', () => {
       },
     });
   });
+
+  it('creates an Individual subscription with a clinics_limit of 1', async () => {
+    setup();
+
+    expect(
+      await create({ name: 'Individual con límite', monthly_price: '1', ...REQUIRED_FIELDS }),
+    ).toMatchObject({ status: 201, body: { clinics_limit: 1 } });
+  });
+
+  it('refuses an Individual subscription whose clinics_limit is not exactly 1, with its own message', async () => {
+    setup();
+
+    expect(
+      await create({
+        name: 'Individual con límite inválido',
+        monthly_price: '1',
+        ...REQUIRED_FIELDS,
+        clinics_limit: 2,
+      }),
+    ).toMatchObject({
+      status: 422,
+      body: {
+        code: 'validation_error',
+        errors: [
+          {
+            field: 'clinics_limit',
+            message: 'El límite de clínicas de una suscripción Individual debe ser exactamente 1.',
+          },
+        ],
+      },
+    });
+  });
+
+  it.each([1, 50, 100])(
+    'creates an Empresarial subscription with a clinics_limit of %i',
+    async (limit) => {
+      setup();
+
+      expect(
+        await create({
+          name: 'Empresarial con límite',
+          monthly_price: '1',
+          ...REQUIRED_FIELDS,
+          subscription_type_id: 2,
+          clinics_limit: limit,
+        }),
+      ).toMatchObject({ status: 201, body: { clinics_limit: limit } });
+    },
+  );
+
+  it.each([0, 101, undefined])(
+    'refuses an Empresarial subscription with a clinics_limit of %s',
+    async (limit) => {
+      setup();
+
+      expect(
+        await create({
+          name: 'Empresarial con límite inválido',
+          monthly_price: '1',
+          ...REQUIRED_FIELDS,
+          subscription_type_id: 2,
+          clinics_limit: limit,
+        }),
+      ).toMatchObject({
+        status: 422,
+        body: {
+          code: 'validation_error',
+          errors: [
+            {
+              field: 'clinics_limit',
+              message: 'El límite de clínicas debe ser un número entero de 1 a 100.',
+            },
+          ],
+        },
+      });
+    },
+  );
 
   it.each(['pro', ' PRO ', 'Pro'])(
     'refuses the name %j, which another subscription that is not deleted uses',
@@ -354,6 +432,7 @@ describe('POST /api/v1/subscriptions', () => {
       errors: [
         { field: 'subscription_type_id' },
         { field: 'name', message: 'El nombre de la suscripción es obligatorio.' },
+        { field: 'clinics_limit' },
         { field: 'monthly_price' },
         { field: 'annual_price' },
         { field: 'consulting_rooms_limit' },

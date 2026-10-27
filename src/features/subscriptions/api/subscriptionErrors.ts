@@ -12,6 +12,7 @@ export type SubscriptionFormField =
   | 'name'
   | 'description'
   | 'subscriptionTypeId'
+  | 'clinicsLimit'
   | 'monthlyPrice'
   | 'annualPrice'
   | 'trialDays'
@@ -53,6 +54,7 @@ const FORM_FIELDS = new Map<string, SubscriptionFormField>([
   ['name', 'name'],
   ['description', 'description'],
   ['subscription_type_id', 'subscriptionTypeId'],
+  ['clinics_limit', 'clinicsLimit'],
   ['monthly_price', 'monthlyPrice'],
   ['annual_price', 'annualPrice'],
   ['trial_days', 'trialDays'],

@@ -4,7 +4,10 @@ import { describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import { messages } from '@/shared/messages/es';
-import { createSubscriptionsCatalogMock } from '@/test/handlers/subscriptionsCatalog';
+import {
+  catalogSubscription,
+  createSubscriptionsCatalogMock,
+} from '@/test/handlers/subscriptionsCatalog';
 import { ADMIN_AUTH0, createUsersDirectoryMock } from '@/test/handlers/usersDirectory';
 import { renderWithProviders } from '@/test/renderWithProviders';
 
@@ -45,6 +48,7 @@ const field = (label: string) => screen.getByRole('textbox', { name: new RegExp(
 const name = () => field(text.form.fields.name);
 const description = () => field(text.form.fields.description);
 const price = () => field(text.form.fields.monthlyPrice);
+const clinicsLimit = () => field(text.form.fields.clinicsLimit);
 const element = (n: number) => field(text.form.otherFeatureLabel(n));
 const save = () => screen.getByRole('button', { name: new RegExp(`^${messages.common.save}`) });
 const PATCHES = '/api/v1/subscriptions/2';
@@ -88,15 +92,21 @@ describe('SubscriptionEditPage', { timeout: 30_000 }, () => {
     renderEdit();
     await formReady();
 
-    const individual = screen.getByRole('button', {
+    const typeSwitch = screen.getByRole('switch', {
       name: new RegExp(`^${text.types.catalog[1].name}`),
-      pressed: true,
     });
-    expect(individual).toBeDisabled();
-    expect(
-      screen.getByRole('button', { name: new RegExp(`^${text.types.catalog[2].name}`) }),
-    ).toBeDisabled();
+    expect(typeSwitch).toBeDisabled();
+    expect(typeSwitch).not.toBeChecked();
     expect(screen.getByText(text.form.subscriptionTypeImmutableHelper)).toBeInTheDocument();
+  });
+
+  it('shows the clinics limit fixed and disabled at 1 for an Individual subscription', async () => {
+    start();
+    renderEdit();
+    await formReady();
+
+    expect(clinicsLimit()).toHaveValue('1');
+    expect(clinicsLimit()).toBeDisabled();
   });
 
   it('opens with the annual price, trial days, autoconsumo, modules and limits already set', async () => {
@@ -159,6 +169,19 @@ describe('SubscriptionEditPage', { timeout: 30_000 }, () => {
       expect(catalog.requestsTo('PATCH', PATCHES)[0]?.body).not.toHaveProperty(
         'subscription_type_id',
       );
+    });
+
+    it('never sends the clinics limit of an Individual subscription, even disabled at 1', async () => {
+      const catalog = start();
+      const { user } = renderEdit();
+      await formReady();
+
+      await user.clear(price());
+      await user.type(price(), '5000');
+      await user.click(save());
+
+      await screen.findByText(/^Detalle 2:/);
+      expect(catalog.requestsTo('PATCH', PATCHES)[0]?.body).not.toHaveProperty('clinics_limit');
     });
 
     it('sends the name when only its upper case changed', async () => {
@@ -359,6 +382,52 @@ describe('SubscriptionEditPage', { timeout: 30_000 }, () => {
       description: 'Para clínicas en crecimiento. Con soporte.',
     });
     expect(catalog.state.find(2)?.monthlyPrice).toBe('4800.00');
+  });
+
+  describe('editing an Empresarial subscription', () => {
+    function startEnterprise() {
+      const catalog = start();
+      catalog.addSubscription(
+        catalogSubscription({
+          id: 30,
+          name: 'Empresarial',
+          subscriptionTypeId: 2,
+          clinicsLimit: 20,
+        }),
+      );
+      return catalog;
+    }
+    const ENTERPRISE_PATCHES = '/api/v1/subscriptions/30';
+
+    async function enterpriseFormReady() {
+      await waitFor(() => {
+        expect(name()).toHaveValue('Empresarial');
+      });
+    }
+
+    it('shows the clinics limit enabled, with its current value', async () => {
+      startEnterprise();
+      renderEdit(30);
+      await enterpriseFormReady();
+
+      expect(clinicsLimit()).toHaveValue('20');
+      expect(clinicsLimit()).not.toBeDisabled();
+    });
+
+    it('sends the clinics limit when it changes, within 1 to 100', async () => {
+      const catalog = startEnterprise();
+      const { user } = renderEdit(30);
+      await enterpriseFormReady();
+
+      await user.clear(clinicsLimit());
+      await user.type(clinicsLimit(), '50');
+      await user.click(save());
+
+      await screen.findByText(/^Detalle 30:/);
+      expect(catalog.requestsTo('PATCH', ENTERPRISE_PATCHES)[0]?.body).toEqual({
+        clinics_limit: 50,
+      });
+    });
   });
 
   it('has no accessibility violations', async () => {

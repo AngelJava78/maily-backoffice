@@ -26,6 +26,10 @@ export const subscriptionSchema = z
     name: z.string().min(1),
     description: z.string().nullable(),
     subscription_type: z.object({ id: z.number().int(), name: z.string() }),
+    // The clinics limit API (007-add-clinics-limit) is not implemented yet (contracts/
+    // subscriptions-service.md): missing or null is taken as null, never as a business-meaningless
+    // default, until the real contract lands.
+    clinics_limit: z.number().int().nullable().optional(),
     monthly_price: z.string().regex(READ_PRICE_PATTERN),
     annual_price: z.string().regex(READ_PRICE_PATTERN),
     trial_days: z.number().int().min(0).max(3650),
@@ -47,6 +51,7 @@ export const subscriptionSchema = z
     name: dto.name,
     description: dto.description,
     subscriptionType: dto.subscription_type,
+    clinicsLimit: dto.clinics_limit ?? null,
     monthlyPrice: dto.monthly_price,
     annualPrice: dto.annual_price,
     trialDays: dto.trial_days,

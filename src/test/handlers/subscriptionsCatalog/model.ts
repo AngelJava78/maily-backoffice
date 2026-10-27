@@ -10,6 +10,10 @@ import type { SubscriptionDto } from '../../factories';
 const ACTIVE = 1;
 const DELETED = 4;
 
+/** The id of the Individual subscription type (006-add-subscription-type), where the clinics
+ * limit rule differs from every other type (007-add-clinics-limit, predicted). */
+const INDIVIDUAL_TYPE_ID = 1;
+
 /**
  * The names of the subscription type catalog, kept by the simulator itself (like the status names
  * above), never imported from `es.ts`: that is frontend text, not the "server" this imitates.
@@ -35,6 +39,8 @@ export interface CatalogSubscription {
   readonly name: string;
   readonly description: string | null;
   readonly subscriptionTypeId: number;
+  /** 1 if `subscriptionTypeId` is Individual; 1 to 100 otherwise (007, predicted). */
+  readonly clinicsLimit: number;
   /** Always with two decimals, as the API keeps it: `4500.00`. */
   readonly monthlyPrice: string;
   /** Always with two decimals, independent of the monthly price. */
@@ -72,6 +78,7 @@ export interface SubscriptionInput {
   readonly name: string;
   readonly description?: string | null;
   readonly subscription_type_id: number;
+  readonly clinics_limit: number;
   readonly monthly_price: string | number;
   readonly annual_price: string | number;
   readonly trial_days?: number;
@@ -89,6 +96,12 @@ export interface SubscriptionInput {
 export interface SubscriptionChanges {
   readonly name?: string;
   readonly description?: string | null;
+  /**
+   * Unlike `subscription_type_id` (never accepted here at all), this one is accepted, but only
+   * while the subscription being updated is not Individual (007, predicted): `update()` below
+   * refuses the whole request if it is present on an Individual subscription, any value included.
+   */
+  readonly clinics_limit?: number;
   readonly monthly_price?: string | number;
   readonly annual_price?: string | number;
   readonly trial_days?: number;
@@ -154,6 +167,7 @@ export function catalogSubscription(
     name: `Plan ${id}`,
     description: null,
     subscriptionTypeId: 1,
+    clinicsLimit: 1,
     monthlyPrice: '100.00',
     annualPrice: '1000.00',
     trialDays: 0,
@@ -197,6 +211,33 @@ function requireKnownSubscriptionType(id: number): void {
       'subscription_type_not_found',
       `No se encontró el tipo de suscripción con el identificador ${id}.`,
     );
+  }
+}
+
+/**
+ * The clinics limit's business range depends on the subscription type (007-add-clinics-limit of
+ * `maily-system-api`, predicted — not implemented there yet, research D4 of 019): exactly 1 for
+ * Individual; 1 to 100 otherwise. Checked after the type itself is known to exist.
+ */
+function requireClinicsLimitForType(subscriptionTypeId: number, clinicsLimit: number): void {
+  if (subscriptionTypeId === INDIVIDUAL_TYPE_ID) {
+    if (clinicsLimit !== 1) {
+      throw validationError([
+        {
+          field: 'clinics_limit',
+          message: 'El límite de clínicas de una suscripción Individual debe ser exactamente 1.',
+        },
+      ]);
+    }
+    return;
+  }
+  if (clinicsLimit < 1 || clinicsLimit > 100) {
+    throw validationError([
+      {
+        field: 'clinics_limit',
+        message: 'El límite de clínicas debe ser un número entero de 1 a 100.',
+      },
+    ]);
   }
 }
 
@@ -310,6 +351,7 @@ export function createCatalogModel(initial: CatalogInitial) {
         : { annualPrice: keepPrice(changes.annual_price) }),
       ...(changes.trial_days === undefined ? {} : { trialDays: changes.trial_days }),
       ...(changes.self_service === undefined ? {} : { selfService: changes.self_service }),
+      ...(changes.clinics_limit === undefined ? {} : { clinicsLimit: changes.clinics_limit }),
       ...(changes.module_keys === undefined
         ? {}
         : { moduleKeys: normalizeModuleKeys(changes.module_keys) }),
@@ -358,6 +400,7 @@ export function createCatalogModel(initial: CatalogInitial) {
           id: subscription.subscriptionTypeId,
           name: SUBSCRIPTION_TYPE_NAMES.get(subscription.subscriptionTypeId) ?? 'Desconocido',
         },
+        clinics_limit: subscription.clinicsLimit,
         monthly_price: subscription.monthlyPrice,
         annual_price: subscription.annualPrice,
         trial_days: subscription.trialDays,
@@ -383,12 +426,14 @@ export function createCatalogModel(initial: CatalogInitial) {
       // the real API (create vs. update): an invalid request changes nothing.
       const moduleKeys = normalizeModuleKeys(input.module_keys);
       requireKnownSubscriptionType(input.subscription_type_id);
+      requireClinicsLimitForType(input.subscription_type_id, input.clinics_limit);
       const at = now();
       const created: CatalogSubscription = {
         id: subscriptions.reduce((highest, current) => Math.max(highest, current.id), 0) + 1,
         name,
         description: orNull(input.description),
         subscriptionTypeId: input.subscription_type_id,
+        clinicsLimit: input.clinics_limit,
         monthlyPrice: keepPrice(input.monthly_price),
         annualPrice: keepPrice(input.annual_price),
         trialDays: input.trial_days ?? 0,
@@ -412,6 +457,27 @@ export function createCatalogModel(initial: CatalogInitial) {
       const subscription = get(id);
       if (changes.name !== undefined) {
         requireFreeName(changes.name.trim(), id);
+      }
+      if (changes.clinics_limit !== undefined) {
+        // Unlike create (where Individual must be exactly 1), update forbids the field outright on
+        // an Individual subscription, any value included (007, predicted; same treatment as
+        // subscription_type_id's own immutability, research D4 of 019).
+        if (subscription.subscriptionTypeId === INDIVIDUAL_TYPE_ID) {
+          throw validationError([
+            {
+              field: 'clinics_limit',
+              message: 'El límite de clínicas no se puede modificar en una suscripción Individual.',
+            },
+          ]);
+        }
+        if (changes.clinics_limit < 1 || changes.clinics_limit > 100) {
+          throw validationError([
+            {
+              field: 'clinics_limit',
+              message: 'El límite de clínicas debe ser un número entero de 1 a 100.',
+            },
+          ]);
+        }
       }
       return replace(applyChanges(subscription, changes));
     },

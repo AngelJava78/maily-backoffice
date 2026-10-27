@@ -111,6 +111,20 @@ describe('SubscriptionDetailFields', () => {
     expect(valueOf(text.fields.type)).toHaveTextContent('Futuro');
   });
 
+  it('shows the clinics limit next to the type', () => {
+    renderFields({ clinics_limit: 25 });
+
+    expect(valueOf(text.fields.clinicsLimit)).toHaveTextContent('25');
+  });
+
+  it('shows «No disponible» for the clinics limit while the API does not send it', () => {
+    renderFields({ clinics_limit: null });
+
+    expect(valueOf(text.fields.clinicsLimit)).toHaveTextContent(
+      messages.subscriptions.clinics.notAvailable,
+    );
+  });
+
   it('lists the included modules by name, in the fixed catalog order', () => {
     renderFields({ module_keys: ['billing', 'patients', 'finance'] });
 

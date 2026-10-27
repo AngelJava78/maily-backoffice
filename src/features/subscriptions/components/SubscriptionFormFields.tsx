@@ -1,12 +1,13 @@
 import InputAdornment from '@mui/material/InputAdornment';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
-import type { Control, FieldErrors, UseFormRegister } from 'react-hook-form';
+import type { Control, FieldErrors, UseFormRegister, UseFormSetValue } from 'react-hook-form';
 
 import { messages } from '@/shared/messages/es';
 
 import type { SubscriptionFormValues } from '../schemas/subscriptionForm';
 import { ClinicLimitsFields } from './ClinicLimitsFields';
+import { ClinicsLimitField } from './ClinicsLimitField';
 import { ModulesField } from './ModulesField';
 import { OtherFeaturesField } from './OtherFeaturesField';
 import { SelfServiceAndTrialFields } from './SelfServiceAndTrialFields';
@@ -17,6 +18,7 @@ const text = messages.subscriptions.form;
 interface SubscriptionFormFieldsProps {
   readonly register: UseFormRegister<SubscriptionFormValues>;
   readonly control: Control<SubscriptionFormValues>;
+  readonly setValue: UseFormSetValue<SubscriptionFormValues>;
   readonly errors: FieldErrors<SubscriptionFormValues>;
   /** Only the edition passes this: the type is fixed forever once created (FR-004, research D3). */
   readonly disableSubscriptionType?: boolean;
@@ -32,6 +34,7 @@ interface SubscriptionFormFieldsProps {
 export function SubscriptionFormFields({
   register,
   control,
+  setValue,
   errors,
   disableSubscriptionType = false,
 }: SubscriptionFormFieldsProps) {
@@ -43,7 +46,13 @@ export function SubscriptionFormFields({
 
   return (
     <Stack spacing={3}>
-      <SubscriptionTypeField control={control} errors={errors} disabled={disableSubscriptionType} />
+      <SubscriptionTypeField
+        control={control}
+        setValue={setValue}
+        errors={errors}
+        disabled={disableSubscriptionType}
+      />
+      <ClinicsLimitField register={register} control={control} errors={errors} />
       <Stack spacing={2}>
         <TextField
           {...name}

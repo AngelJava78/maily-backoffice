@@ -554,6 +554,7 @@ export const messages = {
       fields: {
         name: 'Nombre',
         type: 'Tipo',
+        clinicsLimit: 'Límite de clínicas',
         description: 'Descripción',
         monthlyPrice: 'Precio mensual',
         annualPrice: 'Precio anual',
@@ -591,6 +592,7 @@ export const messages = {
         name: 'Nombre',
         description: 'Descripción',
         subscriptionType: 'Tipo de suscripción',
+        clinicsLimit: 'Límite de clínicas',
         monthlyPrice: 'Precio mensual',
         annualPrice: 'Precio anual',
         trialDays: 'Días de prueba',
@@ -602,6 +604,8 @@ export const messages = {
         otherFeatures: 'Otras funcionalidades',
       },
       subscriptionTypeImmutableHelper: 'El tipo no se puede modificar después de creada.',
+      clinicsLimitHelper: 'De 1 a 100 clínicas.',
+      clinicsLimitFixedHelper: 'Siempre 1 para las suscripciones Individual.',
       descriptionHelper: 'Opcional. Hasta 500 caracteres.',
       priceHelper: 'Solo números y punto decimal, por ejemplo 4500 o 4500.50.',
       pricePrefix: '$',
@@ -676,6 +680,9 @@ export const messages = {
       annualPriceRequired: 'El precio anual es obligatorio.',
       annualPriceInvalid: PRICE_RULE,
       trialDaysInvalid: 'Escribe un número entero de 0 a 3650.',
+      clinicsLimitInvalid: 'Escribe un número entero de 1 a 100.',
+      clinicsLimitMustBeOneForIndividual:
+        'Para una suscripción Individual, el límite de clínicas debe ser 1.',
       consultingRoomsLimitInvalid: LIMIT_RULE,
       doctorsLimitInvalid: LIMIT_RULE,
       assistantsLimitInvalid: LIMIT_RULE,
@@ -692,6 +699,8 @@ export const messages = {
         name: 'Revisa el nombre: debe tener de 1 a 100 caracteres.',
         description: 'Revisa la descripción: admite hasta 500 caracteres.',
         subscriptionTypeId: 'El tipo de suscripción no es válido.',
+        clinicsLimit:
+          'Revisa el límite de clínicas: 1 para una suscripción Individual (fijo), de 1 a 100 para las demás.',
         monthlyPrice: PRICE_RULE,
         annualPrice: PRICE_RULE,
         trialDays: 'Revisa los días de prueba: deben ser un número entero de 0 a 3650.',

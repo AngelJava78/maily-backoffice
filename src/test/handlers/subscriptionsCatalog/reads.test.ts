@@ -48,6 +48,7 @@ describe('GET /api/v1/subscriptions', () => {
       name: 'Básico',
       description: null,
       subscription_type: { id: 1, name: 'Individual' },
+      clinics_limit: 1,
       monthly_price: '1500.00',
       annual_price: '1000.00',
       trial_days: 0,

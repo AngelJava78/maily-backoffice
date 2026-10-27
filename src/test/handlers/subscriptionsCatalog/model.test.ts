@@ -22,6 +22,7 @@ function modelWith(...subscriptions: ReturnType<typeof catalogSubscription>[]) {
 /** The fields `create` requires besides `name` and `monthly_price`, for tests that do not care. */
 const REQUIRED_CREATE_FIELDS = {
   subscription_type_id: 1,
+  clinics_limit: 1,
   annual_price: '0',
   consulting_rooms_limit: 0,
   doctors_limit: 0,
@@ -34,6 +35,10 @@ const names = (items: readonly { readonly name: string }[]) => items.map(({ name
 describe('catalogSubscription', () => {
   it('defaults to subscription type 1 (Individual), like the real column default', () => {
     expect(catalogSubscription().subscriptionTypeId).toBe(1);
+  });
+
+  it('defaults to a clinics limit of 1, valid for the default Individual type', () => {
+    expect(catalogSubscription().clinicsLimit).toBe(1);
   });
 });
 
@@ -88,6 +93,13 @@ describe('createCatalogModel', () => {
 
       expect(subscription && model.toDto(subscription).subscription_type).toEqual({ id, name });
     });
+
+    it('gives the DTO with the clinics limit as a plain integer, not nested', () => {
+      const model = modelWith(catalogSubscription({ id: 1, clinicsLimit: 40 }));
+      const [subscription] = model.list();
+
+      expect(subscription && model.toDto(subscription).clinics_limit).toBe(40);
+    });
   });
 
   describe('create', () => {
@@ -98,6 +110,7 @@ describe('createCatalogModel', () => {
         name: '  Pro  ',
         description: '  Para clínicas.  ',
         subscription_type_id: 1,
+        clinics_limit: 1,
         monthly_price: '4500',
         annual_price: '45000',
         other_features: ['  Uno ', 'Dos'],
@@ -245,6 +258,86 @@ describe('createCatalogModel', () => {
       });
     });
 
+    it('creates an Individual subscription with clinics_limit 1', () => {
+      const created = modelWith().create({
+        name: 'A',
+        monthly_price: '0',
+        ...REQUIRED_CREATE_FIELDS,
+        subscription_type_id: 1,
+        clinics_limit: 1,
+      });
+
+      expect(created.clinicsLimit).toBe(1);
+    });
+
+    it.each([0, 2, 100])(
+      'refuses an Individual subscription with clinics_limit %i, which must be exactly 1',
+      (clinicsLimit) => {
+        const refusal = refusalOf(() =>
+          modelWith().create({
+            name: 'A',
+            monthly_price: '0',
+            ...REQUIRED_CREATE_FIELDS,
+            subscription_type_id: 1,
+            clinics_limit: clinicsLimit,
+          }),
+        );
+
+        expect(refusal).toMatchObject({
+          status: 422,
+          code: 'validation_error',
+          fieldErrors: [
+            {
+              field: 'clinics_limit',
+              message:
+                'El límite de clínicas de una suscripción Individual debe ser exactamente 1.',
+            },
+          ],
+        });
+      },
+    );
+
+    it.each([1, 50, 100])(
+      'creates an Empresarial subscription with clinics_limit %i',
+      (clinicsLimit) => {
+        const created = modelWith().create({
+          name: 'A',
+          monthly_price: '0',
+          ...REQUIRED_CREATE_FIELDS,
+          subscription_type_id: 2,
+          clinics_limit: clinicsLimit,
+        });
+
+        expect(created.clinicsLimit).toBe(clinicsLimit);
+      },
+    );
+
+    it.each([0, 101])(
+      'refuses an Empresarial subscription with clinics_limit %i, out of 1 to 100',
+      (clinicsLimit) => {
+        const refusal = refusalOf(() =>
+          modelWith().create({
+            name: 'A',
+            monthly_price: '0',
+            ...REQUIRED_CREATE_FIELDS,
+            subscription_type_id: 2,
+            clinics_limit: clinicsLimit,
+          }),
+        );
+
+        expect(refusal).toMatchObject({
+          status: 422,
+          code: 'validation_error',
+          fieldErrors: [
+            {
+              field: 'clinics_limit',
+              message: 'El límite de clínicas debe ser un número entero de 1 a 100.',
+            },
+          ],
+        });
+      },
+    );
+
     it('gives the next id and moves the dates forward', () => {
       const model = modelWith(catalogSubscription({ id: 7 }));
 
@@ -364,6 +457,62 @@ describe('createCatalogModel', () => {
         });
       }
     });
+
+    it.each([1, 2])(
+      'refuses any clinics_limit %i on an Individual subscription, changing nothing',
+      (clinicsLimit) => {
+        const model = modelWith(
+          catalogSubscription({ id: 1, subscriptionTypeId: 1, clinicsLimit: 1, name: 'Pro' }),
+        );
+
+        const refusal = refusalOf(() =>
+          model.update(1, { clinics_limit: clinicsLimit, name: 'Otro' }),
+        );
+
+        expect(refusal).toMatchObject({
+          status: 422,
+          code: 'validation_error',
+          fieldErrors: [
+            {
+              field: 'clinics_limit',
+              message: 'El límite de clínicas no se puede modificar en una suscripción Individual.',
+            },
+          ],
+        });
+        expect(model.find(1)).toMatchObject({ name: 'Pro', clinicsLimit: 1 });
+      },
+    );
+
+    it('applies a new clinics_limit of 1 to 100 on an Empresarial subscription', () => {
+      const model = modelWith(
+        catalogSubscription({ id: 1, subscriptionTypeId: 2, clinicsLimit: 10 }),
+      );
+
+      expect(model.update(1, { clinics_limit: 50 }).clinicsLimit).toBe(50);
+    });
+
+    it.each([0, 101])(
+      'refuses a clinics_limit of %i on an Empresarial subscription, out of 1 to 100',
+      (clinicsLimit) => {
+        const model = modelWith(
+          catalogSubscription({ id: 1, subscriptionTypeId: 2, clinicsLimit: 10 }),
+        );
+
+        const refusal = refusalOf(() => model.update(1, { clinics_limit: clinicsLimit }));
+
+        expect(refusal).toMatchObject({
+          status: 422,
+          code: 'validation_error',
+          fieldErrors: [
+            {
+              field: 'clinics_limit',
+              message: 'El límite de clínicas debe ser un número entero de 1 a 100.',
+            },
+          ],
+        });
+        expect(model.find(1)?.clinicsLimit).toBe(10);
+      },
+    );
   });
 
   describe('changeStatus', () => {

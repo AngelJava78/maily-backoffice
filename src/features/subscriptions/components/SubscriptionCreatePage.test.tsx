@@ -52,6 +52,7 @@ const name = () => field(text.form.fields.name);
 const description = () => field(text.form.fields.description);
 const price = () => field(text.form.fields.monthlyPrice);
 const annualPrice = () => field(text.form.fields.annualPrice);
+const clinicsLimit = () => field(text.form.fields.clinicsLimit);
 const consultingRoomsLimit = () => field(text.form.fields.consultingRoomsLimit);
 const doctorsLimit = () => field(text.form.fields.doctorsLimit);
 const assistantsLimit = () => field(text.form.fields.assistantsLimit);
@@ -87,11 +88,45 @@ describe('SubscriptionCreatePage', { timeout: 30_000 }, () => {
     expect(price()).toHaveValue('');
     expect(screen.queryByLabelText(/estatus/i)).not.toBeInTheDocument();
     expect(
-      screen.getByRole('button', {
-        name: new RegExp(`^${text.types.catalog[1].name}`),
-        pressed: true,
-      }),
-    ).toBeInTheDocument();
+      screen.getByRole('switch', { name: new RegExp(`^${text.types.catalog[1].name}`) }),
+    ).not.toBeChecked();
+  });
+
+  it('opens with the clinics limit fixed at 1, disabled, for the default Individual type', () => {
+    start();
+    renderCreate();
+
+    expect(clinicsLimit()).toHaveValue('1');
+    expect(clinicsLimit()).toBeDisabled();
+  });
+
+  it('shows the type as a switch, and resets the clinics limit to 1 each time it is toggled (Y6)', async () => {
+    start();
+    const { user } = renderCreate();
+
+    expect(
+      screen.queryByRole('button', { name: new RegExp(`^${text.types.catalog[1].name}`) }),
+    ).not.toBeInTheDocument();
+    const typeSwitch = screen.getByRole('switch', {
+      name: new RegExp(`^${text.types.catalog[1].name}`),
+    });
+
+    await user.click(typeSwitch);
+
+    expect(clinicsLimit()).toHaveValue('1');
+    expect(clinicsLimit()).not.toBeDisabled();
+
+    await user.clear(clinicsLimit());
+    await user.type(clinicsLimit(), '30');
+    await user.click(typeSwitch);
+
+    expect(clinicsLimit()).toHaveValue('1');
+    expect(clinicsLimit()).toBeDisabled();
+
+    await user.click(typeSwitch);
+
+    expect(clinicsLimit()).toHaveValue('1');
+    expect(clinicsLimit()).not.toBeDisabled();
   });
 
   it('shows the preview panel next to the form, updated live (FR-014)', async () => {
@@ -132,6 +167,27 @@ describe('SubscriptionCreatePage', { timeout: 30_000 }, () => {
         expect(catalog.requestsTo('POST', PATH)).toHaveLength(0);
       },
     );
+
+    it.each(['0', '101', ''])(
+      'refuses a clinics limit of %j for an Empresarial subscription and sends nothing',
+      async (typed) => {
+        const catalog = start();
+        const { user } = renderCreate();
+        await fillIn(user);
+        await user.click(
+          screen.getByRole('switch', { name: new RegExp(`^${text.types.catalog[1].name}`) }),
+        );
+        await user.clear(clinicsLimit());
+        if (typed !== '') {
+          await user.type(clinicsLimit(), typed);
+        }
+
+        await user.click(save());
+
+        expect(clinicsLimit()).toHaveAccessibleDescription(text.validation.clinicsLimitInvalid);
+        expect(catalog.requestsTo('POST', PATH)).toHaveLength(0);
+      },
+    );
   });
 
   describe('creating the subscription', () => {
@@ -158,10 +214,11 @@ describe('SubscriptionCreatePage', { timeout: 30_000 }, () => {
         name: 'Clínica Plus',
         description: 'Para clínicas medianas.',
         subscription_type_id: 1,
+        clinics_limit: 1,
         monthly_price: '3200.50',
         annual_price: '32000.50',
         trial_days: 0,
-        self_service: false,
+        self_service: true,
         module_keys: ['patients'],
         other_features: ['Hasta 3 consultorios', 'Agenda y pacientes'],
         consulting_rooms_limit: 3,
@@ -177,7 +234,7 @@ describe('SubscriptionCreatePage', { timeout: 30_000 }, () => {
       const { user } = renderCreate();
       await fillIn(user);
       await user.click(
-        screen.getByRole('button', { name: new RegExp(`^${text.types.catalog[2].name}`) }),
+        screen.getByRole('switch', { name: new RegExp(`^${text.types.catalog[1].name}`) }),
       );
 
       await user.click(save());
@@ -186,16 +243,31 @@ describe('SubscriptionCreatePage', { timeout: 30_000 }, () => {
       expect(catalog.requestsTo('POST', PATH)[0]?.body).toMatchObject({ subscription_type_id: 2 });
     });
 
-    it('keeps only the last option chosen on the control (US1-4)', async () => {
+    it('creates it with the clinics limit typed, once Empresarial is chosen (US1-1)', async () => {
       const catalog = start();
       const { user } = renderCreate();
       await fillIn(user);
       await user.click(
-        screen.getByRole('button', { name: new RegExp(`^${text.types.catalog[2].name}`) }),
+        screen.getByRole('switch', { name: new RegExp(`^${text.types.catalog[1].name}`) }),
       );
-      await user.click(
-        screen.getByRole('button', { name: new RegExp(`^${text.types.catalog[1].name}`) }),
-      );
+      await user.clear(clinicsLimit());
+      await user.type(clinicsLimit(), '25');
+
+      await user.click(save());
+
+      await screen.findByText(/^Detalle 8:/);
+      expect(catalog.requestsTo('POST', PATH)[0]?.body).toMatchObject({ clinics_limit: 25 });
+    });
+
+    it('keeps only the last option chosen on the control (US1-4)', async () => {
+      const catalog = start();
+      const { user } = renderCreate();
+      await fillIn(user);
+      const typeSwitch = screen.getByRole('switch', {
+        name: new RegExp(`^${text.types.catalog[1].name}`),
+      });
+      await user.click(typeSwitch);
+      await user.click(typeSwitch);
 
       await user.click(save());
 
@@ -203,15 +275,39 @@ describe('SubscriptionCreatePage', { timeout: 30_000 }, () => {
       expect(catalog.requestsTo('POST', PATH)[0]?.body).toMatchObject({ subscription_type_id: 1 });
     });
 
-    it('creates it with autoconsumo, trial days and modules with a dependency (US2-4, W9)', async () => {
+    it('shows autoconsumo activated by default, and creates it that way without touching it (Y10)', async () => {
+      const catalog = start();
+      const { user } = renderCreate();
+
+      expect(
+        screen.getByRole('switch', { name: new RegExp(`^${text.form.fields.selfService}`) }),
+      ).toBeChecked();
+
+      await fillIn(user);
+      await user.click(save());
+
+      await screen.findByText(/^Detalle 8:/);
+      expect(catalog.requestsTo('POST', PATH)[0]?.body).toMatchObject({ self_service: true });
+    });
+
+    it('creates it with autoconsumo deactivated when turned off before saving (Y10)', async () => {
       const catalog = start();
       const { user } = renderCreate();
       await fillIn(user);
       await user.click(
-        screen.getByRole('switch', {
-          name: new RegExp(`^${text.form.fields.selfService}`),
-        }),
+        screen.getByRole('switch', { name: new RegExp(`^${text.form.fields.selfService}`) }),
       );
+
+      await user.click(save());
+
+      await screen.findByText(/^Detalle 8:/);
+      expect(catalog.requestsTo('POST', PATH)[0]?.body).toMatchObject({ self_service: false });
+    });
+
+    it('creates it with autoconsumo (active by default), trial days and modules with a dependency (US2-4, W9)', async () => {
+      const catalog = start();
+      const { user } = renderCreate();
+      await fillIn(user);
       const trialDaysField = field(text.form.fields.trialDays);
       await user.clear(trialDaysField);
       await user.type(trialDaysField, '14');

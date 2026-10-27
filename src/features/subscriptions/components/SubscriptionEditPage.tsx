@@ -60,6 +60,7 @@ function EditSubscriptionForm({
   const {
     register,
     control,
+    setValue,
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
@@ -117,6 +118,7 @@ function EditSubscriptionForm({
       <SubscriptionFormFields
         register={register}
         control={control}
+        setValue={setValue}
         errors={errors}
         disableSubscriptionType
       />

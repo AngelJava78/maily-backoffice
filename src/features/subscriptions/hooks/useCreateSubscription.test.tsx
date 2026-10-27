@@ -17,6 +17,7 @@ const VALUES: SubscriptionFormValues = {
   name: ' Clínica Plus ',
   description: '',
   subscriptionTypeId: 1,
+  clinicsLimit: '1',
   monthlyPrice: '3200.5',
   annualPrice: '32000.5',
   trialDays: '14',

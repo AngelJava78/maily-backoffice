@@ -129,6 +129,9 @@ export function SubscriptionDetailFields({
       >
         <Field label={fields.name}>{subscription.name}</Field>
         <Field label={fields.type}>{subscriptionTypeName(subscription.subscriptionType)}</Field>
+        <Field label={fields.clinicsLimit}>
+          {subscription.clinicsLimit ?? text.clinics.notAvailable}
+        </Field>
         <Field label={fields.description} keepLines>
           {subscription.description ?? text.detail.emptyValue}
         </Field>
