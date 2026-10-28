@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import { messages } from '@/shared/messages/es';
 import {
+  catalogSubscription,
   createSubscriptionsCatalogMock,
   quickstartCatalog,
 } from '@/test/handlers/subscriptionsCatalog';
@@ -59,34 +60,88 @@ describe(
       expect(document.title).toBe(`${messages.titles.subscriptions} — ${messages.common.appName}`);
     });
 
-    it('shows the two pages in the fixed order of quickstart.md (V3)', async () => {
+    it('shows the two pages ordered by monthly price, ascending (020, FR-006; supersedes V3)', async () => {
       start();
       const { user } = open('/subscriptions');
       await screen.findByText('1–10 de 20');
 
+      // Enterprise and Legacy full tie at $0.00 (Enterprise created earlier); Solo and «Plan prueba
+      // 09» tie at $900.00 (Solo created earlier) — a stable sort keeps each tie in that order.
       expect(namesShown()).toEqual([
         'Enterprise',
-        ...Array.from({ length: 9 }, (_, index) => `Plan prueba 0${index + 1}`),
+        'Legacy full',
+        ...Array.from({ length: 8 }, (_, index) => `Plan prueba 0${index + 1}`),
       ]);
 
       await user.click(screen.getByRole('button', { name: 'Ir a la página siguiente' }));
 
       expect(await screen.findByText('11–20 de 20')).toBeInTheDocument();
       expect(namesShown()).toEqual([
+        'Solo',
+        'Plan prueba 09',
         'Plan prueba 10',
         'Plan prueba 11',
-        'Básico',
-        'Clínica Plus',
-        'Pro',
-        'Premium',
-        'Legacy full',
-        'Solo',
         'Plan prueba 12',
+        'Básico',
         'Suspendido',
+        'Pro',
+        'Clínica Plus',
+        'Premium',
       ]);
     });
 
-    it('shows a status added by hand with its name, in the second group (FR-020)', async () => {
+    it('shows the seven columns with the right data for an Individual and an Enterprise plan (020, quickstart Z4)', async () => {
+      const directory = createUsersDirectoryMock();
+      const catalog = createSubscriptionsCatalogMock({
+        directory,
+        initial: {
+          subscriptions: [
+            catalogSubscription({
+              id: 1,
+              name: 'Independiente',
+              subscriptionTypeId: 1,
+              monthlyPrice: '500.00',
+              annualPrice: '5000.00',
+              consultingRoomsLimit: 1,
+            }),
+            catalogSubscription({
+              id: 2,
+              name: 'Corporativo',
+              subscriptionTypeId: 2,
+              clinicsLimit: 10,
+              monthlyPrice: '9000.00',
+              annualPrice: '90000.00',
+              consultingRoomsLimit: 20,
+            }),
+          ],
+        },
+      });
+      open('/subscriptions');
+      await screen.findByRole('link', { name: 'Independiente' });
+
+      const typeCatalog = messages.subscriptions.types.catalog;
+      const individualRow = screen
+        .getByRole('link', { name: 'Independiente' })
+        .closest<HTMLElement>('[role="row"]');
+      const enterpriseRow = screen
+        .getByRole('link', { name: 'Corporativo' })
+        .closest<HTMLElement>('[role="row"]');
+      if (individualRow === null || enterpriseRow === null) {
+        throw new Error('Expected both rows to exist');
+      }
+      expect(within(individualRow).getByText(typeCatalog[1].name)).toBeInTheDocument();
+      expect(within(individualRow).getByText('1')).toBeInTheDocument();
+      expect(within(individualRow).getByText('$500.00/mes')).toBeInTheDocument();
+      expect(within(individualRow).getByText('$5,000.00/año')).toBeInTheDocument();
+
+      expect(within(enterpriseRow).getByText(typeCatalog[2].name)).toBeInTheDocument();
+      expect(within(enterpriseRow).getByText('20')).toBeInTheDocument();
+      expect(within(enterpriseRow).getByText('$9,000.00/mes')).toBeInTheDocument();
+      expect(within(enterpriseRow).getByText('$90,000.00/año')).toBeInTheDocument();
+      expect(catalog.state.list()).toHaveLength(2);
+    });
+
+    it('shows a status added by hand with its name, on its page (FR-020)', async () => {
       start();
       open('/subscriptions?page=2');
 
@@ -224,6 +279,124 @@ describe(
       expect(
         screen.queryByRole('link', { name: text.comparison.editAction }),
       ).not.toBeInTheDocument();
+    });
+
+    describe('the type filter (020, quickstart Z6-Z8)', () => {
+      const typeCatalog = messages.subscriptions.types.catalog;
+
+      function startWithBothTypes() {
+        const directory = createUsersDirectoryMock();
+        const catalog = createSubscriptionsCatalogMock({
+          directory,
+          initial: {
+            subscriptions: [
+              catalogSubscription({ id: 1, name: 'Independiente', subscriptionTypeId: 1 }),
+              catalogSubscription({
+                id: 2,
+                name: 'Corporativo',
+                subscriptionTypeId: 2,
+                clinicsLimit: 5,
+              }),
+            ],
+          },
+        });
+        return { directory, catalog };
+      }
+
+      it('shows the type filter before Mensual y Anual, defaulting to Individual (Z6)', async () => {
+        startWithBothTypes();
+        open('/subscriptions?tab=comparison');
+        await screen.findByRole('table', { name: text.comparison.tabLabel });
+
+        const typeFilter = screen.getByRole('button', {
+          name: typeCatalog[1].name,
+          pressed: true,
+        });
+        const cycleToggle = screen.getByRole('button', {
+          name: text.comparison.priceToggle.monthly,
+        });
+        expect(
+          typeFilter.compareDocumentPosition(cycleToggle) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+        expect(screen.getByText('Independiente')).toBeInTheDocument();
+        expect(screen.queryByText('Corporativo')).not.toBeInTheDocument();
+      });
+
+      it('filters to the chosen type without a new request, keeping the cycle (Z7, Z8)', async () => {
+        const { catalog } = startWithBothTypes();
+        const { user } = open('/subscriptions?tab=comparison');
+        await screen.findByRole('table', { name: text.comparison.tabLabel });
+        await user.click(screen.getByRole('button', { name: text.comparison.priceToggle.annual }));
+        const requestsBefore = catalog.requestsTo('GET', '/api/v1/subscriptions').length;
+
+        await user.click(screen.getByRole('button', { name: typeCatalog[2].name }));
+
+        expect(screen.getByText('Corporativo')).toBeInTheDocument();
+        expect(screen.queryByText('Independiente')).not.toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: text.comparison.priceToggle.annual, pressed: true }),
+        ).toBeInTheDocument();
+        expect(catalog.requestsTo('GET', '/api/v1/subscriptions')).toHaveLength(requestsBefore);
+
+        await user.click(screen.getByRole('button', { name: typeCatalog[1].name }));
+
+        expect(screen.getByText('Independiente')).toBeInTheDocument();
+        expect(screen.queryByText('Corporativo')).not.toBeInTheDocument();
+      });
+
+      it('shows a notice, not an empty table, when the chosen type has no plan (edge case)', async () => {
+        const directory = createUsersDirectoryMock();
+        createSubscriptionsCatalogMock({
+          directory,
+          initial: {
+            subscriptions: [catalogSubscription({ id: 1, name: 'Independiente' })],
+          },
+        });
+        const { user } = open('/subscriptions?tab=comparison');
+        await screen.findByRole('table', { name: text.comparison.tabLabel });
+
+        await user.click(screen.getByRole('button', { name: typeCatalog[2].name }));
+
+        expect(
+          screen.queryByRole('table', { name: text.comparison.tabLabel }),
+        ).not.toBeInTheDocument();
+        expect(
+          screen.getByText(text.comparison.emptyForType(typeCatalog[2].name)),
+        ).toBeInTheDocument();
+      });
+    });
+
+    // The simulator always stores a concrete clinicsLimit (like the real, predicted contract once
+    // deployed, 019 contracts/subscriptions-service.md): a null value, shown as «No disponible»,
+    // is already covered at the component level (SubscriptionsComparisonTable.test.tsx).
+    it('shows the clinics limit in «Límites de la clínica» (020, Z10)', async () => {
+      const directory = createUsersDirectoryMock();
+      createSubscriptionsCatalogMock({
+        directory,
+        initial: {
+          subscriptions: [catalogSubscription({ id: 1, name: 'Con límite', clinicsLimit: 25 })],
+        },
+      });
+      open('/subscriptions?tab=comparison');
+      await screen.findByRole('table', { name: text.comparison.tabLabel });
+
+      const row = screen.getByRole('row', { name: text.comparison.sections.clinicsLimit });
+      expect(within(row).getByText('25')).toBeInTheDocument();
+    });
+
+    it('shows an icon, never the text, for each module included or not (020, Z11)', async () => {
+      start();
+      open('/subscriptions?tab=comparison');
+      await screen.findByRole('table', { name: text.comparison.tabLabel });
+
+      expect(screen.queryByText(text.comparison.moduleIncluded)).not.toBeInTheDocument();
+      expect(screen.queryByText(text.comparison.moduleNotIncluded)).not.toBeInTheDocument();
+      expect(
+        screen.getAllByRole('img', { name: text.comparison.moduleIncluded }).length,
+      ).toBeGreaterThan(0);
+      expect(
+        screen.getAllByRole('img', { name: text.comparison.moduleNotIncluded }).length,
+      ).toBeGreaterThan(0);
     });
   },
 );

@@ -5,6 +5,7 @@ import {
   Blocks,
   Building2,
   Camera,
+  Check,
   ChevronDown,
   CircleCheck,
   CircleHelp,
@@ -28,6 +29,7 @@ import {
   Unlock,
   Unplug,
   Users,
+  X,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -68,6 +70,10 @@ export const iconRegistry = {
   'status-stopped': Clock,
   'status-unknown': CircleHelp,
   'status-unreachable': Unplug,
+  // Whether a module is part of a plan, in the Comparativo (020, FR-011): its own pair, distinct
+  // from the status icons above (research D6).
+  included: Check,
+  'not-included': X,
 } as const satisfies Record<string, LucideIcon>;
 
 export type IconName = keyof typeof iconRegistry;

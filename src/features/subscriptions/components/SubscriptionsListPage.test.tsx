@@ -4,6 +4,7 @@ import { axe } from 'vitest-axe';
 
 import { messages } from '@/shared/messages/es';
 import {
+  catalogSubscription,
   createSubscriptionsCatalogMock,
   defaultCatalog,
   makeSubscriptions,
@@ -49,24 +50,28 @@ const namesShown = () =>
     .getAllByRole('link')
     .map((link) => link.textContent);
 
+// Ascending by monthly price, stable on a tie (020, FR-006): Enterprise and Legacy full tie at
+// $0.00 (Enterprise comes first, created earlier); Solo ($900.00) ties with «Plan prueba 09» and,
+// for the same reason, comes first.
 const PAGE_ONE = [
   'Enterprise',
-  ...Array.from({ length: 9 }, (_, index) => `Plan prueba 0${index + 1}`),
+  'Legacy full',
+  ...Array.from({ length: 8 }, (_, index) => `Plan prueba 0${index + 1}`),
 ];
 const PAGE_TWO = [
+  'Solo',
+  'Plan prueba 09',
   'Plan prueba 10',
   'Plan prueba 11',
   'Plan prueba 12',
   'Básico',
+  'Suspendido',
   'Pro',
   'Premium',
-  'Legacy full',
-  'Solo',
-  'Suspendido',
 ];
 
 describe('SubscriptionsListPage', () => {
-  it('shows the title and the first 10 subscriptions in the fixed order, with the total (US1-1)', async () => {
+  it('shows the title and the first 10 subscriptions ordered by monthly price, with the total (US1-1, 020 FR-006)', async () => {
     start();
     renderList();
 
@@ -78,12 +83,34 @@ describe('SubscriptionsListPage', () => {
     expect(screen.getByText('1–10 de 19')).toBeInTheDocument();
   });
 
-  it('puts the inactive and the blocked ones after every active one (US1-3)', async () => {
+  it('continues the same ascending price order onto the second page (US1-3, 020 FR-006)', async () => {
     start();
     renderList('/subscriptions?page=2');
 
     await screen.findByRole('link', { name: 'Suspendido' });
     expect(namesShown()).toEqual(PAGE_TWO);
+  });
+
+  it('orders the whole catalog by the column and direction the address asks for, before paginating (020)', async () => {
+    start();
+    renderList('/subscriptions?sort=-name');
+
+    await screen.findByRole('link', { name: 'Suspendido' });
+    expect(namesShown()[0]).toBe('Suspendido');
+    expect(namesShown()).toHaveLength(10);
+  });
+
+  it('reorders the list by clicking a column header, going back to the first page (020)', async () => {
+    start();
+    const { user, router } = renderList('/subscriptions?page=2');
+    await screen.findByRole('link', { name: 'Suspendido' });
+
+    await user.click(
+      screen.getByRole('columnheader', { name: new RegExp(`^${text.columns.name}`) }),
+    );
+
+    expect(await screen.findByRole('link', { name: 'Básico' })).toBeInTheDocument();
+    expect(router.state.location.search).toBe('?sort=name');
   });
 
   it('changes the page and its size in the address without asking the API again', async () => {
@@ -229,6 +256,88 @@ describe('SubscriptionsListPage', () => {
       await screen.findByRole('table', { name: comparison.tabLabel });
 
       expect(await axe(container)).toHaveNoViolations();
+    });
+
+    const typeCatalog = messages.subscriptions.types.catalog;
+
+    it('shows the type filter before the Mensual y Anual control (020, FR-007)', async () => {
+      start();
+      renderList('/subscriptions?tab=comparison');
+      await screen.findByRole('table', { name: comparison.tabLabel });
+
+      const typeFilter = screen.getByRole('button', { name: typeCatalog[1].name });
+      const cycleToggle = screen.getByRole('button', { name: comparison.priceToggle.monthly });
+      expect(
+        typeFilter.compareDocumentPosition(cycleToggle) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it('filters the Comparativo by type, defaulting to Individual (020, FR-007, FR-008)', async () => {
+      // The default catalog here is all Individual: filtering to Empresarial leaves nothing.
+      start();
+      const { user } = renderList('/subscriptions?tab=comparison');
+      await screen.findByRole('table', { name: comparison.tabLabel });
+      expect(
+        screen.getByRole('button', { name: typeCatalog[1].name, pressed: true }),
+      ).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: typeCatalog[2].name }));
+
+      expect(screen.queryByRole('table', { name: comparison.tabLabel })).not.toBeInTheDocument();
+      expect(screen.getByText(comparison.emptyForType(typeCatalog[2].name))).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: typeCatalog[1].name }));
+
+      expect(await screen.findByRole('table', { name: comparison.tabLabel })).toBeInTheDocument();
+    });
+
+    it('orders the Comparativo ascending by the price of the vigente cycle, and reorders on cycle change (020, FR-009)', async () => {
+      const directory = createUsersDirectoryMock();
+      createSubscriptionsCatalogMock({
+        directory,
+        initial: {
+          subscriptions: [
+            catalogSubscription({
+              id: 1,
+              name: 'Alfa',
+              monthlyPrice: '1000.00',
+              annualPrice: '9000.00',
+            }),
+            catalogSubscription({
+              id: 2,
+              name: 'Beta',
+              monthlyPrice: '500.00',
+              annualPrice: '15000.00',
+            }),
+            catalogSubscription({
+              id: 3,
+              name: 'Gamma',
+              monthlyPrice: '2000.00',
+              annualPrice: '8000.00',
+            }),
+          ],
+        },
+      });
+      const { user } = renderWithProviders(
+        <SubscriptionsListPage capabilities={NO_SUBSCRIPTION_CAPABILITIES} />,
+        { auth0: ADMIN_AUTH0, route: '/subscriptions?tab=comparison' },
+      );
+
+      // Each header cell's text starts with the plan's name (then its badge, price and status).
+      const planOrder = () =>
+        screen.getAllByRole('columnheader').map((header) => header.textContent);
+      await screen.findByRole('table', { name: comparison.tabLabel });
+      let order = planOrder();
+      expect(order[0]).toMatch(/^Beta/);
+      expect(order[1]).toMatch(/^Alfa/);
+      expect(order[2]).toMatch(/^Gamma/);
+
+      await user.click(screen.getByRole('button', { name: comparison.priceToggle.annual }));
+
+      order = planOrder();
+      expect(order[0]).toMatch(/^Gamma/);
+      expect(order[1]).toMatch(/^Alfa/);
+      expect(order[2]).toMatch(/^Beta/);
     });
   });
 });

@@ -1,22 +1,37 @@
 import { describe, expect, it } from 'vitest';
 
+import { SUBSCRIPTION_TYPE } from './subscriptionTypeCatalog';
 import {
   DEFAULT_PAGE_SIZE,
+  DEFAULT_SORT,
   PAGE_SIZE_OPTIONS,
   parseSubscriptionId,
   parseSubscriptionsSearchParams,
   toSubscriptionsSearchParams,
+  type SubscriptionsSortField,
 } from './subscriptionsLocation';
 
 const parse = (search: string) => parseSubscriptionsSearchParams(new URLSearchParams(search));
 
 describe('parseSubscriptionsSearchParams', () => {
   it('reads the page and the page size of the address', () => {
-    expect(parse('page=2&page_size=25')).toEqual({ page: 2, pageSize: 25, tab: 'list' });
+    expect(parse('page=2&page_size=25')).toEqual({
+      page: 2,
+      pageSize: 25,
+      tab: 'list',
+      sort: DEFAULT_SORT,
+      comparisonType: SUBSCRIPTION_TYPE.INDIVIDUAL,
+    });
   });
 
-  it('starts at the first page with 10 rows, in the Listado tab, when the address says nothing', () => {
-    expect(parse('')).toEqual({ page: 1, pageSize: 10, tab: 'list' });
+  it('starts at the first page with 10 rows, in the Listado tab, sorted by monthly price ascending and filtered to Individual, when the address says nothing', () => {
+    expect(parse('')).toEqual({
+      page: 1,
+      pageSize: 10,
+      tab: 'list',
+      sort: DEFAULT_SORT,
+      comparisonType: SUBSCRIPTION_TYPE.INDIVIDUAL,
+    });
   });
 
   it('reads the Comparativo tab', () => {
@@ -46,35 +61,176 @@ describe('parseSubscriptionsSearchParams', () => {
   );
 
   it('ignores the other parameters', () => {
-    expect(parse('page=3&email=a%40b.com&sort=name')).toEqual({
+    expect(parse('page=3&email=a%40b.com&foo=bar')).toEqual({
       page: 3,
       pageSize: 10,
       tab: 'list',
+      sort: DEFAULT_SORT,
+      comparisonType: SUBSCRIPTION_TYPE.INDIVIDUAL,
     });
   });
 });
 
+describe('the sort of the list (020)', () => {
+  it('is monthly price ascending when the address says nothing, or says something invalid', () => {
+    expect(parse('').sort).toEqual({ field: 'monthlyPrice', direction: 'asc' });
+    expect(parse('sort=').sort).toEqual(DEFAULT_SORT);
+    expect(parse('sort=unknownField').sort).toEqual(DEFAULT_SORT);
+    expect(parse('sort=-unknownField').sort).toEqual(DEFAULT_SORT);
+  });
+
+  it('reads a field name as that field, ascending', () => {
+    expect(parse('sort=name').sort).toEqual({ field: 'name', direction: 'asc' });
+  });
+
+  it('reads a field name with a leading "-" as that field, descending', () => {
+    expect(parse('sort=-name').sort).toEqual({ field: 'name', direction: 'desc' });
+  });
+
+  it.each<SubscriptionsSortField>([
+    'name',
+    'subscriptionType',
+    'clinicsCount',
+    'consultingRoomsLimit',
+    'monthlyPrice',
+    'annualPrice',
+    'status',
+  ])('accepts %s as a sortable field', (field) => {
+    expect(parse(`sort=${field}`).sort).toEqual({ field, direction: 'asc' });
+  });
+
+  it('writes a non-default sort to the address, and leaves the default one out', () => {
+    expect(
+      toSubscriptionsSearchParams({
+        page: 1,
+        pageSize: 10,
+        tab: 'list',
+        sort: DEFAULT_SORT,
+        comparisonType: SUBSCRIPTION_TYPE.INDIVIDUAL,
+      }).toString(),
+    ).toBe('');
+    expect(
+      toSubscriptionsSearchParams({
+        page: 1,
+        pageSize: 10,
+        tab: 'list',
+        sort: { field: 'status', direction: 'asc' },
+        comparisonType: SUBSCRIPTION_TYPE.INDIVIDUAL,
+      }).toString(),
+    ).toBe('sort=status');
+    expect(
+      toSubscriptionsSearchParams({
+        page: 1,
+        pageSize: 10,
+        tab: 'list',
+        sort: { field: 'status', direction: 'desc' },
+        comparisonType: SUBSCRIPTION_TYPE.INDIVIDUAL,
+      }).toString(),
+    ).toBe('sort=-status');
+  });
+});
+
+describe('the type filter of the Comparativo (020)', () => {
+  it('is Individual when the address says nothing, or says anything other than "2"', () => {
+    expect(parse('').comparisonType).toBe(SUBSCRIPTION_TYPE.INDIVIDUAL);
+    expect(parse('type_id=').comparisonType).toBe(SUBSCRIPTION_TYPE.INDIVIDUAL);
+    expect(parse('type_id=abc').comparisonType).toBe(SUBSCRIPTION_TYPE.INDIVIDUAL);
+    expect(parse('type_id=1').comparisonType).toBe(SUBSCRIPTION_TYPE.INDIVIDUAL);
+  });
+
+  it('is Enterprise when the address says type_id=2', () => {
+    expect(parse('type_id=2').comparisonType).toBe(SUBSCRIPTION_TYPE.ENTERPRISE);
+  });
+
+  it('writes type_id=2 to the address for Enterprise, and leaves Individual (the default) out', () => {
+    expect(
+      toSubscriptionsSearchParams({
+        page: 1,
+        pageSize: 10,
+        tab: 'comparison',
+        sort: DEFAULT_SORT,
+        comparisonType: SUBSCRIPTION_TYPE.INDIVIDUAL,
+      }).toString(),
+    ).toBe('tab=comparison');
+    expect(
+      toSubscriptionsSearchParams({
+        page: 1,
+        pageSize: 10,
+        tab: 'comparison',
+        sort: DEFAULT_SORT,
+        comparisonType: SUBSCRIPTION_TYPE.ENTERPRISE,
+      }).toString(),
+    ).toBe('tab=comparison&type_id=2');
+  });
+});
+
+const DEFAULT_LOCATION_FIELDS = {
+  sort: DEFAULT_SORT,
+  comparisonType: SUBSCRIPTION_TYPE.INDIVIDUAL,
+} as const;
+
 describe('toSubscriptionsSearchParams', () => {
   it('leaves the default values out of the address', () => {
-    expect(toSubscriptionsSearchParams({ page: 1, pageSize: 10, tab: 'list' }).toString()).toBe('');
-    expect(toSubscriptionsSearchParams({ page: 3, pageSize: 10, tab: 'list' }).toString()).toBe(
-      'page=3',
-    );
-    expect(toSubscriptionsSearchParams({ page: 1, pageSize: 50, tab: 'list' }).toString()).toBe(
-      'page_size=50',
-    );
     expect(
-      toSubscriptionsSearchParams({ page: 1, pageSize: 10, tab: 'comparison' }).toString(),
+      toSubscriptionsSearchParams({
+        page: 1,
+        pageSize: 10,
+        tab: 'list',
+        ...DEFAULT_LOCATION_FIELDS,
+      }).toString(),
+    ).toBe('');
+    expect(
+      toSubscriptionsSearchParams({
+        page: 3,
+        pageSize: 10,
+        tab: 'list',
+        ...DEFAULT_LOCATION_FIELDS,
+      }).toString(),
+    ).toBe('page=3');
+    expect(
+      toSubscriptionsSearchParams({
+        page: 1,
+        pageSize: 50,
+        tab: 'list',
+        ...DEFAULT_LOCATION_FIELDS,
+      }).toString(),
+    ).toBe('page_size=50');
+    expect(
+      toSubscriptionsSearchParams({
+        page: 1,
+        pageSize: 10,
+        tab: 'comparison',
+        ...DEFAULT_LOCATION_FIELDS,
+      }).toString(),
     ).toBe('tab=comparison');
   });
 
   it.each([
-    { page: 1, pageSize: 10, tab: 'list' },
-    { page: 2, pageSize: 25, tab: 'list' },
-    { page: 7, pageSize: 50, tab: 'comparison' },
-  ] as const)('is the inverse of the parser for $page, $pageSize and $tab', (location) => {
-    expect(parseSubscriptionsSearchParams(toSubscriptionsSearchParams(location))).toEqual(location);
-  });
+    { page: 1, pageSize: 10, tab: 'list', ...DEFAULT_LOCATION_FIELDS },
+    { page: 2, pageSize: 25, tab: 'list', ...DEFAULT_LOCATION_FIELDS },
+    { page: 7, pageSize: 50, tab: 'comparison', ...DEFAULT_LOCATION_FIELDS },
+    {
+      page: 1,
+      pageSize: 10,
+      tab: 'comparison',
+      sort: DEFAULT_SORT,
+      comparisonType: SUBSCRIPTION_TYPE.ENTERPRISE,
+    },
+    {
+      page: 2,
+      pageSize: 25,
+      tab: 'list',
+      sort: { field: 'name', direction: 'desc' },
+      comparisonType: SUBSCRIPTION_TYPE.INDIVIDUAL,
+    },
+  ] as const)(
+    'is the inverse of the parser for $page, $pageSize, $tab, $sort and $comparisonType',
+    (location) => {
+      expect(parseSubscriptionsSearchParams(toSubscriptionsSearchParams(location))).toEqual(
+        location,
+      );
+    },
+  );
 });
 
 describe('the page sizes', () => {

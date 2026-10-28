@@ -60,7 +60,7 @@ describe(
   'the subscriptions section: modifying (feature 003, user story 3)',
   { timeout: 30_000 },
   () => {
-    it('changes the price of Solo from its detail, and the list moves it (V13)', async () => {
+    it('changes the price of Solo from its detail, and the list moves it by its new price (V13, 020 FR-006)', async () => {
       const { catalog } = start();
       const { user } = open('/subscriptions/5');
       await screen.findByText('Para el médico que trabaja por su cuenta.');
@@ -85,14 +85,16 @@ describe(
 
       await user.click(screen.getByRole('link', { name: text.detail.backToList }));
       await screen.findByRole('link', { name: 'Solo' });
+      // Ascending by monthly price (020, FR-006): at $5,000.00, Solo now sits between Pro
+      // ($4,500.00) and Premium ($8,900.00).
       expect(names()).toEqual([
         'Enterprise',
-        'Básico',
-        'Pro',
-        'Premium',
         'Legacy full',
+        'Básico',
         'Suspendido',
+        'Pro',
         'Solo',
+        'Premium',
       ]);
     });
 

@@ -1,6 +1,8 @@
+import Box from '@mui/material/Box';
 import InputAdornment from '@mui/material/InputAdornment';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 import type { Control, FieldErrors, UseFormRegister, UseFormSetValue } from 'react-hook-form';
 
 import { messages } from '@/shared/messages/es';
@@ -52,7 +54,6 @@ export function SubscriptionFormFields({
         errors={errors}
         disabled={disableSubscriptionType}
       />
-      <ClinicsLimitField register={register} control={control} errors={errors} />
       <Stack spacing={2}>
         <TextField
           {...name}
@@ -119,9 +120,15 @@ export function SubscriptionFormFields({
       </Stack>
       <SelfServiceAndTrialFields register={register} control={control} errors={errors} />
       <ModulesField control={control} errors={errors} />
-      <Stack direction="row" spacing={2} useFlexGap sx={{ flexWrap: 'wrap' }}>
-        <ClinicLimitsFields register={register} errors={errors} />
-      </Stack>
+      <Box component="fieldset" sx={{ border: 0, m: 0, p: 0, minWidth: 0 }}>
+        <Typography component="legend" variant="subtitle1" sx={{ fontWeight: 'bold', p: 0 }}>
+          {text.fields.limits}
+        </Typography>
+        <Stack direction="row" spacing={2} useFlexGap sx={{ flexWrap: 'wrap', mt: 2 }}>
+          <ClinicsLimitField register={register} control={control} errors={errors} />
+          <ClinicLimitsFields register={register} errors={errors} />
+        </Stack>
+      </Box>
       <OtherFeaturesField control={control} register={register} errors={errors.otherFeatures} />
     </Stack>
   );

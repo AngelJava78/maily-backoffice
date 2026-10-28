@@ -12,6 +12,7 @@ import type { ReactNode } from 'react';
 import { Link as RouterLink } from 'react-router';
 
 import { messages } from '@/shared/messages/es';
+import { Icon } from '@/shared/ui/Icon';
 
 import { CLINIC_MODULE_ORDER } from '../schemas/clinicModuleCatalog';
 import type { Subscription } from '../schemas/subscription';
@@ -22,7 +23,7 @@ const text = messages.subscriptions;
 const comparison = messages.subscriptions.comparison;
 
 interface SubscriptionsComparisonTableProps {
-  /** Vigente subscriptions, already in the fixed order of the list (FR-018). */
+  /** Vigente subscriptions, already filtered and ordered by whoever renders this table (020). */
   readonly subscriptions: readonly Subscription[];
   readonly cycle: 'monthly' | 'annual';
   /** Whether "Editar" is offered at the end of each column (FR-021). */
@@ -129,15 +130,27 @@ export function SubscriptionsComparisonTable({
                 key={key}
                 label={text.modules.catalog[key].name}
                 subscriptions={subscriptions}
-                cell={(subscription) =>
-                  subscription.moduleKeys.includes(key)
-                    ? comparison.moduleIncluded
-                    : comparison.moduleNotIncluded
-                }
+                cell={(subscription) => {
+                  const included = subscription.moduleKeys.includes(key);
+                  return (
+                    <Icon
+                      name={included ? 'included' : 'not-included'}
+                      color={included ? 'exito' : 'peligro'}
+                      accessibleName={
+                        included ? comparison.moduleIncluded : comparison.moduleNotIncluded
+                      }
+                    />
+                  );
+                }}
               />
             ))}
 
             <SectionRow label={comparison.sections.limits} columns={columns} />
+            <MetricRow
+              label={comparison.sections.clinicsLimit}
+              subscriptions={subscriptions}
+              cell={(subscription) => subscription.clinicsLimit ?? text.clinics.notAvailable}
+            />
             {LIMIT_FIELDS.map(([field, label]) => (
               <MetricRow
                 key={field}

@@ -36,36 +36,39 @@ const names = (page: Page) => grid(page).getByRole('link').allTextContents();
 test.describe('the subscriptions section: readings (A1)', () => {
   test.skip(!hasAccounts('A1'), 'Needs E2E_AUTH0_USER_A1 and E2E_AUTH0_PASSWORD_A1');
 
-  test('V1 to V3: lists the catalog in its fixed order, changes the page size and pages', async ({
+  test('V1 to V3, 020 FR-006: lists the catalog ascending by monthly price, reorders by any column, changes the page size and pages', async ({
     page,
   }) => {
     await openAs(page, '/subscriptions');
 
     await expect(heading(page, text.title)).toBeFocused();
     await expect(page.getByText('1–10 de 20')).toBeVisible();
+    // Enterprise and Legacy full tie at $0.00 (Enterprise created earlier, a stable sort keeps it
+    // first).
     expect(await names(page)).toEqual([
       'Enterprise',
-      ...Array.from({ length: 9 }, (_, index) => `Plan prueba 0${index + 1}`),
+      'Legacy full',
+      ...Array.from({ length: 8 }, (_, index) => `Plan prueba 0${index + 1}`),
     ]);
 
-    // The headers do not sort.
-    await grid(page).getByRole('columnheader', { name: text.list.columns.monthlyPrice }).click();
-    expect((await names(page))[0]).toBe('Enterprise');
+    // Reordering by Nombre puts «Básico» first (020, FR-006).
+    await grid(page).getByRole('columnheader', { name: text.list.columns.name }).click();
+    expect((await names(page))[0]).toBe('Básico');
+    await expect(page).toHaveURL(/sort=name/);
 
-    await page.getByRole('button', { name: 'Ir a la página siguiente' }).click();
+    await navigate(page, '/subscriptions?page=2');
     await expect(page.getByText('11–20 de 20')).toBeVisible();
-    await expect(page).toHaveURL(/page=2/);
     expect(await names(page)).toEqual([
+      'Solo',
+      'Plan prueba 09',
       'Plan prueba 10',
       'Plan prueba 11',
-      'Básico',
-      'Clínica Plus',
-      'Pro',
-      'Premium',
-      'Legacy full',
-      'Solo',
       'Plan prueba 12',
+      'Básico',
       'Suspendido',
+      'Pro',
+      'Clínica Plus',
+      'Premium',
     ]);
 
     await page.getByLabel(/filas por página/i).click();
@@ -91,8 +94,9 @@ test.describe('the subscriptions section: readings (A1)', () => {
     await page.getByRole('link', { name: text.detail.backToList }).click();
     await expect(page.getByText('11–20 de 20')).toBeVisible();
     await expect(page).toHaveURL(/page=2/);
-    const enterprise = grid(page).getByRole('row').filter({ hasText: 'Legacy full' });
-    await expect(enterprise.getByText('$0.00/mes')).toBeVisible();
+    // Ascending by monthly price (020, FR-006): Solo ($900.00) is still the first row of page 2.
+    const solo = grid(page).getByRole('row').filter({ hasText: 'Solo' });
+    await expect(solo.getByText('$900.00/mes')).toBeVisible();
   });
 
   test('V7: says that a subscription does not exist, and that an address which is not an id is not a page', async ({

@@ -7,6 +7,7 @@ import { subscriptionDto } from '@/test/factories';
 import { renderWithProviders } from '@/test/renderWithProviders';
 
 import { subscriptionSchema, type Subscription } from '../schemas/subscription';
+import { DEFAULT_SORT, type SubscriptionsSort } from '../schemas/subscriptionsLocation';
 import { SubscriptionsGrid } from './SubscriptionsGrid';
 
 const text = messages.subscriptions.list;
@@ -17,7 +18,11 @@ function tenSubscriptions(): Subscription[] {
       subscriptionDto({
         id: index + 1,
         name: `Plan ${index + 1}`,
+        subscription_type:
+          index === 3 ? { id: 2, name: 'Empresarial' } : { id: 1, name: 'Individual' },
         monthly_price: index === 0 ? '4500.00' : `${(index + 1) * 100}.00`,
+        annual_price: index === 0 ? '45000.00' : `${(index + 1) * 1000}.00`,
+        consulting_rooms_limit: index + 1,
         status: index === 1 ? { id: 3, name: 'Bloqueada' } : { id: 1, name: 'Activa' },
         clinics_count: index === 2 ? null : index,
       }),
@@ -36,6 +41,7 @@ function rowOf(name: string): HTMLElement {
 
 function renderGrid(props: Partial<Parameters<typeof SubscriptionsGrid>[0]> = {}) {
   const onPaginationChange = vi.fn<(page: number, pageSize: number) => void>();
+  const onSortChange = vi.fn<(sort: SubscriptionsSort) => void>();
   const view = renderWithProviders(
     <SubscriptionsGrid
       subscriptions={tenSubscriptions()}
@@ -44,15 +50,17 @@ function renderGrid(props: Partial<Parameters<typeof SubscriptionsGrid>[0]> = {}
       pageSize={10}
       loading={false}
       listSearch="?page=2&page_size=25"
+      sort={DEFAULT_SORT}
+      onSortChange={onSortChange}
       onPaginationChange={onPaginationChange}
       {...props}
     />,
   );
-  return { ...view, onPaginationChange };
+  return { ...view, onPaginationChange, onSortChange };
 }
 
 describe('SubscriptionsGrid', () => {
-  it('shows the name, the monthly price, the status and the clinics of each subscription', () => {
+  it('shows the seven columns, in order: Nombre, Tipo, Clínicas, Consultorios, Precio mensual, Precio anual, Estatus (020, FR-004)', () => {
     renderGrid();
 
     const grid = screen.getByRole('grid', { name: text.gridLabel });
@@ -62,10 +70,27 @@ describe('SubscriptionsGrid', () => {
         .map((header) => header.textContent),
     ).toEqual([
       text.columns.name,
-      text.columns.monthlyPrice,
-      text.columns.status,
+      text.columns.subscriptionType,
       text.columns.clinics,
+      text.columns.consultingRoomsLimit,
+      text.columns.monthlyPrice,
+      text.columns.annualPrice,
+      text.columns.status,
     ]);
+  });
+
+  it('shows the subscription type of each row (020)', () => {
+    renderGrid();
+
+    expect(within(rowOf('Plan 1')).getByText('Individual')).toBeInTheDocument();
+    expect(within(rowOf('Plan 4')).getByText('Empresarial')).toBeInTheDocument();
+  });
+
+  it('shows the consulting rooms limit of each row (020)', () => {
+    renderGrid();
+
+    expect(within(rowOf('Plan 1')).getByText('1')).toBeInTheDocument();
+    expect(within(rowOf('Plan 2')).getByText('2')).toBeInTheDocument();
   });
 
   it('shows the price in Mexican pesos per month', () => {
@@ -73,6 +98,13 @@ describe('SubscriptionsGrid', () => {
 
     expect(within(rowOf('Plan 1')).getByText('$4,500.00/mes')).toBeInTheDocument();
     expect(within(rowOf('Plan 2')).getByText('$200.00/mes')).toBeInTheDocument();
+  });
+
+  it('shows the annual price in Mexican pesos per year, with the same format as the monthly price (020)', () => {
+    renderGrid();
+
+    expect(within(rowOf('Plan 1')).getByText('$45,000.00/año')).toBeInTheDocument();
+    expect(within(rowOf('Plan 2')).getByText('$2,000.00/año')).toBeInTheDocument();
   });
 
   it('shows the status as a text', () => {
@@ -131,18 +163,38 @@ describe('SubscriptionsGrid', () => {
     expect(onPaginationChange).toHaveBeenCalledWith(1, 25);
   });
 
-  it('neither sorts nor has a menu of columns: the order is fixed', async () => {
-    const { user } = renderGrid();
-    const header = screen.getByRole('columnheader', { name: text.columns.monthlyPrice });
-    const namesBefore = screen.getAllByRole('link').map((link) => link.textContent);
-    const sortBefore = header.getAttribute('aria-sort');
+  const columnHeader = (name: string) =>
+    screen.getByRole('columnheader', { name: new RegExp(`^${name}`) });
 
-    await user.click(header);
-    await user.click(header);
+  it('opens sorted as its sort prop says, and is reorderable by any column (020, FR-006)', () => {
+    renderGrid({ sort: { field: 'monthlyPrice', direction: 'asc' } });
 
-    expect(header.getAttribute('aria-sort')).toBe(sortBefore);
-    expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual(namesBefore);
-    expect(screen.queryByRole('button', { name: /menú|ordenar/i })).not.toBeInTheDocument();
+    expect(columnHeader(text.columns.monthlyPrice).getAttribute('aria-sort')).toBe('ascending');
+    expect(columnHeader(text.columns.annualPrice).getAttribute('aria-sort')).toBe('none');
+  });
+
+  it('asks to sort by another column, ascending, on its first click (020)', async () => {
+    const { user, onSortChange } = renderGrid({ sort: DEFAULT_SORT });
+
+    await user.click(columnHeader(text.columns.annualPrice));
+
+    expect(onSortChange).toHaveBeenCalledWith({ field: 'annualPrice', direction: 'asc' });
+  });
+
+  it('asks to flip the direction of the sorted column on a second click, never reaching an unsorted state (020)', async () => {
+    const { user, onSortChange } = renderGrid({
+      sort: { field: 'annualPrice', direction: 'asc' },
+    });
+
+    await user.click(columnHeader(text.columns.annualPrice));
+
+    expect(onSortChange).toHaveBeenCalledWith({ field: 'annualPrice', direction: 'desc' });
+  });
+
+  it('has no menu of columns', () => {
+    renderGrid();
+
+    expect(screen.queryByRole('button', { name: /menú/i })).not.toBeInTheDocument();
   });
 
   it('does not dim any row: only the chip tells the status (WCAG 1.4.3)', () => {

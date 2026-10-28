@@ -536,9 +536,12 @@ export const messages = {
       gridLabel: 'Suscripciones',
       columns: {
         name: 'Nombre',
+        subscriptionType: 'Tipo',
         monthlyPrice: 'Precio mensual',
+        annualPrice: 'Precio anual',
         status: 'Estatus',
         clinics: 'Clínicas',
+        consultingRoomsLimit: 'Consultorios',
       },
       empty: 'No hay suscripciones registradas',
       pageStatus: (from: number, to: number, total: number) =>
@@ -602,6 +605,7 @@ export const messages = {
         assistantsLimit: 'Asistentes',
         newPatientsPerYearLimit: 'Pacientes nuevos al año',
         otherFeatures: 'Otras funcionalidades',
+        limits: 'Límites',
       },
       subscriptionTypeImmutableHelper: 'El tipo no se puede modificar después de creada.',
       clinicsLimitHelper: 'De 1 a 100 clínicas.',
@@ -728,6 +732,7 @@ export const messages = {
       sections: {
         modules: 'Módulos',
         limits: 'Límites de la clínica',
+        clinicsLimit: 'Límite de clínicas',
         otherFeatures: 'Otras funcionalidades',
         includes: 'Incluye',
         other: 'Otros',
@@ -739,6 +744,7 @@ export const messages = {
       footerNote: 'Precios simulados en pesos mexicanos, antes de IVA.',
       moduleIncluded: 'Incluido',
       moduleNotIncluded: 'No incluido',
+      emptyForType: (typeName: string) => `No hay suscripciones de tipo ${typeName} para comparar.`,
     },
     preview: {
       title: 'Vista previa',

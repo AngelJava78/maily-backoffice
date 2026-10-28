@@ -184,15 +184,25 @@ describe('SubscriptionFormFields', () => {
     expect(screen.getByText(text.subscriptionTypeImmutableHelper)).toBeInTheDocument();
   });
 
-  it('shows the clinics limit next to the subscription type, before the name', () => {
+  it('groups the clinics limit with the clinic limits, under a "Límites" title (020)', () => {
     setup();
+
+    const limitsTitle = screen.getByText(text.fields.limits);
+    expect(limitsTitle.tagName.toLowerCase()).toBe('legend');
 
     const clinicsLimit = screen.getByRole('textbox', {
       name: new RegExp(`^${text.fields.clinicsLimit}`),
     });
-    expect(clinicsLimit).toBeInTheDocument();
+    const consultingRoomsLimit = screen.getByRole('textbox', {
+      name: new RegExp(`^${text.fields.consultingRoomsLimit}`),
+    });
+    // The clinics limit comes first within the section, before the other four limits.
     expect(
-      clinicsLimit.compareDocumentPosition(name()) & Node.DOCUMENT_POSITION_FOLLOWING,
+      clinicsLimit.compareDocumentPosition(consultingRoomsLimit) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // It no longer sits right after the subscription type, before the name: the name now comes first.
+    expect(
+      name().compareDocumentPosition(clinicsLimit) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 

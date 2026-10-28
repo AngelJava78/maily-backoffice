@@ -119,19 +119,21 @@ describe(
 
       await user.click(screen.getByRole('link', { name: text.detail.backToList }));
       await screen.findByRole('link', { name: 'Clínica Plus' });
+      // Ascending by monthly price (020, FR-006): Clínica Plus ($1,000.00) sits between Solo
+      // ($900.00) and Básico ($1,500.00).
       expect(
         within(grid())
           .getAllByRole('link')
           .map((link) => link.textContent),
       ).toEqual([
         'Enterprise',
-        'Clínica Plus',
-        'Básico',
-        'Pro',
-        'Premium',
         'Legacy full',
         'Solo',
+        'Clínica Plus',
+        'Básico',
         'Suspendido',
+        'Pro',
+        'Premium',
       ]);
     });
 

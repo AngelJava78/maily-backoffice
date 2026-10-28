@@ -53,7 +53,7 @@ describe(
   'the subscriptions section: changing the status (feature 003, user story 4)',
   { timeout: 40_000 },
   () => {
-    it('inactivates Pro, blocks it and activates it again, and the list moves it between groups (V17, V18)', async () => {
+    it('inactivates Pro, blocks it and activates it again; the list keeps it in the same place, ordered by price, not status (V17, V18; 020 supersedes the old grouping)', async () => {
       const { catalog } = start();
       const { user } = open('/subscriptions/2');
       await screen.findByText('Para clínicas en crecimiento.');
@@ -75,11 +75,13 @@ describe(
       await user.click(screen.getByRole('link', { name: text.detail.backToList }));
       const grid = await screen.findByRole('grid', { name: text.list.gridLabel });
       await within(grid).findByRole('link', { name: 'Pro' });
+      // Ascending by monthly price (020, FR-006): Pro's price never changed, so blocking it does
+      // not move it — there is no status group left to move it out of.
       expect(
         within(grid)
           .getAllByRole('link')
           .map((link) => link.textContent),
-      ).toEqual(['Enterprise', 'Básico', 'Premium', 'Legacy full', 'Solo', 'Suspendido', 'Pro']);
+      ).toEqual(['Enterprise', 'Legacy full', 'Solo', 'Básico', 'Suspendido', 'Pro', 'Premium']);
 
       await user.click(within(grid).getByRole('link', { name: 'Pro' }));
       await screen.findByText('Para clínicas en crecimiento.');

@@ -19,6 +19,8 @@ import { useSubscriptionCatalog } from '../hooks/useSubscriptionCatalog';
 import { useSubscriptionsLocation } from '../hooks/useSubscriptionsLocation';
 import type { SubscriptionCapabilities } from '../policy/subscriptionActions';
 import type { SubscriptionsTab } from '../schemas/subscriptionsLocation';
+import { sortByCyclePrice, sortSubscriptions } from '../schemas/subscriptionsSort';
+import { ComparisonTypeFilter } from './ComparisonTypeFilter';
 import { PriceCycleToggle, type PriceCycle } from './PriceCycleToggle';
 import { SubscriptionsComparisonTable } from './SubscriptionsComparisonTable';
 import { SubscriptionsGrid } from './SubscriptionsGrid';
@@ -38,7 +40,8 @@ interface SubscriptionsListPageProps {
  */
 export function SubscriptionsListPage({ capabilities }: SubscriptionsListPageProps) {
   const headingRef = useFocusOnMount<HTMLHeadingElement>();
-  const { location, search, setPage, setPageSize, setTab } = useSubscriptionsLocation();
+  const { location, search, setPage, setPageSize, setTab, setSort, setComparisonType } =
+    useSubscriptionsLocation();
   const [cycle, setCycle] = useState<PriceCycle>('monthly');
   // The creation comes back to the list it came from, at the same page, when it is cancelled.
   const createAction = capabilities.canCreate ? (
@@ -54,7 +57,8 @@ export function SubscriptionsListPage({ capabilities }: SubscriptionsListPagePro
   ) : undefined;
   const query = useSubscriptionCatalog();
   const loaded = query.data !== undefined;
-  const shown = pageOf(query.data ?? [], location.page, location.pageSize);
+  const sorted = sortSubscriptions(query.data ?? [], location.sort);
+  const shown = pageOf(sorted, location.page, location.pageSize);
   const pageWasClamped = loaded && shown.pageWasClamped;
 
   useEffect(() => {
@@ -82,6 +86,8 @@ export function SubscriptionsListPage({ capabilities }: SubscriptionsListPagePro
               setPageSize(nextPageSize);
             }
           }}
+          sort={location.sort}
+          onSortChange={setSort}
         />
         {/* Changing the page changes only the rows: a screen reader is told which ones are shown. */}
         <LiveStatus>
@@ -100,15 +106,28 @@ export function SubscriptionsListPage({ capabilities }: SubscriptionsListPagePro
     if (query.data.length === 0) {
       return <EmptyState message={text.list.empty} action={createAction} />;
     }
+    // Filtered by type (FR-007), then ordered by the price of the vigente cycle (FR-009).
+    const filtered = query.data.filter(
+      (subscription) => subscription.subscriptionType.id === location.comparisonType,
+    );
     return (
       <Stack spacing={2}>
-        <PriceCycleToggle value={cycle} onChange={setCycle} />
-        <SubscriptionsComparisonTable
-          subscriptions={query.data}
-          cycle={cycle}
-          canEdit={capabilities.canEdit}
-          listSearch={search}
-        />
+        <Stack direction="row" spacing={2} useFlexGap sx={{ flexWrap: 'wrap' }}>
+          <ComparisonTypeFilter value={location.comparisonType} onChange={setComparisonType} />
+          <PriceCycleToggle value={cycle} onChange={setCycle} />
+        </Stack>
+        {filtered.length === 0 ? (
+          <EmptyState
+            message={text.comparison.emptyForType(text.types.catalog[location.comparisonType].name)}
+          />
+        ) : (
+          <SubscriptionsComparisonTable
+            subscriptions={sortByCyclePrice(filtered, cycle)}
+            cycle={cycle}
+            canEdit={capabilities.canEdit}
+            listSearch={search}
+          />
+        )}
       </Stack>
     );
   }

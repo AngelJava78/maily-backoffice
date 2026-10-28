@@ -41,6 +41,7 @@ const EMPRESARIAL = subscriptionSchema.parse(
     annual_price: '59990.00',
     trial_days: 0,
     self_service: false,
+    clinics_limit: null,
     module_keys: [
       'patients',
       'scheduling',
@@ -95,7 +96,7 @@ describe('SubscriptionsComparisonTable', () => {
     expect(screen.getAllByText(messages.subscriptions.price.savingsBadge(17)).length).toBe(2);
   });
 
-  it('marks each of the nine modules as included or not, for each column', () => {
+  it('marks each of the nine modules with an icon, never the "Incluido"/"No incluido" text (020, FR-011)', () => {
     renderTable();
 
     const row = screen.getByRole('row', { name: new RegExp(modules.catalog.finance.name) });
@@ -104,9 +105,16 @@ describe('SubscriptionsComparisonTable', () => {
     if (esencialCell === undefined || empresarialCell === undefined) {
       throw new Error('Expected two cells, one per subscription');
     }
-    // Esencial does not include finance; Empresarial does.
-    expect(within(esencialCell).getByText(text.moduleNotIncluded)).toBeInTheDocument();
-    expect(within(empresarialCell).getByText(text.moduleIncluded)).toBeInTheDocument();
+    // Esencial does not include finance; Empresarial does. The accessible name carries the same
+    // text the cell used to show, now as the icon's name instead of visible content.
+    expect(
+      within(esencialCell).getByRole('img', { name: text.moduleNotIncluded }),
+    ).toBeInTheDocument();
+    expect(
+      within(empresarialCell).getByRole('img', { name: text.moduleIncluded }),
+    ).toBeInTheDocument();
+    expect(within(esencialCell).queryByText(text.moduleNotIncluded)).not.toBeInTheDocument();
+    expect(within(empresarialCell).queryByText(text.moduleIncluded)).not.toBeInTheDocument();
   });
 
   it('shows the four clinic limits per column', () => {
@@ -115,6 +123,26 @@ describe('SubscriptionsComparisonTable', () => {
     const row = screen.getByRole('row', { name: /Doctores/ });
     expect(within(row).getByText('1')).toBeInTheDocument();
     expect(within(row).getByText('40')).toBeInTheDocument();
+  });
+
+  it('shows the clinics limit first in «Límites de la clínica», with «No disponible» when it is null (020, FR-010)', () => {
+    renderTable();
+
+    const row = screen.getByRole('row', { name: text.sections.clinicsLimit });
+    const [esencialCell, empresarialCell] = within(row).getAllByRole('cell');
+    if (esencialCell === undefined || empresarialCell === undefined) {
+      throw new Error('Expected two cells, one per subscription');
+    }
+    expect(within(esencialCell).getByText('1')).toBeInTheDocument();
+    expect(
+      within(empresarialCell).getByText(messages.subscriptions.clinics.notAvailable),
+    ).toBeInTheDocument();
+
+    // It comes before Consultorios, the first of the four already-existing limits.
+    const consultingRoomsRow = screen.getByRole('row', { name: /Consultorios/ });
+    expect(
+      row.compareDocumentPosition(consultingRoomsRow) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('shows a row with the other features of each column, or nothing if empty', () => {
@@ -127,7 +155,8 @@ describe('SubscriptionsComparisonTable', () => {
     renderTable();
 
     expect(screen.getByText(messages.subscriptions.price.trialDays(14))).toBeInTheDocument();
-    expect(screen.getByText(messages.subscriptions.clinics.notAvailable)).toBeInTheDocument();
+    const row = screen.getByRole('row', { name: text.sections.clinics });
+    expect(within(row).getByText(messages.subscriptions.clinics.notAvailable)).toBeInTheDocument();
   });
 
   it('offers "Editar" for each column only when canEdit is true', () => {

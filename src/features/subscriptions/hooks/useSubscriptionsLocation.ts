@@ -5,11 +5,16 @@ import {
   parseSubscriptionsSearchParams,
   toSubscriptionsSearchParams,
   type SubscriptionsLocation,
+  type SubscriptionsSort,
   type SubscriptionsTab,
 } from '../schemas/subscriptionsLocation';
+import type { SubscriptionTypeId } from '../schemas/subscriptionTypeCatalog';
 
 export interface SubscriptionsLocationApi {
-  /** What the address asks for: a page of the list, its size and the active tab. */
+  /**
+   * What the address asks for: a page of the list, its size, the active tab, the order of the
+   * Listado (020) and the type filter of the Comparativo (020).
+   */
   readonly location: SubscriptionsLocation;
   /**
    * The search of the address as the list writes it (`?page=2&page_size=25`, or an empty text), to
@@ -22,6 +27,10 @@ export interface SubscriptionsLocationApi {
   readonly setPageSize: (pageSize: number) => void;
   /** Switches between Listado and Comparativo, keeping the page and its size (research D8). */
   readonly setTab: (tab: SubscriptionsTab) => void;
+  /** Changes the order of the Listado, which takes it back to the first page (020, research D9). */
+  readonly setSort: (sort: SubscriptionsSort) => void;
+  /** Changes the type filter of the Comparativo; it does not paginate, so nothing else moves (020). */
+  readonly setComparisonType: (type: SubscriptionTypeId) => void;
 }
 
 /**
@@ -46,20 +55,25 @@ export function useSubscriptionsLocation(): SubscriptionsLocationApi {
     location,
     search: canonical === '' ? '' : `?${canonical}`,
     setPage: (page, options) => {
-      setSearchParams(
-        toSubscriptionsSearchParams({ page, pageSize: location.pageSize, tab: location.tab }),
-        { replace: options?.replace === true },
-      );
+      setSearchParams(toSubscriptionsSearchParams({ ...location, page }), {
+        replace: options?.replace === true,
+      });
     },
     setPageSize: (nextPageSize) => {
       // The sizes the list offers are the only ones accepted: anything else becomes the default.
       const { pageSize } = parseSubscriptionsSearchParams(
         new URLSearchParams({ page_size: String(nextPageSize) }),
       );
-      setSearchParams(toSubscriptionsSearchParams({ page: 1, pageSize, tab: location.tab }));
+      setSearchParams(toSubscriptionsSearchParams({ ...location, page: 1, pageSize }));
     },
     setTab: (tab) => {
       setSearchParams(toSubscriptionsSearchParams({ ...location, tab }));
+    },
+    setSort: (sort) => {
+      setSearchParams(toSubscriptionsSearchParams({ ...location, page: 1, sort }));
+    },
+    setComparisonType: (comparisonType) => {
+      setSearchParams(toSubscriptionsSearchParams({ ...location, comparisonType }));
     },
   };
 }

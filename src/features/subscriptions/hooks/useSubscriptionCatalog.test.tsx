@@ -21,7 +21,7 @@ function start() {
 }
 
 describe('useSubscriptionCatalog', () => {
-  it('gives the whole catalog in the fixed order of the list', async () => {
+  it('gives the whole catalog in the order the API returns it, by creation (020)', async () => {
     start();
     const { wrapper } = createWrapper({ auth0: ADMIN_AUTH0 });
 
@@ -31,12 +31,12 @@ describe('useSubscriptionCatalog', () => {
       expect(result.current.data).toBeDefined();
     });
     expect(result.current.data?.map(({ name }) => name)).toEqual([
-      'Enterprise',
       'Básico',
       'Pro',
       'Premium',
-      'Legacy full',
+      'Enterprise',
       'Solo',
+      'Legacy full',
       'Suspendido',
     ]);
   });
