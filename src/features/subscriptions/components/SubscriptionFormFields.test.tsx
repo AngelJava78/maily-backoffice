@@ -7,7 +7,7 @@ import { axe } from 'vitest-axe';
 
 import { messages } from '@/shared/messages/es';
 
-import { REQUIRED_MODULE_KEY } from '../schemas/clinicModuleCatalog';
+import type { ClinicModule } from '../schemas/clinicModule';
 import { subscriptionFormSchema, type SubscriptionFormValues } from '../schemas/subscriptionForm';
 import { SUBSCRIPTION_TYPE } from '../schemas/subscriptionTypeCatalog';
 import { SubscriptionFormFields } from './SubscriptionFormFields';
@@ -15,6 +15,18 @@ import { SubscriptionFormFields } from './SubscriptionFormFields';
 const text = messages.subscriptions.form;
 const validation = messages.subscriptions.validation;
 const typeCatalog = messages.subscriptions.types.catalog;
+
+const MODULES: ClinicModule[] = [
+  { key: 'patients', name: 'Pacientes', description: 'Directorio de pacientes.', sortOrder: 10 },
+  { key: 'scheduling', name: 'Agenda y citas', description: 'Calendario.', sortOrder: 20 },
+];
+
+const CLINIC_MODULES_CATALOG = {
+  modules: MODULES,
+  loading: false,
+  loadFailed: false,
+  onRetry: () => undefined,
+};
 
 function Harness({ disableSubscriptionType }: { readonly disableSubscriptionType?: boolean } = {}) {
   const {
@@ -34,7 +46,7 @@ function Harness({ disableSubscriptionType }: { readonly disableSubscriptionType
       annualPrice: '',
       trialDays: '0',
       selfService: false,
-      moduleKeys: new Set([REQUIRED_MODULE_KEY]),
+      moduleKeys: new Set(['patients']),
       consultingRoomsLimit: '',
       doctorsLimit: '',
       assistantsLimit: '',
@@ -55,6 +67,7 @@ function Harness({ disableSubscriptionType }: { readonly disableSubscriptionType
         setValue={setValue}
         errors={errors}
         disableSubscriptionType={disableSubscriptionType}
+        clinicModules={CLINIC_MODULES_CATALOG}
       />
       <button type="submit">Enviar</button>
     </form>
@@ -129,15 +142,12 @@ describe('SubscriptionFormFields', () => {
     ).toHaveValue('0');
   });
 
-  it('asks for the nine clinic modules, with "Pacientes" always marked', () => {
+  it('asks for the clinic modules of the vigente catalog, with "Pacientes" always marked (021)', () => {
     setup();
 
-    expect(
-      screen.getByRole('checkbox', {
-        name: new RegExp(`^${messages.subscriptions.modules.catalog.patients.name}`),
-      }),
-    ).toBeChecked();
-    expect(screen.getByText(messages.subscriptions.modules.marked(1))).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: new RegExp('^Pacientes') })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: new RegExp('^Agenda y citas') })).not.toBeChecked();
+    expect(screen.getByText(messages.subscriptions.modules.marked(1, 2))).toBeInTheDocument();
   });
 
   it('asks for the four clinic limits', () => {

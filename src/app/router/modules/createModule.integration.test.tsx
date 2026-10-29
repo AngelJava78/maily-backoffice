@@ -109,4 +109,22 @@ describe('the modules section: creating (feature 013, user story 2)', () => {
     const row = await screen.findByRole('row', { name: /Auditoría/ });
     expect(row).toHaveTextContent('160');
   });
+
+  it('shows the FR-015 error and does not create when "Ver" is unchecked but "Crear" stays marked (022, Z11)', async () => {
+    start();
+    const { user } = open('/modules');
+    await screen.findByText('23 módulos activos');
+
+    await user.click(screen.getByRole('button', { name: '+ Nuevo módulo' }));
+    await user.type(screen.getByRole('textbox', { name: 'Clave' }), 'audit');
+    await user.type(screen.getByRole('textbox', { name: 'Nombre' }), 'Auditoría');
+    // The four actions start marked (FR-017); unchecking only "Ver" leaves "Crear" marked.
+    await user.click(screen.getByRole('checkbox', { name: /Ver/ }));
+    await user.click(screen.getByRole('button', { name: 'Crear módulo' }));
+
+    expect(
+      await screen.findByText('Para usar Crear, Modificar o Eliminar, marca también Ver.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('23 módulos activos')).toBeInTheDocument();
+  });
 });

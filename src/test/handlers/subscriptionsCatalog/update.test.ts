@@ -43,16 +43,12 @@ describe('PATCH /api/v1/subscriptions/{id}', () => {
     });
   });
 
-  it('replaces the whole set of module_keys, with the same catalog and dependency rules as create', async () => {
+  it('replaces the whole set of module_keys, with the same catalog as create, no dependency required (022, FR-008)', async () => {
     setup();
 
     expect(await update(2, { module_keys: ['reminders'] })).toMatchObject({
-      status: 409,
-      body: { code: 'subscription_module_prerequisite_missing' },
-    });
-    expect(await update(2, { module_keys: ['scheduling', 'reminders'] })).toMatchObject({
       status: 200,
-      body: { module_keys: ['patients', 'reminders', 'scheduling'] },
+      body: { module_keys: ['patients', 'reminders'] },
     });
   });
 

@@ -2,6 +2,7 @@ import { configure, screen, waitFor, within } from '@testing-library/react';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { messages } from '@/shared/messages/es';
+import { createClinicModulesCatalogMock } from '@/test/handlers/subscriptionModulesCatalog';
 import {
   createSubscriptionsCatalogMock,
   defaultCatalog,
@@ -22,6 +23,8 @@ const text = messages.subscriptions;
 const PATH = '/api/v1/subscriptions';
 
 function start(initial = defaultCatalog()) {
+  // 021: so the modules section loads and «Guardar» is not left disabled.
+  createClinicModulesCatalogMock();
   const directory = createUsersDirectoryMock();
   const catalog = createSubscriptionsCatalogMock({ directory, initial });
   return { directory, catalog };

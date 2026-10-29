@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import { messages } from '@/shared/messages/es';
+import { createClinicModulesCatalogMock } from '@/test/handlers/subscriptionModulesCatalog';
 import {
   catalogSubscription,
   createSubscriptionsCatalogMock,
@@ -23,6 +24,8 @@ function DetailProbe() {
 }
 
 function start() {
+  // 021: the same nine clinic modules of always, so existing checkbox lookups keep working.
+  createClinicModulesCatalogMock();
   const catalog = createSubscriptionsCatalogMock({ directory: createUsersDirectoryMock() });
   catalog.addStatus(5, 'En revisión');
   catalog.setStatus(4, 5);
@@ -57,6 +60,8 @@ const PATCHES = '/api/v1/subscriptions/2';
 async function formReady() {
   await waitFor(() => {
     expect(name()).toHaveValue('Pro');
+    // 021: «Guardar» stays disabled until the clinic modules catalog loads too (FR-010).
+    expect(save()).not.toBeDisabled();
   });
 }
 
@@ -119,11 +124,7 @@ describe('SubscriptionEditPage', { timeout: 30_000 }, () => {
     expect(
       screen.getByRole('switch', { name: new RegExp(`^${text.form.fields.selfService}`) }),
     ).not.toBeChecked();
-    expect(
-      screen.getByRole('checkbox', {
-        name: new RegExp(`^${messages.subscriptions.modules.catalog.patients.name}`),
-      }),
-    ).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: /^Pacientes/ })).toBeChecked();
     expect(field(text.form.fields.consultingRoomsLimit)).toHaveValue('1');
     expect(field(text.form.fields.doctorsLimit)).toHaveValue('1');
   });
@@ -227,21 +228,19 @@ describe('SubscriptionEditPage', { timeout: 30_000 }, () => {
       expect(catalog.requestsTo('PATCH', PATCHES)[0]?.body).toEqual({ doctors_limit: 5 });
     });
 
-    it('sends the complete module set when a module with a dependency was added', async () => {
+    it('sends the module set with the one marked added, with no dependency cascade (021)', async () => {
       const catalog = start();
       const { user } = renderEdit();
       await formReady();
 
-      await user.click(
-        screen.getByRole('checkbox', {
-          name: new RegExp(`^${messages.subscriptions.modules.catalog.reminders.name}`),
-        }),
-      );
+      // 021/022: marking Reportes no longer marks any other module; dependencies between modules
+      // were retired from the frontend (021) and from the simulator itself (022, FR-008).
+      await user.click(screen.getByRole('checkbox', { name: /^Reportes/ }));
       await user.click(save());
 
       await screen.findByText(/^Detalle 2:/);
       expect(catalog.requestsTo('PATCH', PATCHES)[0]?.body).toEqual({
-        module_keys: ['patients', 'reminders', 'scheduling'],
+        module_keys: ['patients', 'reports'],
       });
     });
 
@@ -402,6 +401,7 @@ describe('SubscriptionEditPage', { timeout: 30_000 }, () => {
     async function enterpriseFormReady() {
       await waitFor(() => {
         expect(name()).toHaveValue('Empresarial');
+        expect(save()).not.toBeDisabled();
       });
     }
 
@@ -436,5 +436,98 @@ describe('SubscriptionEditPage', { timeout: 30_000 }, () => {
     await formReady();
 
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  describe('the clinic modules catalog (021)', () => {
+    it('does not offer a module the catalog no longer has, and drops it on save without touching it (FR-009)', async () => {
+      const catalog = start();
+      catalog.addSubscription(
+        catalogSubscription({
+          id: 40,
+          name: 'Con módulo obsoleto',
+          moduleKeys: ['patients', 'legacy_module'],
+        }),
+      );
+      const { user } = renderEdit(40);
+      await waitFor(() => {
+        expect(name()).toHaveValue('Con módulo obsoleto');
+        expect(save()).not.toBeDisabled();
+      });
+
+      expect(screen.queryByRole('checkbox', { name: /legacy_module/i })).not.toBeInTheDocument();
+
+      await user.click(save());
+
+      await screen.findByText(/^Detalle 40:/);
+      expect(catalog.requestsTo('PATCH', '/api/v1/subscriptions/40')[0]?.body).toEqual({
+        module_keys: ['patients'],
+      });
+    });
+
+    it('shows Pacientes marked even when the subscription did not have it saved, and includes it on save (Assumptions)', async () => {
+      const catalog = start();
+      catalog.addSubscription(
+        catalogSubscription({ id: 41, name: 'Sin pacientes guardado', moduleKeys: ['reports'] }),
+      );
+      const { user } = renderEdit(41);
+      await waitFor(() => {
+        expect(name()).toHaveValue('Sin pacientes guardado');
+        expect(save()).not.toBeDisabled();
+      });
+
+      expect(screen.getByRole('checkbox', { name: /^Pacientes/ })).toBeChecked();
+
+      await user.click(save());
+
+      await screen.findByText(/^Detalle 41:/);
+      expect(catalog.requestsTo('PATCH', '/api/v1/subscriptions/41')[0]?.body).toEqual({
+        module_keys: ['patients', 'reports'],
+      });
+    });
+
+    it('keeps «Guardar» disabled while the modules catalog is loading, even once the subscription is ready', async () => {
+      createClinicModulesCatalogMock().hang();
+      createSubscriptionsCatalogMock({ directory: createUsersDirectoryMock() });
+      renderEdit();
+
+      await waitFor(() => {
+        expect(name()).toHaveValue('Pro');
+      });
+      expect(save()).toBeDisabled();
+    });
+
+    it('shows an error with retry, and keeps «Guardar» disabled, until the modules catalog loads', async () => {
+      const mock = createClinicModulesCatalogMock();
+      mock.failWith(500);
+      createSubscriptionsCatalogMock({ directory: createUsersDirectoryMock() });
+      const { user } = renderEdit();
+      await waitFor(() => {
+        expect(name()).toHaveValue('Pro');
+      });
+
+      expect(
+        await screen.findByText(messages.subscriptions.modules.loadError.title),
+      ).toBeInTheDocument();
+      expect(save()).toBeDisabled();
+
+      mock.recover();
+      await user.click(screen.getByRole('button', { name: messages.common.retry }));
+
+      await waitFor(() => {
+        expect(save()).not.toBeDisabled();
+      });
+    });
+
+    it('shows an empty warning, and keeps «Guardar» disabled, when the modules catalog loads with no modules', async () => {
+      createClinicModulesCatalogMock([]);
+      createSubscriptionsCatalogMock({ directory: createUsersDirectoryMock() });
+      renderEdit();
+      await waitFor(() => {
+        expect(name()).toHaveValue('Pro');
+      });
+
+      expect(await screen.findByText(messages.subscriptions.modules.empty)).toBeInTheDocument();
+      expect(save()).toBeDisabled();
+    });
   });
 });

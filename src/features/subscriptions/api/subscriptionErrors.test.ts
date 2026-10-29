@@ -97,17 +97,26 @@ describe('describeSubscriptionError', () => {
     },
   );
 
-  it.each([
-    [409, 'subscription_module_prerequisite_missing'],
-    [422, 'subscription_module_not_found'],
-  ])('puts %i %s next to the modules section, with an own text', (status, code) => {
-    const outcome = describeSubscriptionError(refusal(status, code), 'create');
+  it('puts 422 subscription_module_not_found next to the modules section, with an own text (FR-010)', () => {
+    const outcome = describeSubscriptionError(
+      refusal(422, 'subscription_module_not_found'),
+      'create',
+    );
 
     expect(outcome).toEqual({
       kind: 'field',
       message: text.fields.moduleKeys,
       fields: { moduleKeys: text.fields.moduleKeys },
     });
+  });
+
+  it('no longer gives subscription_module_prerequisite_missing any special handling: falls to unexpected (022, FR-010)', () => {
+    const outcome = describeSubscriptionError(
+      refusal(409, 'subscription_module_prerequisite_missing'),
+      'create',
+    );
+
+    expect(outcome).toEqual({ kind: 'unexpected', message: messages.errors.unexpected });
   });
 
   it('puts a subscription type not found next to the type control, with an own text', () => {

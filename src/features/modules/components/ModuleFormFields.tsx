@@ -1,6 +1,7 @@
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import FormGroup from '@mui/material/FormGroup';
+import FormHelperText from '@mui/material/FormHelperText';
 import FormLabel from '@mui/material/FormLabel';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
@@ -9,11 +10,7 @@ import type { FieldErrors, UseFormRegister } from 'react-hook-form';
 
 import { messages } from '@/shared/messages/es';
 
-import {
-  MODULE_ACTION_ORDER,
-  REQUIRED_ACTION_KEY,
-  type ModuleActionKey,
-} from '../schemas/moduleActionCatalog';
+import { MODULE_ACTION_ORDER, type ModuleActionKey } from '../schemas/moduleActionCatalog';
 import type { ModuleFormValues } from '../schemas/moduleForm';
 
 const text = messages.modules.form;
@@ -98,7 +95,6 @@ export function ModuleFormFields({
                 control={
                   <Checkbox
                     checked={actions.has(action)}
-                    disabled={action === REQUIRED_ACTION_KEY}
                     onChange={(event) => {
                       onActionToggle(action, event.target.checked);
                     }}
@@ -112,6 +108,11 @@ export function ModuleFormFields({
             </Stack>
           ))}
         </FormGroup>
+        {errors.actions?.message !== undefined && (
+          <FormHelperText error sx={{ mx: 0 }}>
+            {errors.actions.message}
+          </FormHelperText>
+        )}
       </Stack>
     </>
   );

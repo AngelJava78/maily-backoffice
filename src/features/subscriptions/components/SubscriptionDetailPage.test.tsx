@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import { messages } from '@/shared/messages/es';
+import { createClinicModulesCatalogMock } from '@/test/handlers/subscriptionModulesCatalog';
 import { createSubscriptionsCatalogMock } from '@/test/handlers/subscriptionsCatalog';
 import { ADMIN_AUTH0, createUsersDirectoryMock } from '@/test/handlers/usersDirectory';
 import { renderWithProviders } from '@/test/renderWithProviders';
@@ -16,9 +17,12 @@ import { subscriptionKeys } from '../hooks/subscriptionKeys';
 import { SubscriptionDetailPage } from './SubscriptionDetailPage';
 
 const text = messages.subscriptions.detail;
+const modulesText = messages.subscriptions.modules;
 
 function start() {
-  return createSubscriptionsCatalogMock({ directory: createUsersDirectoryMock() });
+  const modules = createClinicModulesCatalogMock();
+  const catalog = createSubscriptionsCatalogMock({ directory: createUsersDirectoryMock() });
+  return { catalog, modules };
 }
 
 function renderDetail(
@@ -46,7 +50,7 @@ function renderDetail(
 
 describe('SubscriptionDetailPage', () => {
   it('shows the title from the first render, and that it is loading, while the data come', async () => {
-    const catalog = start();
+    const { catalog } = start();
     const release = catalog.defer();
     renderDetail();
 
@@ -78,7 +82,7 @@ describe('SubscriptionDetailPage', () => {
   });
 
   it('says the same of a subscription deleted by another person', async () => {
-    const catalog = start();
+    const { catalog } = start();
     catalog.remove(2);
     renderDetail(2);
 
@@ -86,7 +90,7 @@ describe('SubscriptionDetailPage', () => {
   });
 
   it('shows any other failure as an error, and retrying shows the subscription', async () => {
-    const catalog = start();
+    const { catalog } = start();
     catalog.failNext({
       method: 'GET',
       path: '/api/v1/subscriptions/2',
@@ -102,7 +106,7 @@ describe('SubscriptionDetailPage', () => {
   });
 
   it('keeps the data on screen when a refresh fails, with a notice and a way to retry', async () => {
-    const catalog = start();
+    const { catalog } = start();
     const { queryClient, user } = renderDetail();
     await screen.findByText('Para clínicas en crecimiento.');
 
@@ -160,7 +164,7 @@ describe('SubscriptionDetailPage', () => {
     });
 
     it('offers the way back while the subscription loads and when it fails', async () => {
-      const catalog = start();
+      const { catalog } = start();
       catalog.failAll(500);
       renderDetail();
 
@@ -264,5 +268,31 @@ describe('SubscriptionDetailPage', () => {
     await screen.findByText('Para clínicas en crecimiento.');
 
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  describe('the modules section (022)', () => {
+    it('shows a loading indicator in the modules section while its own catalog loads, with the rest of the detail already visible', async () => {
+      const { modules } = start();
+      modules.hang();
+      renderDetail();
+
+      await screen.findByText('Para clínicas en crecimiento.');
+      expect(screen.getByLabelText(messages.common.loading)).toBeInTheDocument();
+    });
+
+    it('shows an error state with retry in the modules section when its own catalog fails, without touching the rest of the detail', async () => {
+      const { modules } = start();
+      modules.failWith(500);
+      const { user } = renderDetail();
+      await screen.findByText('Para clínicas en crecimiento.');
+
+      expect(await screen.findByText(modulesText.loadError.title)).toBeInTheDocument();
+      modules.recover();
+      await user.click(screen.getByRole('button', { name: messages.common.retry }));
+
+      await waitFor(() => {
+        expect(screen.queryByText(modulesText.loadError.title)).not.toBeInTheDocument();
+      });
+    });
   });
 });

@@ -1,5 +1,6 @@
 import { screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import { formatDateTime } from '@/shared/lib/formatDateTime';
@@ -7,13 +8,29 @@ import { messages } from '@/shared/messages/es';
 import { subscriptionDto } from '@/test/factories';
 import { renderWithProviders } from '@/test/renderWithProviders';
 
+import type { ClinicModule } from '../schemas/clinicModule';
 import { subscriptionSchema } from '../schemas/subscription';
 import { SubscriptionDetailFields } from './SubscriptionDetailFields';
 
 const text = messages.subscriptions.detail;
-const modules = messages.subscriptions.modules;
+const modulesText = messages.subscriptions.modules;
 
-function renderFields(overrides: Parameters<typeof subscriptionDto>[0] = {}) {
+const MODULES: ClinicModule[] = [
+  { key: 'patients', name: 'Pacientes', description: null, sortOrder: 10 },
+  { key: 'schedule', name: 'Agenda', description: null, sortOrder: 20 },
+  { key: 'appointments', name: 'Citas', description: null, sortOrder: 30 },
+  { key: 'reports', name: 'Reportes', description: null, sortOrder: 40 },
+];
+
+function renderFields(
+  overrides: Parameters<typeof subscriptionDto>[0] = {},
+  moduleProps: {
+    readonly modules?: readonly ClinicModule[];
+    readonly loading?: boolean;
+    readonly loadFailed?: boolean;
+    readonly onRetry?: () => void;
+  } = {},
+) {
   return renderWithProviders(
     <SubscriptionDetailFields
       subscription={subscriptionSchema.parse(
@@ -25,6 +42,10 @@ function renderFields(overrides: Parameters<typeof subscriptionDto>[0] = {}) {
           ...overrides,
         }),
       )}
+      modules={moduleProps.modules ?? MODULES}
+      loading={moduleProps.loading ?? false}
+      loadFailed={moduleProps.loadFailed ?? false}
+      onRetry={moduleProps.onRetry ?? vi.fn()}
     />,
   );
 }
@@ -125,62 +146,88 @@ describe('SubscriptionDetailFields', () => {
     );
   });
 
-  it('lists the included modules by name, in the fixed catalog order', () => {
-    renderFields({ module_keys: ['billing', 'patients', 'finance'] });
+  it('lists the included modules by name, in the catalog order (sort_order), not the saved order', () => {
+    renderFields({ module_keys: ['reports', 'patients', 'schedule'] });
 
     const list = within(valueOf(text.fields.modules)).getByRole('list');
     expect(
       within(list)
         .getAllByRole('listitem')
         .map((item) => item.textContent),
-    ).toEqual([
-      modules.catalog.patients.name,
-      modules.catalog.finance.name,
-      modules.catalog.billing.name,
-    ]);
+    ).toEqual(['Pacientes', 'Agenda', 'Reportes']);
   });
 
-  it('shows "No incluye" with the names of the modules that are missing', () => {
-    renderFields({
-      module_keys: [
-        'patients',
-        'scheduling',
-        'reminders',
-        'clinical_records',
-        'clinical_record_templates',
-        'prescriptions',
-      ],
-    });
+  it('shows "No incluye" with the names of the catalog modules that are missing', () => {
+    renderFields({ module_keys: ['patients', 'schedule'] });
 
     expect(
-      screen.getByText(
-        text.notIncluded(
-          [
-            modules.catalog.finance.name,
-            modules.catalog.reports.name,
-            modules.catalog.billing.name,
-          ].join(', '),
-        ),
-      ),
+      screen.getByText(text.notIncluded(['Citas', 'Reportes'].join(', '))),
     ).toBeInTheDocument();
   });
 
-  it('shows no "No incluye" line when all nine modules are included', () => {
-    renderFields({
-      module_keys: [
-        'patients',
-        'scheduling',
-        'reminders',
-        'clinical_records',
-        'clinical_record_templates',
-        'prescriptions',
-        'finance',
-        'reports',
-        'billing',
-      ],
-    });
+  it('shows no "No incluye" line when every catalog module is included', () => {
+    renderFields({ module_keys: ['patients', 'schedule', 'appointments', 'reports'] });
 
     expect(screen.queryByText(/No incluye/)).not.toBeInTheDocument();
+  });
+
+  it('shows a saved key missing from the catalog at the end of the included list, as "(no disponible)" (FR-006)', () => {
+    renderFields({ module_keys: ['patients', 'retired_module'] });
+
+    const list = within(valueOf(text.fields.modules)).getByRole('list');
+    expect(
+      within(list)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent),
+    ).toEqual(['Pacientes', text.moduleUnavailable('retired_module')]);
+  });
+
+  it('never lists a key missing from the catalog in the "No incluye" line, only real catalog names', () => {
+    renderFields({ module_keys: ['patients', 'retired_module'] });
+
+    const notIncludedLine = screen.getByText(
+      text.notIncluded(['Agenda', 'Citas', 'Reportes'].join(', ')),
+    );
+    expect(notIncludedLine).toBeInTheDocument();
+    expect(notIncludedLine).not.toHaveTextContent('retired_module');
+  });
+
+  it('shows only "(no disponible)" entries, with "No incluye" naming the whole catalog, when none of the saved keys match it', () => {
+    renderFields({ module_keys: ['retired_a', 'retired_b'] });
+
+    const list = within(valueOf(text.fields.modules)).getByRole('list');
+    expect(
+      within(list)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent),
+    ).toEqual(['retired_a (no disponible)', 'retired_b (no disponible)']);
+    expect(
+      screen.getByText(text.notIncluded(['Pacientes', 'Agenda', 'Citas', 'Reportes'].join(', '))),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a loading indicator in the modules section while the catalog loads, keeping the rest of the detail', () => {
+    renderFields({}, { loading: true });
+
+    expect(
+      within(valueOf(text.fields.modules)).getByLabelText(messages.common.loading),
+    ).toBeInTheDocument();
+    expect(valueOf(text.fields.name)).toHaveTextContent('Pro');
+  });
+
+  it('shows an error state with retry in the modules section when the catalog fails to load', async () => {
+    const onRetry = vi.fn();
+    const user = userEvent.setup();
+    renderFields({}, { loadFailed: true, onRetry });
+
+    expect(
+      within(valueOf(text.fields.modules)).getByText(modulesText.loadError.title),
+    ).toBeInTheDocument();
+    await user.click(
+      within(valueOf(text.fields.modules)).getByRole('button', { name: /reintentar/i }),
+    );
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
   it('shows the four clinic limits', () => {
@@ -247,9 +294,14 @@ describe('SubscriptionDetailFields', () => {
     expect(getComputedStyle(valueOf(text.fields.name)).overflowWrap).toBe('anywhere');
   });
 
-  it('has no accessibility violations', async () => {
-    const { container } = renderFields();
+  it('has no accessibility violations, with data, loading or failed', async () => {
+    const { container: withData } = renderFields();
+    expect(await axe(withData)).toHaveNoViolations();
 
-    expect(await axe(container)).toHaveNoViolations();
+    const { container: loading } = renderFields({}, { loading: true });
+    expect(await axe(loading)).toHaveNoViolations();
+
+    const { container: failed } = renderFields({}, { loadFailed: true });
+    expect(await axe(failed)).toHaveNoViolations();
   });
 });

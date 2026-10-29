@@ -82,8 +82,34 @@ describe('moduleFormSchema', () => {
     expect(moduleFormSchema.safeParse({ ...valid, sortOrder: '' }).success).toBe(true);
   });
 
-  it('rejects actions without "read" (FR-018)', () => {
-    expect(moduleFormSchema.safeParse({ ...valid, actions: new Set() }).success).toBe(false);
+  it('accepts an empty set of actions (022, FR-016: a module can be saved with none marked)', () => {
+    expect(moduleFormSchema.safeParse({ ...valid, actions: new Set() }).success).toBe(true);
+  });
+
+  it('accepts "read" alone, with none of write/update/delete', () => {
+    expect(moduleFormSchema.safeParse({ ...valid, actions: new Set(['read']) }).success).toBe(true);
+  });
+
+  it.each(['write', 'update', 'delete'] as const)(
+    'rejects "%s" without "read" (022, FR-015)',
+    (action) => {
+      const result = moduleFormSchema.safeParse({ ...valid, actions: new Set([action]) });
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0]?.message).toBe(
+          'Para usar Crear, Modificar o Eliminar, marca también Ver.',
+        );
+      }
+    },
+  );
+
+  it('accepts all four actions together', () => {
+    expect(
+      moduleFormSchema.safeParse({
+        ...valid,
+        actions: new Set(['read', 'write', 'update', 'delete']),
+      }).success,
+    ).toBe(true);
   });
 });
 

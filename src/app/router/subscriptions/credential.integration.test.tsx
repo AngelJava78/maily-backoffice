@@ -2,6 +2,7 @@ import { configure, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { messages } from '@/shared/messages/es';
+import { createClinicModulesCatalogMock } from '@/test/handlers/subscriptionModulesCatalog';
 import {
   createSubscriptionsCatalogMock,
   defaultCatalog,
@@ -41,6 +42,8 @@ const save = () => screen.getByRole('button', { name: new RegExp(`^${messages.co
 
 describe('the subscriptions section: the credential (FR-022, SC-011)', { timeout: 60_000 }, () => {
   it('sends the token of the session to the subscriptions API only, and keeps it nowhere', async () => {
+    // 021: so the modules section loads and «Guardar» is not left disabled.
+    createClinicModulesCatalogMock();
     const directory = createUsersDirectoryMock();
     const catalog = createSubscriptionsCatalogMock({ directory, initial: defaultCatalog() });
     server.events.on('request:start', record);
@@ -53,6 +56,8 @@ describe('the subscriptions section: the credential (FR-022, SC-011)', { timeout
     await user.click(screen.getByRole('link', { name: text.actions.edit }));
     await waitFor(() => {
       expect(field(text.form.fields.name)).toHaveValue('Solo');
+      // 021: «Guardar» stays disabled until the clinic modules catalog loads too (FR-010).
+      expect(save()).not.toBeDisabled();
     });
     await user.type(field(text.form.fields.description), ' Con agenda.');
     await user.click(save());
@@ -75,6 +80,9 @@ describe('the subscriptions section: the credential (FR-022, SC-011)', { timeout
     // A creation.
     await user.click(await screen.findByRole('link', { name: text.list.createAction }));
     await screen.findByRole('heading', { level: 1, name: text.form.createTitle });
+    await waitFor(() => {
+      expect(save()).not.toBeDisabled();
+    });
     await user.type(field(text.form.fields.name), 'Nueva');
     await user.type(field(text.form.fields.monthlyPrice), '10');
     await user.type(field(text.form.fields.annualPrice), '100');

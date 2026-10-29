@@ -7,7 +7,7 @@ import { axe } from 'vitest-axe';
 
 import { messages } from '@/shared/messages/es';
 
-import { REQUIRED_MODULE_KEY } from '../schemas/clinicModuleCatalog';
+import { REQUIRED_MODULE_KEY } from '../schemas/clinicModule';
 import { subscriptionFormSchema, type SubscriptionFormValues } from '../schemas/subscriptionForm';
 import { SUBSCRIPTION_TYPE } from '../schemas/subscriptionTypeCatalog';
 import { SubscriptionTypeField } from './SubscriptionTypeField';

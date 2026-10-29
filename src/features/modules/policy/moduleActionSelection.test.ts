@@ -3,10 +3,16 @@ import { describe, expect, it } from 'vitest';
 import { withActionChecked } from './moduleActionSelection';
 
 describe('withActionChecked', () => {
-  it('never unchecks "read" (FR-018)', () => {
+  it('unchecks "read" like any other action (022, FR-012: no more special case)', () => {
     const selected = new Set(['read', 'write'] as const);
 
-    expect([...withActionChecked(selected, 'read', false)]).toEqual(['read', 'write']);
+    expect([...withActionChecked(selected, 'read', false)]).toEqual(['write']);
+  });
+
+  it('checks "read" like any other action', () => {
+    const selected = new Set(['write'] as const);
+
+    expect([...withActionChecked(selected, 'read', true)]).toEqual(['write', 'read']);
   });
 
   it('adds an action without touching the others', () => {

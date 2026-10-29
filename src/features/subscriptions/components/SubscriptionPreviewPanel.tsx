@@ -7,7 +7,8 @@ import { useState, type ReactNode } from 'react';
 
 import { messages } from '@/shared/messages/es';
 
-import { CLINIC_MODULE_ORDER, type ClinicModuleKey } from '../schemas/clinicModuleCatalog';
+import { resolveModuleSelection } from '../policy/clinicModuleSelection';
+import type { ClinicModule } from '../schemas/clinicModule';
 import type { SubscriptionFormValues } from '../schemas/subscriptionForm';
 import { PriceCycleToggle, type PriceCycle } from './PriceCycleToggle';
 import { SubscriptionPriceDisplay } from './SubscriptionPriceDisplay';
@@ -16,6 +17,8 @@ const text = messages.subscriptions;
 
 interface SubscriptionPreviewPanelProps {
   readonly values: SubscriptionFormValues;
+  /** The vigente catalog of active clinic modules (021): the same one the form offers. */
+  readonly modules: readonly ClinicModule[];
 }
 
 /** A label and the items below it, or nothing when there are none to show. */
@@ -36,12 +39,13 @@ function Section({ label, children }: { readonly label: string; readonly childre
  * values with no request of its own, with its own Mensual/Anual toggle, always starting at Mensual
  * (research D8).
  */
-export function SubscriptionPreviewPanel({ values }: SubscriptionPreviewPanelProps) {
+export function SubscriptionPreviewPanel({ values, modules }: SubscriptionPreviewPanelProps) {
   const [cycle, setCycle] = useState<PriceCycle>('monthly');
-  const included: ClinicModuleKey[] = [];
-  const excluded: ClinicModuleKey[] = [];
-  for (const key of CLINIC_MODULE_ORDER) {
-    (values.moduleKeys.has(key) ? included : excluded).push(key);
+  const effective = resolveModuleSelection(values.moduleKeys, modules);
+  const included: ClinicModule[] = [];
+  const excluded: ClinicModule[] = [];
+  for (const module of modules) {
+    (effective.has(module.key) ? included : excluded).push(module);
   }
 
   return (
@@ -82,15 +86,13 @@ export function SubscriptionPreviewPanel({ values }: SubscriptionPreviewPanelPro
         )}
         <Section label={text.detail.fields.modules}>
           <Box component="ul" sx={{ m: 0, pl: 3 }}>
-            {included.map((key) => (
-              <li key={key}>{text.modules.catalog[key].name}</li>
+            {included.map((module) => (
+              <li key={module.key}>{module.name}</li>
             ))}
           </Box>
           {excluded.length > 0 && (
             <Typography variant="body2" color="text.secondary">
-              {text.detail.notIncluded(
-                excluded.map((key) => text.modules.catalog[key].name).join(', '),
-              )}
+              {text.detail.notIncluded(excluded.map((module) => module.name).join(', '))}
             </Typography>
           )}
         </Section>

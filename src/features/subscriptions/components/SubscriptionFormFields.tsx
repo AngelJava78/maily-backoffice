@@ -7,6 +7,7 @@ import type { Control, FieldErrors, UseFormRegister, UseFormSetValue } from 'rea
 
 import { messages } from '@/shared/messages/es';
 
+import type { ClinicModule } from '../schemas/clinicModule';
 import type { SubscriptionFormValues } from '../schemas/subscriptionForm';
 import { ClinicLimitsFields } from './ClinicLimitsFields';
 import { ClinicsLimitField } from './ClinicsLimitField';
@@ -24,6 +25,13 @@ interface SubscriptionFormFieldsProps {
   readonly errors: FieldErrors<SubscriptionFormValues>;
   /** Only the edition passes this: the type is fixed forever once created (FR-004, research D3). */
   readonly disableSubscriptionType?: boolean;
+  /** The vigente catalog of active clinic modules (021), fetched by the page that owns this form. */
+  readonly clinicModules: {
+    readonly modules: readonly ClinicModule[];
+    readonly loading: boolean;
+    readonly loadFailed: boolean;
+    readonly onRetry: () => void;
+  };
 }
 
 /**
@@ -39,6 +47,7 @@ export function SubscriptionFormFields({
   setValue,
   errors,
   disableSubscriptionType = false,
+  clinicModules,
 }: SubscriptionFormFieldsProps) {
   // The references go to the inputs themselves, so the form can put the focus on a field with an error.
   const { ref: nameRef, ...name } = register('name');
@@ -119,7 +128,14 @@ export function SubscriptionFormFields({
         </Stack>
       </Stack>
       <SelfServiceAndTrialFields register={register} control={control} errors={errors} />
-      <ModulesField control={control} errors={errors} />
+      <ModulesField
+        control={control}
+        errors={errors}
+        modules={clinicModules.modules}
+        loading={clinicModules.loading}
+        loadFailed={clinicModules.loadFailed}
+        onRetry={clinicModules.onRetry}
+      />
       <Box component="fieldset" sx={{ border: 0, m: 0, p: 0, minWidth: 0 }}>
         <Typography component="legend" variant="subtitle1" sx={{ fontWeight: 'bold', p: 0 }}>
           {text.fields.limits}

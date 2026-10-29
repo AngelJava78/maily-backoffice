@@ -12,6 +12,7 @@ import { RefreshFailedAlert } from '@/shared/ui/RefreshFailedAlert';
 import { useFocusOnMount } from '@/shared/ui/useFocusOnMount';
 
 import { describeSubscriptionError } from '../api/subscriptionErrors';
+import { useClinicModulesCatalog } from '../hooks/useClinicModulesCatalog';
 import { useSubscription } from '../hooks/useSubscription';
 import type { SubscriptionCapabilities } from '../policy/subscriptionActions';
 import { parseSubscriptionDetailState } from '../schemas/subscriptionDetailState';
@@ -40,6 +41,8 @@ export function SubscriptionDetailPage({
   const location = useLocation();
   const { listSearch } = parseSubscriptionDetailState(location.state);
   const query = useSubscription(subscriptionId);
+  // In parallel with the subscription itself, not in cascade (022, research D2).
+  const modulesCatalog = useClinicModulesCatalog();
 
   /**
    * The way back, with the actions beside it once the subscription is known. It is the first child
@@ -131,7 +134,15 @@ export function SubscriptionDetailPage({
             }}
           />
         )}
-        <SubscriptionDetailFields subscription={subscription} />
+        <SubscriptionDetailFields
+          subscription={subscription}
+          modules={modulesCatalog.data ?? []}
+          loading={modulesCatalog.isPending}
+          loadFailed={modulesCatalog.isError && modulesCatalog.data === undefined}
+          onRetry={() => {
+            void modulesCatalog.refetch();
+          }}
+        />
       </>
     );
   }

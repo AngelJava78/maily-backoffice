@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import { messages } from '@/shared/messages/es';
 
-import { REQUIRED_MODULE_KEY, type ClinicModuleKey } from './clinicModuleCatalog';
 import {
   MAX_OTHER_FEATURES,
   subscriptionFormSchema,
@@ -24,7 +23,7 @@ const valid: SubscriptionFormValues = {
   annualPrice: '45000',
   trialDays: '14',
   selfService: true,
-  moduleKeys: new Set<ClinicModuleKey>(['patients', 'scheduling']),
+  moduleKeys: new Set<string>(['patients', 'scheduling']),
   consultingRoomsLimit: '2',
   doctorsLimit: '3',
   assistantsLimit: '2',
@@ -50,7 +49,7 @@ describe('subscriptionFormSchema', () => {
         ...valid,
         description: '',
         otherFeatures: [],
-        moduleKeys: new Set<ClinicModuleKey>([REQUIRED_MODULE_KEY]),
+        moduleKeys: new Set<string>(['patients']),
       }).success,
     ).toBe(true);
   });
@@ -298,10 +297,10 @@ describe('toFormValues', () => {
     expect(toFormValues({ ...subscription, description: null }).description).toBe('');
   });
 
-  it('drops a module key that is not in the fixed catalog of nine', () => {
+  it("keeps every module key as it was saved, with no filtering against any fixed catalog (021, research D7): resolving which ones are still usable is resolveModuleSelection's job, not this one", () => {
     expect(
-      toFormValues({ ...subscription, moduleKeys: ['patients', 'future_module'] }).moduleKeys,
-    ).toEqual(new Set(['patients']));
+      toFormValues({ ...subscription, moduleKeys: ['patients', 'administrators'] }).moduleKeys,
+    ).toEqual(new Set(['patients', 'administrators']));
   });
 });
 

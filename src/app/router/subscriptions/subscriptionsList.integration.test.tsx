@@ -2,6 +2,7 @@ import { configure, screen, waitFor, within } from '@testing-library/react';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { messages } from '@/shared/messages/es';
+import { createClinicModulesCatalogMock } from '@/test/handlers/subscriptionModulesCatalog';
 import {
   catalogSubscription,
   createSubscriptionsCatalogMock,
@@ -24,9 +25,11 @@ const text = messages.subscriptions;
 
 /** The users service with its default operator, and the catalog of quickstart.md (step 2). */
 function start() {
+  // 022: so the Comparativo's modules section loads too, regardless of the active tab.
+  const modules = createClinicModulesCatalogMock();
   const directory = createUsersDirectoryMock();
   const catalog = createSubscriptionsCatalogMock({ directory, initial: quickstartCatalog() });
-  return { directory, catalog };
+  return { directory, catalog, modules };
 }
 
 function open(url: string) {
@@ -91,6 +94,7 @@ describe(
     });
 
     it('shows the seven columns with the right data for an Individual and an Enterprise plan (020, quickstart Z4)', async () => {
+      createClinicModulesCatalogMock();
       const directory = createUsersDirectoryMock();
       const catalog = createSubscriptionsCatalogMock({
         directory,
@@ -285,6 +289,7 @@ describe(
       const typeCatalog = messages.subscriptions.types.catalog;
 
       function startWithBothTypes() {
+        createClinicModulesCatalogMock();
         const directory = createUsersDirectoryMock();
         const catalog = createSubscriptionsCatalogMock({
           directory,
@@ -345,6 +350,7 @@ describe(
       });
 
       it('shows a notice, not an empty table, when the chosen type has no plan (edge case)', async () => {
+        createClinicModulesCatalogMock();
         const directory = createUsersDirectoryMock();
         createSubscriptionsCatalogMock({
           directory,
@@ -370,6 +376,7 @@ describe(
     // deployed, 019 contracts/subscriptions-service.md): a null value, shown as «No disponible»,
     // is already covered at the component level (SubscriptionsComparisonTable.test.tsx).
     it('shows the clinics limit in «Límites de la clínica» (020, Z10)', async () => {
+      createClinicModulesCatalogMock();
       const directory = createUsersDirectoryMock();
       createSubscriptionsCatalogMock({
         directory,
@@ -396,6 +403,24 @@ describe(
       ).toBeGreaterThan(0);
       expect(
         screen.getAllByRole('img', { name: text.comparison.moduleNotIncluded }).length,
+      ).toBeGreaterThan(0);
+    });
+
+    it('shows a loading indicator, then an error with retry, in the modules section when its catalog fails (022)', async () => {
+      const { modules } = start();
+      modules.failWith(500);
+      const { user } = open('/subscriptions?tab=comparison');
+      await screen.findByRole('table', { name: text.comparison.tabLabel });
+
+      expect(await screen.findByText(text.modules.loadError.title)).toBeInTheDocument();
+      modules.recover();
+      await user.click(screen.getByRole('button', { name: /reintentar/i }));
+
+      await waitFor(() => {
+        expect(screen.queryByText(text.modules.loadError.title)).not.toBeInTheDocument();
+      });
+      expect(
+        screen.getAllByRole('img', { name: text.comparison.moduleIncluded }).length,
       ).toBeGreaterThan(0);
     });
   },

@@ -2,6 +2,7 @@ import { configure, screen, waitFor, within } from '@testing-library/react';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { messages } from '@/shared/messages/es';
+import { createClinicModulesCatalogMock } from '@/test/handlers/subscriptionModulesCatalog';
 import {
   catalogSubscription,
   createSubscriptionsCatalogMock,
@@ -22,6 +23,8 @@ beforeAll(async () => {
 const text = messages.subscriptions;
 
 function start() {
+  // 021: so the modules section loads and «Guardar» is not left disabled.
+  createClinicModulesCatalogMock();
   const directory = createUsersDirectoryMock();
   const catalog = createSubscriptionsCatalogMock({ directory, initial: defaultCatalog() });
   return { directory, catalog };
@@ -43,6 +46,8 @@ const names = () =>
 async function formOf(value: string) {
   await waitFor(() => {
     expect(field(text.form.fields.name)).toHaveValue(value);
+    // 021: «Guardar» stays disabled until the clinic modules catalog loads too (FR-010).
+    expect(save()).not.toBeDisabled();
   });
 }
 
@@ -172,7 +177,7 @@ describe(
       });
     });
 
-    it('changes the annual price, a limit and adds a module with a dependency, reflected in the detail (W11)', async () => {
+    it('changes the annual price, a limit and adds a module, with no dependency cascade, reflected in the detail (W11, 021)', async () => {
       const { catalog } = start();
       const { user } = open('/subscriptions/2/edit');
       await formOf('Pro');
@@ -182,11 +187,9 @@ describe(
       const doctors = field(text.form.fields.doctorsLimit);
       await user.clear(doctors);
       await user.type(doctors, '5');
-      await user.click(
-        screen.getByRole('checkbox', {
-          name: new RegExp(`^${messages.subscriptions.modules.catalog.reminders.name}`),
-        }),
-      );
+      // 021/022: marking Reportes no longer marks any other module; dependencies between modules
+      // were retired from the frontend (021) and from the simulator itself (022, FR-008).
+      await user.click(screen.getByRole('checkbox', { name: /^Reportes/ }));
       await user.click(save());
 
       expect(await screen.findByText(text.edit.saved)).toBeInTheDocument();
@@ -194,7 +197,7 @@ describe(
       expect(catalog.state.find(2)).toMatchObject({
         annualPrice: '48000.00',
         doctorsLimit: 5,
-        moduleKeys: ['patients', 'reminders', 'scheduling'],
+        moduleKeys: ['patients', 'reports'],
       });
     });
 

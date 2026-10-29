@@ -224,7 +224,7 @@ export const messages = {
       nameTooLong: 'El nombre admite hasta 100 caracteres.',
       descriptionTooLong: 'La descripción admite hasta 500 caracteres.',
       sortOrderInvalid: 'Escribe un número entero, o déjalo vacío.',
-      actionsReadRequired: 'El módulo debe tener marcada, al menos, la acción Ver.',
+      createUpdateDeleteRequireRead: 'Para usar Crear, Modificar o Eliminar, marca también Ver.',
     },
     notices: {
       created: 'Módulo creado.',
@@ -486,50 +486,16 @@ export const messages = {
         },
       },
     },
-    // The nine clinic modules a plan can include (FR-007), in the order of CLINIC_MODULE_ORDER.
+    // The clinic modules a plan can include (022, FR-001 to FR-003): no fixed names any more, they
+    // come from the vigente catalog of the users API.
     modules: {
-      catalog: {
-        patients: {
-          name: 'Pacientes',
-          description: 'Directorio de pacientes y sus datos de contacto.',
-        },
-        scheduling: {
-          name: 'Agenda y citas',
-          description: 'Calendario por doctor y consultorio; citas y confirmaciones.',
-        },
-        reminders: {
-          name: 'Recordatorios',
-          description: 'Avisos de cita por WhatsApp, SMS o correo.',
-        },
-        clinical_records: {
-          name: 'Expediente clínico',
-          description: 'Historia clínica, notas de consulta y archivos.',
-        },
-        clinical_record_templates: {
-          name: 'Plantillas de expediente',
-          description:
-            'Plantillas de preguntas de MailySoft que el doctor usa al abrir el expediente de un paciente.',
-        },
-        prescriptions: {
-          name: 'Recetas',
-          description: 'Recetas en PDF con los datos del doctor.',
-        },
-        finance: {
-          name: 'Finanzas',
-          description: 'Cobros, caja y gastos de la clínica.',
-        },
-        reports: {
-          name: 'Reportes',
-          description: 'Indicadores de citas, ingresos y pacientes.',
-        },
-        billing: {
-          name: 'Facturación',
-          description: 'Facturas CFDI para los pacientes.',
-        },
-      },
-      requires: (name: string) => `Requiere ${name}`,
       alwaysIncluded: 'Siempre incluido',
-      marked: (count: number) => `Marcados: ${count} de 9`,
+      marked: (count: number, total: number) => `Marcados: ${count} de ${total}`,
+      loadError: {
+        title: 'No se pudieron cargar los módulos',
+        message: 'Sin la lista de módulos no se puede guardar la suscripción. Puedes reintentar.',
+      },
+      empty: 'No hay módulos de clínica disponibles: no se puede guardar la suscripción.',
     },
     list: {
       createAction: 'Nueva suscripción',
@@ -575,6 +541,7 @@ export const messages = {
         updatedAt: 'Última modificación',
       },
       notIncluded: (names: string) => `No incluye: ${names}`,
+      moduleUnavailable: (key: string) => `${key} (no disponible)`,
       emptyValue: '—',
       noOtherFeatures: 'Sin elementos',
       loadError: {
@@ -709,8 +676,7 @@ export const messages = {
         annualPrice: PRICE_RULE,
         trialDays: 'Revisa los días de prueba: deben ser un número entero de 0 a 3650.',
         selfService: 'Revisa el autoconsumo.',
-        moduleKeys:
-          'Revisa los módulos incluidos: alguno no es válido o le falta su módulo requisito.',
+        moduleKeys: 'Revisa los módulos incluidos: alguno no es válido.',
         consultingRoomsLimit: LIMIT_RULE,
         doctorsLimit: LIMIT_RULE,
         assistantsLimit: LIMIT_RULE,

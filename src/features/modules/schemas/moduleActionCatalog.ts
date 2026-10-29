@@ -15,9 +15,6 @@ export const MODULE_ACTION_ID: Readonly<Record<ModuleActionKey, number>> = {
   delete: 4,
 };
 
-/** "Ver" can never be unchecked (FR-018): no other action makes sense without it. */
-export const REQUIRED_ACTION_KEY: ModuleActionKey = 'read';
-
 export const MODULE_TYPE = { SYSTEM: 1, CLINIC: 2 } as const;
 
 export type ModuleTypeId = (typeof MODULE_TYPE)[keyof typeof MODULE_TYPE];

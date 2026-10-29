@@ -2,22 +2,41 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useForm } from 'react-hook-form';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import { messages } from '@/shared/messages/es';
 
-import { REQUIRED_MODULE_KEY, type ClinicModuleKey } from '../schemas/clinicModuleCatalog';
+import type { ClinicModule } from '../schemas/clinicModule';
 import { subscriptionFormSchema, type SubscriptionFormValues } from '../schemas/subscriptionForm';
 import { ModulesField } from './ModulesField';
 
 const text = messages.subscriptions.modules;
 
+const MODULES: ClinicModule[] = [
+  { key: 'patients', name: 'Pacientes', description: 'Directorio de pacientes.', sortOrder: 10 },
+  {
+    key: 'scheduling',
+    name: 'Agenda y citas',
+    description: 'Calendario por doctor.',
+    sortOrder: 20,
+  },
+  { key: 'reminders', name: 'Recordatorios', description: 'Avisos de cita.', sortOrder: 30 },
+];
+
 /** A form of React Hook Form with only the modules, as the screens hold it. */
 function Harness({
-  moduleKeys = new Set<ClinicModuleKey>([REQUIRED_MODULE_KEY]),
+  moduleKeys = new Set<string>(['patients']),
+  modules = MODULES,
+  loading = false,
+  loadFailed = false,
+  onRetry = vi.fn(),
 }: {
-  readonly moduleKeys?: ReadonlySet<ClinicModuleKey>;
+  readonly moduleKeys?: ReadonlySet<string>;
+  readonly modules?: readonly ClinicModule[];
+  readonly loading?: boolean;
+  readonly loadFailed?: boolean;
+  readonly onRetry?: () => void;
 }) {
   const {
     control,
@@ -39,12 +58,21 @@ function Harness({
       otherFeatures: [],
     },
   });
-  return <ModulesField control={control} errors={errors} />;
+  return (
+    <ModulesField
+      control={control}
+      errors={errors}
+      modules={modules}
+      loading={loading}
+      loadFailed={loadFailed}
+      onRetry={onRetry}
+    />
+  );
 }
 
-function setup(moduleKeys?: ReadonlySet<ClinicModuleKey>) {
+function setup(props: Parameters<typeof Harness>[0] = {}) {
   const user = userEvent.setup();
-  const view = render(<Harness moduleKeys={moduleKeys} />);
+  const view = render(<Harness {...props} />);
   return { ...view, user };
 }
 
@@ -54,56 +82,76 @@ describe('ModulesField', () => {
   it('shows "Pacientes" checked and disabled, with "Siempre incluido"', () => {
     setup();
 
-    const patients = checkbox(text.catalog.patients.name);
+    const patients = checkbox('Pacientes');
     expect(patients).toBeChecked();
     expect(patients).toBeDisabled();
     expect(screen.getByText(text.alwaysIncluded)).toBeInTheDocument();
   });
 
-  it('shows the other eight unmarked by default, with their description', () => {
+  it('shows "Pacientes" checked even when the subscription did not have it saved', () => {
+    setup({ moduleKeys: new Set(['scheduling']) });
+
+    expect(checkbox('Pacientes')).toBeChecked();
+  });
+
+  it('shows the other modules unmarked by default, with their description, in the order received', () => {
     setup();
 
-    expect(checkbox(text.catalog.scheduling.name)).not.toBeChecked();
-    expect(screen.getByText(text.catalog.scheduling.description)).toBeInTheDocument();
+    const scheduling = checkbox('Agenda y citas');
+    expect(scheduling).not.toBeChecked();
+    expect(screen.getByText('Calendario por doctor.')).toBeInTheDocument();
+    const names = screen.getAllByRole('checkbox').map((el) => el.getAttribute('aria-label') ?? '');
+    expect(names.length).toBeGreaterThan(0);
   });
 
-  it('shows "Requiere <módulo>" next to each of the four dependent modules', () => {
-    setup();
+  it('shows the counter "Marcados: N de M" with the real size of the catalog', () => {
+    setup({ moduleKeys: new Set(['patients', 'scheduling']) });
 
-    // Recordatorios requires Agenda y citas (one module); Plantillas de expediente and Recetas
-    // both require Expediente clínico (two modules share the same requirement text).
-    expect(
-      screen.getAllByText(text.requires(text.catalog.scheduling.name), { exact: false }),
-    ).toHaveLength(1);
-    expect(
-      screen.getAllByText(text.requires(text.catalog.clinical_records.name), { exact: false }),
-    ).toHaveLength(2);
+    expect(screen.getByText(text.marked(2, 3))).toBeInTheDocument();
   });
 
-  it('shows the counter "Marcados: N de 9"', () => {
-    setup(new Set([REQUIRED_MODULE_KEY, 'scheduling', 'reminders']));
-
-    expect(screen.getByText(text.marked(3))).toBeInTheDocument();
-  });
-
-  it('marking a dependent module also marks its prerequisite', async () => {
+  it('marks and unmarks a non-required module independently, without affecting any other', async () => {
     const { user } = setup();
 
-    await user.click(checkbox(text.catalog.reminders.name));
+    await user.click(checkbox('Recordatorios'));
 
-    expect(checkbox(text.catalog.reminders.name)).toBeChecked();
-    expect(checkbox(text.catalog.scheduling.name)).toBeChecked();
-    expect(screen.getByText(text.marked(3))).toBeInTheDocument();
+    expect(checkbox('Recordatorios')).toBeChecked();
+    expect(checkbox('Agenda y citas')).not.toBeChecked();
+    expect(screen.getByText(text.marked(2, 3))).toBeInTheDocument();
+
+    await user.click(checkbox('Recordatorios'));
+
+    expect(checkbox('Recordatorios')).not.toBeChecked();
+    expect(screen.getByText(text.marked(1, 3))).toBeInTheDocument();
   });
 
-  it('unmarking a prerequisite also unmarks its dependent', async () => {
-    const { user } = setup(new Set([REQUIRED_MODULE_KEY, 'scheduling', 'reminders']));
+  it('does not show a "Requiere" hint for any module: there are no dependencies any more', () => {
+    setup();
 
-    await user.click(checkbox(text.catalog.scheduling.name));
+    expect(screen.queryByText(/Requiere/)).not.toBeInTheDocument();
+  });
 
-    expect(checkbox(text.catalog.scheduling.name)).not.toBeChecked();
-    expect(checkbox(text.catalog.reminders.name)).not.toBeChecked();
-    expect(screen.getByText(text.marked(1))).toBeInTheDocument();
+  it('shows a loading indicator and no checkboxes while the catalog is loading', () => {
+    setup({ loading: true });
+
+    expect(screen.getByLabelText(messages.common.loading)).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
+  it('shows an error state with retry when the catalog fails to load', async () => {
+    const onRetry = vi.fn();
+    const { user } = setup({ loadFailed: true, onRetry });
+
+    expect(screen.getByText(text.loadError.title)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /reintentar/i }));
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows an empty warning when the catalog loaded with no modules', () => {
+    setup({ modules: [] });
+
+    expect(screen.getByText(text.empty)).toBeInTheDocument();
   });
 
   it('is a fieldset with a legend', () => {
@@ -112,9 +160,17 @@ describe('ModulesField', () => {
     expect(screen.getByRole('group')).toBeInTheDocument();
   });
 
-  it('has no accessibility violations', async () => {
-    const { container } = setup();
+  it('has no accessibility violations, loading, failed, empty or with data', async () => {
+    const { container: withData } = render(<Harness />);
+    expect(await axe(withData)).toHaveNoViolations();
 
-    expect(await axe(container)).toHaveNoViolations();
+    const { container: loading } = render(<Harness loading />);
+    expect(await axe(loading)).toHaveNoViolations();
+
+    const { container: failed } = render(<Harness loadFailed />);
+    expect(await axe(failed)).toHaveNoViolations();
+
+    const { container: empty } = render(<Harness modules={[]} />);
+    expect(await axe(empty)).toHaveNoViolations();
   });
 });

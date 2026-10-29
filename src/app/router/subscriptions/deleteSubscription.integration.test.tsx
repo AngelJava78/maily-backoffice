@@ -2,6 +2,7 @@ import { configure, screen, waitFor, within } from '@testing-library/react';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { messages } from '@/shared/messages/es';
+import { createClinicModulesCatalogMock } from '@/test/handlers/subscriptionModulesCatalog';
 import {
   createSubscriptionsCatalogMock,
   defaultCatalog,
@@ -23,6 +24,8 @@ const text = messages.subscriptions;
 
 /** The default catalog and 12 more active plans: 19 subscriptions, two pages of 10. */
 function start() {
+  // 021: so the modules section loads and «Guardar» is not left disabled.
+  createClinicModulesCatalogMock();
   const directory = createUsersDirectoryMock();
   const catalog = createSubscriptionsCatalogMock({
     directory,
@@ -127,6 +130,11 @@ describe(
       await screen.findByRole('heading', { level: 1, name: text.form.createTitle });
       const field = (label: string) =>
         screen.getByRole('textbox', { name: new RegExp(`^${label}`) });
+      await waitFor(() => {
+        expect(
+          screen.getByRole('button', { name: new RegExp(`^${messages.common.save}`) }),
+        ).not.toBeDisabled();
+      });
       await user.type(field(text.form.fields.name), 'Pro');
       await user.type(field(text.form.fields.monthlyPrice), '4500');
       await user.type(field(text.form.fields.annualPrice), '45000');

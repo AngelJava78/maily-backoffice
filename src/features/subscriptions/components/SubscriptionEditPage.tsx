@@ -3,6 +3,7 @@ import Button from '@mui/material/Button';
 import CircularProgress from '@mui/material/CircularProgress';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import type { UseQueryResult } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router';
@@ -15,9 +16,12 @@ import { useNotify } from '@/shared/ui/Notifications';
 import { useFocusOnMount } from '@/shared/ui/useFocusOnMount';
 
 import { describeSubscriptionError } from '../api/subscriptionErrors';
+import { useClinicModulesCatalog } from '../hooks/useClinicModulesCatalog';
 import { useNotifySubscriptionError } from '../hooks/useNotifySubscriptionError';
 import { useSubscription } from '../hooks/useSubscription';
 import { useUpdateSubscription } from '../hooks/useUpdateSubscription';
+import { resolveModuleSelection } from '../policy/clinicModuleSelection';
+import type { ClinicModule } from '../schemas/clinicModule';
 import type { Subscription } from '../schemas/subscription';
 import { parseSubscriptionDetailState } from '../schemas/subscriptionDetailState';
 import {
@@ -45,9 +49,12 @@ interface BackTo {
 function EditSubscriptionForm({
   subscription,
   backTo,
+  modulesCatalog,
 }: {
   readonly subscription: Subscription;
   readonly backTo: BackTo;
+  /** The vigente catalog of active clinic modules (021), fetched in parallel by the page above. */
+  readonly modulesCatalog: UseQueryResult<ClinicModule[]>;
 }) {
   const navigate = useNavigate();
   const notify = useNotify();
@@ -56,6 +63,7 @@ function EditSubscriptionForm({
   // it: a datum that another person changed meanwhile is not sent back with its old value.
   const [initial] = useState(subscription);
   const update = useUpdateSubscription(initial.id);
+  const modulesCatalogUsable = modulesCatalog.data !== undefined && modulesCatalog.data.length > 0;
   const [generalError, setGeneralError] = useState<string>();
   const {
     register,
@@ -76,8 +84,14 @@ function EditSubscriptionForm({
 
   const save = handleSubmit(async (values) => {
     setGeneralError(undefined);
+    // Resolved against the vigente catalog right before comparing (021, research D4/D11): drops any
+    // key the catalog no longer offers and forces `patients` in, whatever the form currently holds.
+    const resolved: SubscriptionFormValues = {
+      ...values,
+      moduleKeys: resolveModuleSelection(values.moduleKeys, modulesCatalog.data ?? []),
+    };
     // Only what changed since the form was opened is sent; with no change, nothing (clarification 9).
-    const body = toUpdateSubscriptionBody(initial, values);
+    const body = toUpdateSubscriptionBody(initial, resolved);
     if (body === null) {
       notify({ severity: 'info', message: text.edit.noChanges });
       goBack();
@@ -111,6 +125,7 @@ function EditSubscriptionForm({
         void save(event);
       }}
       pending={isSubmitting}
+      saveDisabled={!modulesCatalogUsable}
       error={generalError}
       cancelTo={backTo.pathname}
       cancelState={backTo.state}
@@ -121,6 +136,14 @@ function EditSubscriptionForm({
         setValue={setValue}
         errors={errors}
         disableSubscriptionType
+        clinicModules={{
+          modules: modulesCatalog.data ?? [],
+          loading: modulesCatalog.isPending,
+          loadFailed: modulesCatalog.isError && modulesCatalog.data === undefined,
+          onRetry: () => {
+            void modulesCatalog.refetch();
+          },
+        }}
       />
     </FormFrame>
   );
@@ -136,6 +159,8 @@ export function SubscriptionEditPage({ subscriptionId }: { readonly subscription
   const headingRef = useFocusOnMount<HTMLHeadingElement>();
   const { listSearch } = parseSubscriptionDetailState(useLocation().state);
   const query = useSubscription(subscriptionId);
+  // In parallel with the subscription itself (021, research D7), not after it: no waterfall.
+  const modulesCatalog = useClinicModulesCatalog();
   const backTo: BackTo = {
     pathname: `/subscriptions/${subscriptionId}`,
     ...(listSearch === undefined ? {} : { state: { listSearch } }),
@@ -179,7 +204,14 @@ export function SubscriptionEditPage({ subscriptionId }: { readonly subscription
     if (query.data === undefined) {
       return <CircularProgress aria-label={messages.common.loading} />;
     }
-    return <EditSubscriptionForm key={query.data.id} subscription={query.data} backTo={backTo} />;
+    return (
+      <EditSubscriptionForm
+        key={query.data.id}
+        subscription={query.data}
+        backTo={backTo}
+        modulesCatalog={modulesCatalog}
+      />
+    );
   }
 
   return (

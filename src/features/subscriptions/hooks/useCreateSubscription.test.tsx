@@ -6,7 +6,7 @@ import { createSubscriptionsCatalogMock } from '@/test/handlers/subscriptionsCat
 import { ADMIN_AUTH0, createUsersDirectoryMock } from '@/test/handlers/usersDirectory';
 import { createWrapper } from '@/test/renderWithProviders';
 
-import { REQUIRED_MODULE_KEY } from '../schemas/clinicModuleCatalog';
+import { REQUIRED_MODULE_KEY } from '../schemas/clinicModule';
 import type { SubscriptionFormValues } from '../schemas/subscriptionForm';
 import { subscriptionKeys } from './subscriptionKeys';
 import { useCreateSubscription } from './useCreateSubscription';
@@ -22,7 +22,7 @@ const VALUES: SubscriptionFormValues = {
   annualPrice: '32000.5',
   trialDays: '14',
   selfService: true,
-  moduleKeys: new Set([REQUIRED_MODULE_KEY, 'scheduling']),
+  moduleKeys: new Set([REQUIRED_MODULE_KEY, 'reports']),
   consultingRoomsLimit: '3',
   doctorsLimit: '4',
   assistantsLimit: '2',
@@ -57,7 +57,7 @@ describe('useCreateSubscription', () => {
       annual_price: '32000.5',
       trial_days: 14,
       self_service: true,
-      module_keys: ['patients', 'scheduling'],
+      module_keys: ['patients', 'reports'],
       other_features: ['Hasta 3 consultorios'],
       consulting_rooms_limit: 3,
       doctors_limit: 4,

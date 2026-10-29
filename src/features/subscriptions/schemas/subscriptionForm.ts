@@ -2,7 +2,6 @@ import { z } from 'zod';
 
 import { messages } from '@/shared/messages/es';
 
-import { CLINIC_MODULE_ORDER, type ClinicModuleKey } from './clinicModuleCatalog';
 import { PRICE_INPUT_PATTERN, toCents } from './price';
 import type { Subscription } from './subscription';
 import { SUBSCRIPTION_TYPE } from './subscriptionTypeCatalog';
@@ -43,7 +42,7 @@ const clinicsLimitShapeSchema = z
   .min(1, { error: text.clinicsLimitInvalid, abort: true })
   .regex(CLINIC_LIMIT_PATTERN, { error: text.clinicsLimitInvalid });
 
-const moduleKeysSchema = z.custom<ReadonlySet<ClinicModuleKey>>((value) => value instanceof Set);
+const moduleKeysSchema = z.custom<ReadonlySet<string>>((value) => value instanceof Set);
 
 // None of these schemas transforms its value (`trim` does not change the type), so what the form
 // holds and what it submits have the same type. A check that fails stops the next ones, so an
@@ -186,7 +185,6 @@ export interface UpdateSubscriptionBody {
 
 /** The values the edition opens with: those of the subscription. */
 export function toFormValues(subscription: EditableData): SubscriptionFormValues {
-  const knownKeys = new Set<string>(CLINIC_MODULE_ORDER);
   return {
     name: subscription.name,
     description: subscription.description ?? '',
@@ -198,10 +196,9 @@ export function toFormValues(subscription: EditableData): SubscriptionFormValues
     annualPrice: subscription.annualPrice,
     trialDays: String(subscription.trialDays),
     selfService: subscription.selfService,
-    // A key outside the fixed catalog (research D3) is dropped: it is not offered in the form.
-    moduleKeys: new Set(
-      subscription.moduleKeys.filter((key): key is ClinicModuleKey => knownKeys.has(key)),
-    ),
+    // No filtering against a fixed catalog here (021, research D7): which keys are still usable is
+    // resolved against the vigente catalog, by resolveModuleSelection, not by this pure function.
+    moduleKeys: new Set(subscription.moduleKeys),
     consultingRoomsLimit: String(subscription.consultingRoomsLimit),
     doctorsLimit: String(subscription.doctorsLimit),
     assistantsLimit: String(subscription.assistantsLimit),

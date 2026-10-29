@@ -86,13 +86,13 @@ describe('POST /api/v1/subscriptions', () => {
       await create({
         name: 'Con módulos',
         monthly_price: '1',
-        module_keys: ['scheduling'],
+        module_keys: ['reports'],
         ...REQUIRED_FIELDS,
       }),
-    ).toMatchObject({ status: 201, body: { module_keys: ['patients', 'scheduling'] } });
+    ).toMatchObject({ status: 201, body: { module_keys: ['patients', 'reports'] } });
   });
 
-  it('refuses a module key outside the fixed catalog of nine, with its own code', async () => {
+  it('refuses a module key outside the active catalog, with its own code', async () => {
     setup();
 
     expect(
@@ -105,7 +105,7 @@ describe('POST /api/v1/subscriptions', () => {
     ).toMatchObject({ status: 422, body: { code: 'subscription_module_not_found' } });
   });
 
-  it('refuses a dependent module without its prerequisite, with its own code', async () => {
+  it('accepts a module with no dependency on any other, now that there is no such rule (022, FR-008)', async () => {
     setup();
 
     expect(
@@ -115,7 +115,7 @@ describe('POST /api/v1/subscriptions', () => {
         module_keys: ['billing'],
         ...REQUIRED_FIELDS,
       }),
-    ).toMatchObject({ status: 409, body: { code: 'subscription_module_prerequisite_missing' } });
+    ).toMatchObject({ status: 201, body: { module_keys: ['billing', 'patients'] } });
   });
 
   it.each([1, 2])(

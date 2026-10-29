@@ -12,7 +12,9 @@ import { useFocusOnMount } from '@/shared/ui/useFocusOnMount';
 
 import { describeSubscriptionError } from '../api/subscriptionErrors';
 import { useCreateSubscription } from '../hooks/useCreateSubscription';
-import { REQUIRED_MODULE_KEY } from '../schemas/clinicModuleCatalog';
+import { useClinicModulesCatalog } from '../hooks/useClinicModulesCatalog';
+import { resolveModuleSelection } from '../policy/clinicModuleSelection';
+import { REQUIRED_MODULE_KEY } from '../schemas/clinicModule';
 import { parseSubscriptionDetailState } from '../schemas/subscriptionDetailState';
 import { subscriptionFormSchema, type SubscriptionFormValues } from '../schemas/subscriptionForm';
 import { SUBSCRIPTION_TYPE } from '../schemas/subscriptionTypeCatalog';
@@ -50,6 +52,8 @@ export function SubscriptionCreatePage() {
   const notify = useNotify();
   const { listSearch } = parseSubscriptionDetailState(useLocation().state);
   const create = useCreateSubscription();
+  const modulesCatalog = useClinicModulesCatalog();
+  const modulesCatalogUsable = modulesCatalog.data !== undefined && modulesCatalog.data.length > 0;
   const [generalError, setGeneralError] = useState<string>();
 
   const {
@@ -71,9 +75,15 @@ export function SubscriptionCreatePage() {
 
   const save = handleSubmit(async (values) => {
     setGeneralError(undefined);
+    // Resolved against the vigente catalog right before sending (021, research D4/D11): drops any
+    // key the catalog no longer offers and forces `patients` in, whatever the form currently holds.
+    const resolved: SubscriptionFormValues = {
+      ...values,
+      moduleKeys: resolveModuleSelection(values.moduleKeys, modulesCatalog.data ?? []),
+    };
     try {
       await create.mutateAsync(
-        { values },
+        { values: resolved },
         {
           // Only while the form is still on screen: the person who left meanwhile is not taken to
           // the new subscription.
@@ -103,6 +113,7 @@ export function SubscriptionCreatePage() {
               void save(event);
             }}
             pending={isSubmitting}
+            saveDisabled={!modulesCatalogUsable}
             error={generalError}
             cancelTo={`/subscriptions${listSearch ?? ''}`}
           >
@@ -111,13 +122,21 @@ export function SubscriptionCreatePage() {
               control={control}
               setValue={setValue}
               errors={errors}
+              clinicModules={{
+                modules: modulesCatalog.data ?? [],
+                loading: modulesCatalog.isPending,
+                loadFailed: modulesCatalog.isError && modulesCatalog.data === undefined,
+                onRetry: () => {
+                  void modulesCatalog.refetch();
+                },
+              }}
             />
           </FormFrame>
         </Stack>
         <Stack
           sx={{ flex: 1, minWidth: 0, width: '100%', position: { md: 'sticky' }, top: { md: 16 } }}
         >
-          <SubscriptionPreviewPanel values={liveValues} />
+          <SubscriptionPreviewPanel values={liveValues} modules={modulesCatalog.data ?? []} />
         </Stack>
       </Stack>
     </Stack>

@@ -15,12 +15,14 @@ function Harness({
   actions = initialModuleFormValues.actions,
   onActionToggle = vi.fn(),
   withError = false,
+  withActionsError = false,
 }: {
   readonly moduleKey?: string;
   readonly orderHelp?: string;
   readonly actions?: ReadonlySet<ModuleActionKey>;
   readonly onActionToggle?: (action: ModuleActionKey, checked: boolean) => void;
   readonly withError?: boolean;
+  readonly withActionsError?: boolean;
 }) {
   const { register, formState, setError } = useForm<ModuleFormValues>({
     defaultValues: initialModuleFormValues,
@@ -29,8 +31,14 @@ function Harness({
     if (withError) {
       setError('name', { type: 'server', message: 'Escribe el nombre del módulo.' });
     }
+    if (withActionsError) {
+      setError('actions', {
+        type: 'server',
+        message: 'Para usar Crear, Modificar o Eliminar, marca también Ver.',
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [withError]);
+  }, [withError, withActionsError]);
   return (
     <ModuleFormFields
       register={register}
@@ -79,26 +87,45 @@ describe('ModuleFormFields', () => {
     expect(group.tagName).toBe('FIELDSET');
   });
 
-  it('shows "Ver" checked and disabled from being unchecked when it is in `actions`', () => {
+  it('shows "Ver" checked but never disabled: it can be unchecked like any other action (012)', () => {
     render(<Harness actions={new Set(['read', 'write'])} />);
 
     const read = screen.getByRole('checkbox', { name: /Ver/ });
     expect(read).toBeChecked();
-    expect(read).toBeDisabled();
+    expect(read).toBeEnabled();
     expect(screen.getByRole('checkbox', { name: /Crear/ })).toBeChecked();
     expect(screen.getByRole('checkbox', { name: /Modificar/ })).not.toBeChecked();
   });
 
-  it('calls onActionToggle when another action is checked or unchecked', async () => {
+  it('calls onActionToggle for any action, including "Ver" (022, FR-012)', async () => {
     const user = userEvent.setup();
     const onActionToggle = vi.fn();
     render(<Harness actions={new Set(['read', 'write'])} onActionToggle={onActionToggle} />);
+
+    await user.click(screen.getByRole('checkbox', { name: /Ver/ }));
+    expect(onActionToggle).toHaveBeenCalledWith('read', false);
 
     await user.click(screen.getByRole('checkbox', { name: /Crear/ }));
     expect(onActionToggle).toHaveBeenCalledWith('write', false);
 
     await user.click(screen.getByRole('checkbox', { name: /Modificar/ }));
     expect(onActionToggle).toHaveBeenCalledWith('update', true);
+  });
+
+  it('shows no group error message by default', () => {
+    render(<Harness />);
+
+    expect(
+      screen.queryByText('Para usar Crear, Modificar o Eliminar, marca también Ver.'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the group error message under the actions fieldset when present (022, FR-015)', () => {
+    render(<Harness withActionsError />);
+
+    expect(
+      screen.getByText('Para usar Crear, Modificar o Eliminar, marca también Ver.'),
+    ).toBeInTheDocument();
   });
 
   it('does not render Clave nor Tipo: the caller owns those (create shows editable cards, edit shows fixed info)', () => {

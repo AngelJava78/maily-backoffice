@@ -127,7 +127,6 @@ export function describeSubscriptionError(
   switch (error.code) {
     case 'subscription_name_already_exists':
       return { kind: 'field', message: text.nameInUse, fields: { name: text.nameInUse } };
-    case 'subscription_module_prerequisite_missing':
     case 'subscription_module_not_found':
       return {
         kind: 'field',

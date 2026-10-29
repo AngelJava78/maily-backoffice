@@ -5,7 +5,6 @@ import { messages } from '@/shared/messages/es';
 import {
   MODULE_ACTION_ORDER,
   MODULE_TYPE,
-  REQUIRED_ACTION_KEY,
   type ModuleActionKey,
   type ModuleTypeId,
 } from './moduleActionCatalog';
@@ -15,8 +14,10 @@ const { validation } = messages.modules;
 const KEY_PATTERN = /^[a-z][a-z0-9_]*$/;
 const SORT_ORDER_PATTERN = /^\d*$/;
 
-function hasRequiredAction(actions: ReadonlySet<ModuleActionKey>): boolean {
-  return actions.has(REQUIRED_ACTION_KEY);
+/** Crear, Modificar y Eliminar need Ver (022, FR-015); a module can be saved with none marked. */
+function createUpdateDeleteRequireRead(actions: ReadonlySet<ModuleActionKey>): boolean {
+  const needsRead = actions.has('write') || actions.has('update') || actions.has('delete');
+  return !needsRead || actions.has('read');
 }
 
 /**
@@ -46,7 +47,7 @@ export const moduleFormSchema = z.object({
     .regex(SORT_ORDER_PATTERN, { error: validation.sortOrderInvalid }),
   actions: z
     .custom<ReadonlySet<ModuleActionKey>>((value) => value instanceof Set)
-    .refine(hasRequiredAction, { error: validation.actionsReadRequired }),
+    .refine(createUpdateDeleteRequireRead, { error: validation.createUpdateDeleteRequireRead }),
 });
 
 export type ModuleFormValues = z.infer<typeof moduleFormSchema>;

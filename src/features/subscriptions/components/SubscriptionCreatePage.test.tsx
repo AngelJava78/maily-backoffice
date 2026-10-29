@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import { messages } from '@/shared/messages/es';
+import { createClinicModulesCatalogMock } from '@/test/handlers/subscriptionModulesCatalog';
 import { createSubscriptionsCatalogMock } from '@/test/handlers/subscriptionsCatalog';
 import { ADMIN_AUTH0, createUsersDirectoryMock } from '@/test/handlers/usersDirectory';
 import { renderWithProviders } from '@/test/renderWithProviders';
@@ -28,6 +29,8 @@ function ListProbe() {
 }
 
 function start() {
+  // 021: the same nine clinic modules of always, so existing checkbox lookups keep working.
+  createClinicModulesCatalogMock();
   return createSubscriptionsCatalogMock({ directory: createUsersDirectoryMock() });
 }
 
@@ -60,10 +63,18 @@ const newPatientsPerYearLimit = () => field(text.form.fields.newPatientsPerYearL
 const save = () => screen.getByRole('button', { name: new RegExp(`^${messages.common.save}`) });
 const cancel = () => screen.getByRole('link', { name: messages.common.cancel });
 
+/** Waits for the clinic modules catalog to load, so «Guardar» is clickable (021, FR-010). */
+async function catalogReady() {
+  await waitFor(() => {
+    expect(save()).not.toBeDisabled();
+  });
+}
+
 async function fillIn(
   user: ReturnType<typeof renderCreate>['user'],
   overrides: { name?: string; price?: string; annualPrice?: string } = {},
 ) {
+  await catalogReady();
   await user.type(name(), overrides.name ?? 'Clínica Plus');
   await user.type(description(), 'Para clínicas medianas.');
   await user.type(price(), overrides.price ?? '3200.50');
@@ -145,6 +156,7 @@ describe('SubscriptionCreatePage', { timeout: 30_000 }, () => {
     it('tells what is missing next to each field, with the focus on the first one, and sends nothing', async () => {
       const catalog = start();
       const { user } = renderCreate();
+      await catalogReady();
 
       await user.click(save());
 
@@ -304,19 +316,16 @@ describe('SubscriptionCreatePage', { timeout: 30_000 }, () => {
       expect(catalog.requestsTo('POST', PATH)[0]?.body).toMatchObject({ self_service: false });
     });
 
-    it('creates it with autoconsumo (active by default), trial days and modules with a dependency (US2-4, W9)', async () => {
+    it('creates it with autoconsumo (active by default), trial days and the module marked, with no dependency cascade (021)', async () => {
       const catalog = start();
       const { user } = renderCreate();
       await fillIn(user);
       const trialDaysField = field(text.form.fields.trialDays);
       await user.clear(trialDaysField);
       await user.type(trialDaysField, '14');
-      // Marking Recordatorios (a dependent) also marks its prerequisite, Agenda y citas.
-      await user.click(
-        screen.getByRole('checkbox', {
-          name: new RegExp(`^${messages.subscriptions.modules.catalog.reminders.name}`),
-        }),
-      );
+      // 021/022: marking Reportes no longer marks any other module; dependencies between modules
+      // were retired from the frontend (021) and from the simulator itself (022, FR-008).
+      await user.click(screen.getByRole('checkbox', { name: /^Reportes/ }));
 
       await user.click(save());
 
@@ -325,7 +334,7 @@ describe('SubscriptionCreatePage', { timeout: 30_000 }, () => {
       expect(body).toMatchObject({
         trial_days: 14,
         self_service: true,
-        module_keys: ['patients', 'reminders', 'scheduling'],
+        module_keys: ['patients', 'reports'],
       });
     });
 
@@ -443,12 +452,12 @@ describe('SubscriptionCreatePage', { timeout: 30_000 }, () => {
       expect(name()).toHaveValue('Clínica Plus');
     });
 
-    it('shows a refusal of the modules next to the modules section, with an own text (research D10)', async () => {
+    it('shows a refusal of the modules next to the modules section, with an own text (research D10; 022, FR-010)', async () => {
       start();
       server.use(
         http.post(subscriptionsUrl(PATH), () =>
-          HttpResponse.json(errorBody('subscription_module_prerequisite_missing'), {
-            status: 409,
+          HttpResponse.json(errorBody('subscription_module_not_found'), {
+            status: 422,
           }),
         ),
       );
@@ -493,10 +502,50 @@ describe('SubscriptionCreatePage', { timeout: 30_000 }, () => {
   it('has no accessibility violations, with and without errors', async () => {
     start();
     const { container, user } = renderCreate();
+    await catalogReady();
     expect(await axe(container)).toHaveNoViolations();
 
     await user.click(save());
 
     expect(await axe(container)).toHaveNoViolations();
+  });
+
+  describe('the clinic modules catalog (021)', () => {
+    it('keeps «Guardar» disabled and shows a loading indicator while the catalog is loading', () => {
+      createSubscriptionsCatalogMock({ directory: createUsersDirectoryMock() });
+      createClinicModulesCatalogMock().hang();
+      renderCreate();
+
+      expect(save()).toBeDisabled();
+      expect(screen.getByLabelText(messages.common.loading)).toBeInTheDocument();
+    });
+
+    it('shows an error with retry, and keeps «Guardar» disabled, until the catalog loads', async () => {
+      createSubscriptionsCatalogMock({ directory: createUsersDirectoryMock() });
+      const mock = createClinicModulesCatalogMock();
+      mock.failWith(500);
+      const { user } = renderCreate();
+
+      expect(
+        await screen.findByText(messages.subscriptions.modules.loadError.title),
+      ).toBeInTheDocument();
+      expect(save()).toBeDisabled();
+
+      mock.recover();
+      await user.click(screen.getByRole('button', { name: messages.common.retry }));
+
+      await waitFor(() => {
+        expect(save()).not.toBeDisabled();
+      });
+    });
+
+    it('shows an empty warning, and keeps «Guardar» disabled, when the catalog loads with no modules', async () => {
+      createSubscriptionsCatalogMock({ directory: createUsersDirectoryMock() });
+      createClinicModulesCatalogMock([]);
+      renderCreate();
+
+      expect(await screen.findByText(messages.subscriptions.modules.empty)).toBeInTheDocument();
+      expect(save()).toBeDisabled();
+    });
   });
 });

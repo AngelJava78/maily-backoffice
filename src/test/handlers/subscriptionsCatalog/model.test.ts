@@ -179,9 +179,9 @@ describe('createCatalogModel', () => {
           name: 'B',
           monthly_price: '0',
           ...REQUIRED_CREATE_FIELDS,
-          module_keys: ['scheduling'],
+          module_keys: ['reports'],
         }).moduleKeys,
-      ).toEqual(expect.arrayContaining(['patients', 'scheduling']));
+      ).toEqual(expect.arrayContaining(['patients', 'reports']));
     });
 
     it('refuses a module key outside the fixed catalog of nine', () => {
@@ -200,35 +200,19 @@ describe('createCatalogModel', () => {
       });
     });
 
-    it.each([
-      ['reminders', 'scheduling'],
-      ['clinical_record_templates', 'clinical_records'],
-      ['prescriptions', 'clinical_records'],
-      ['billing', 'finance'],
-    ])('refuses "%s" without its prerequisite "%s"', (dependent, prerequisite) => {
-      const refusal = refusalOf(() =>
-        modelWith().create({
+    it.each(['reminders', 'billing', 'prescriptions'])(
+      'accepts "%s" alone, with no dependency required (022, FR-008)',
+      (key) => {
+        const created = modelWith().create({
           name: 'A',
           monthly_price: '0',
           ...REQUIRED_CREATE_FIELDS,
-          module_keys: [dependent],
-        }),
-      );
+          module_keys: [key],
+        });
 
-      expect(refusal).toMatchObject({
-        status: 409,
-        code: 'subscription_module_prerequisite_missing',
-      });
-
-      expect(
-        modelWith().create({
-          name: 'B',
-          monthly_price: '0',
-          ...REQUIRED_CREATE_FIELDS,
-          module_keys: [dependent, prerequisite],
-        }).moduleKeys,
-      ).toEqual(expect.arrayContaining([dependent, prerequisite]));
-    });
+        expect(created.moduleKeys).toEqual(expect.arrayContaining(['patients', key]));
+      },
+    );
 
     it.each([1, 2])('creates with the subscription type %i, found in its own catalog', (id) => {
       const created = modelWith().create({
@@ -426,18 +410,17 @@ describe('createCatalogModel', () => {
     it('replaces the whole set of module_keys, always keeping "patients"', () => {
       const model = modelWith(catalogSubscription({ id: 1, moduleKeys: ['patients'] }));
 
-      expect(model.update(1, { module_keys: ['scheduling'] }).moduleKeys).toEqual(
-        expect.arrayContaining(['patients', 'scheduling']),
+      expect(model.update(1, { module_keys: ['reports'] }).moduleKeys).toEqual(
+        expect.arrayContaining(['patients', 'reports']),
       );
     });
 
-    it('refuses an updated module_keys that is missing a prerequisite', () => {
+    it('accepts an updated module_keys with no dependency required (022, FR-008)', () => {
       const model = modelWith(catalogSubscription({ id: 1, moduleKeys: ['patients'] }));
 
-      expect(refusalOf(() => model.update(1, { module_keys: ['reminders'] }))).toMatchObject({
-        status: 409,
-        code: 'subscription_module_prerequisite_missing',
-      });
+      expect(model.update(1, { module_keys: ['reminders'] }).moduleKeys).toEqual(
+        expect.arrayContaining(['patients', 'reminders']),
+      );
     });
 
     it.each(['', '   ', null])('takes the description away with %j', (description) => {

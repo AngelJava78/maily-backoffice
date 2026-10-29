@@ -1,5 +1,6 @@
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
 import Link from '@mui/material/Link';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -12,9 +13,10 @@ import type { ReactNode } from 'react';
 import { Link as RouterLink } from 'react-router';
 
 import { messages } from '@/shared/messages/es';
+import { ErrorState } from '@/shared/ui/ErrorState';
 import { Icon } from '@/shared/ui/Icon';
 
-import { CLINIC_MODULE_ORDER } from '../schemas/clinicModuleCatalog';
+import type { ClinicModule } from '../schemas/clinicModule';
 import type { Subscription } from '../schemas/subscription';
 import { SubscriptionPriceDisplay } from './SubscriptionPriceDisplay';
 import { SubscriptionStatusChip } from './SubscriptionStatusChip';
@@ -30,6 +32,11 @@ interface SubscriptionsComparisonTableProps {
   readonly canEdit: boolean;
   /** The search of the list, carried to the edit screen to come back to the same page. */
   readonly listSearch: string;
+  /** The vigente catalog of active clinic modules (022, FR-001/FR-002), fetched by the page. */
+  readonly modules: readonly ClinicModule[];
+  readonly modulesLoading: boolean;
+  readonly modulesLoadFailed: boolean;
+  readonly onModulesRetry: () => void;
 }
 
 /** A row whose first cell names what it shows, and one cell per subscription after it. */
@@ -87,6 +94,10 @@ export function SubscriptionsComparisonTable({
   cycle,
   canEdit,
   listSearch,
+  modules,
+  modulesLoading,
+  modulesLoadFailed,
+  onModulesRetry,
 }: SubscriptionsComparisonTableProps) {
   const columns = subscriptions.length;
   const anyTrialDays = subscriptions.some((subscription) => subscription.trialDays > 0);
@@ -125,25 +136,41 @@ export function SubscriptionsComparisonTable({
           </TableHead>
           <TableBody>
             <SectionRow label={comparison.sections.modules} columns={columns} />
-            {CLINIC_MODULE_ORDER.map((key) => (
-              <MetricRow
-                key={key}
-                label={text.modules.catalog[key].name}
-                subscriptions={subscriptions}
-                cell={(subscription) => {
-                  const included = subscription.moduleKeys.includes(key);
-                  return (
-                    <Icon
-                      name={included ? 'included' : 'not-included'}
-                      color={included ? 'exito' : 'peligro'}
-                      accessibleName={
-                        included ? comparison.moduleIncluded : comparison.moduleNotIncluded
-                      }
+            {modulesLoadFailed || modulesLoading ? (
+              <TableRow>
+                <TableCell colSpan={columns + 1}>
+                  {modulesLoadFailed ? (
+                    <ErrorState
+                      title={text.modules.loadError.title}
+                      message={text.modules.loadError.message}
+                      onRetry={onModulesRetry}
                     />
-                  );
-                }}
-              />
-            ))}
+                  ) : (
+                    <CircularProgress aria-label={messages.common.loading} />
+                  )}
+                </TableCell>
+              </TableRow>
+            ) : (
+              modules.map((module) => (
+                <MetricRow
+                  key={module.key}
+                  label={module.name}
+                  subscriptions={subscriptions}
+                  cell={(subscription) => {
+                    const included = subscription.moduleKeys.includes(module.key);
+                    return (
+                      <Icon
+                        name={included ? 'included' : 'not-included'}
+                        color={included ? 'exito' : 'peligro'}
+                        accessibleName={
+                          included ? comparison.moduleIncluded : comparison.moduleNotIncluded
+                        }
+                      />
+                    );
+                  }}
+                />
+              ))
+            )}
 
             <SectionRow label={comparison.sections.limits} columns={columns} />
             <MetricRow

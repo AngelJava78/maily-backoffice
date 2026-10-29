@@ -15,6 +15,7 @@ import { Icon } from '@/shared/ui/Icon';
 import { LiveStatus } from '@/shared/ui/LiveStatus';
 import { useFocusOnMount } from '@/shared/ui/useFocusOnMount';
 
+import { useClinicModulesCatalog } from '../hooks/useClinicModulesCatalog';
 import { useSubscriptionCatalog } from '../hooks/useSubscriptionCatalog';
 import { useSubscriptionsLocation } from '../hooks/useSubscriptionsLocation';
 import type { SubscriptionCapabilities } from '../policy/subscriptionActions';
@@ -56,6 +57,8 @@ export function SubscriptionsListPage({ capabilities }: SubscriptionsListPagePro
     </Button>
   ) : undefined;
   const query = useSubscriptionCatalog();
+  // Always requested, not only on the Comparativo tab (022, research D2): a cheap, cached read.
+  const modulesCatalog = useClinicModulesCatalog();
   const loaded = query.data !== undefined;
   const sorted = sortSubscriptions(query.data ?? [], location.sort);
   const shown = pageOf(sorted, location.page, location.pageSize);
@@ -126,6 +129,12 @@ export function SubscriptionsListPage({ capabilities }: SubscriptionsListPagePro
             cycle={cycle}
             canEdit={capabilities.canEdit}
             listSearch={search}
+            modules={modulesCatalog.data ?? []}
+            modulesLoading={modulesCatalog.isPending}
+            modulesLoadFailed={modulesCatalog.isError && modulesCatalog.data === undefined}
+            onModulesRetry={() => {
+              void modulesCatalog.refetch();
+            }}
           />
         )}
       </Stack>

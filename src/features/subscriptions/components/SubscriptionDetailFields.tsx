@@ -1,5 +1,6 @@
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
+import CircularProgress from '@mui/material/CircularProgress';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
@@ -7,8 +8,9 @@ import type { ReactNode } from 'react';
 
 import { formatDateTime } from '@/shared/lib/formatDateTime';
 import { messages } from '@/shared/messages/es';
+import { ErrorState } from '@/shared/ui/ErrorState';
 
-import { CLINIC_MODULE_ORDER, type ClinicModuleKey } from '../schemas/clinicModuleCatalog';
+import type { ClinicModule } from '../schemas/clinicModule';
 import type { Subscription } from '../schemas/subscription';
 import { SubscriptionPriceDisplay } from './SubscriptionPriceDisplay';
 import { SubscriptionStatusChip } from './SubscriptionStatusChip';
@@ -76,25 +78,55 @@ function TextList({ items, empty }: { readonly items: readonly string[]; readonl
   );
 }
 
-/** The modules a plan includes, by name, and a line naming what is missing (FR-003). */
-function Modules({ moduleKeys }: { readonly moduleKeys: readonly string[] }) {
-  const selected = new Set(moduleKeys);
-  const included: ClinicModuleKey[] = [];
-  const excluded: ClinicModuleKey[] = [];
-  for (const key of CLINIC_MODULE_ORDER) {
-    (selected.has(key) ? included : excluded).push(key);
+/**
+ * The modules a plan includes, by name, and a line naming what is missing (FR-003, FR-004), fed by
+ * the vigente catalog of active clinic modules instead of a fixed list (022, research D2): a saved
+ * `key` absent from that catalog still shows, at the end of the included ones, as "(no disponible)"
+ * (FR-006), and never counts toward "No incluye".
+ */
+function Modules({
+  moduleKeys,
+  modules,
+  loading,
+  loadFailed,
+  onRetry,
+}: {
+  readonly moduleKeys: readonly string[];
+  readonly modules: readonly ClinicModule[];
+  readonly loading: boolean;
+  readonly loadFailed: boolean;
+  readonly onRetry: () => void;
+}) {
+  if (loadFailed) {
+    return (
+      <ErrorState
+        title={text.modules.loadError.title}
+        message={text.modules.loadError.message}
+        onRetry={onRetry}
+      />
+    );
   }
+  if (loading) {
+    return <CircularProgress aria-label={messages.common.loading} />;
+  }
+
+  const catalogKeys = new Set(modules.map((module) => module.key));
+  const selected = new Set(moduleKeys);
+  const included: string[] = [];
+  const excluded: string[] = [];
+  for (const module of modules) {
+    (selected.has(module.key) ? included : excluded).push(module.name);
+  }
+  const unavailable = moduleKeys
+    .filter((key) => !catalogKeys.has(key))
+    .map((key) => text.detail.moduleUnavailable(key));
+
   return (
     <>
-      <TextList
-        items={included.map((key) => text.modules.catalog[key].name)}
-        empty={text.detail.emptyValue}
-      />
+      <TextList items={[...included, ...unavailable]} empty={text.detail.emptyValue} />
       {excluded.length > 0 && (
         <Typography variant="body2" color="text.secondary">
-          {text.detail.notIncluded(
-            excluded.map((key) => text.modules.catalog[key].name).join(', '),
-          )}
+          {text.detail.notIncluded(excluded.join(', '))}
         </Typography>
       )}
     </>
@@ -104,8 +136,17 @@ function Modules({ moduleKeys }: { readonly moduleKeys: readonly string[] }) {
 /** Everything the platform keeps about a subscription (FR-002, FR-003, FR-004). */
 export function SubscriptionDetailFields({
   subscription,
+  modules,
+  loading,
+  loadFailed,
+  onRetry,
 }: {
   readonly subscription: Subscription;
+  /** The vigente catalog of active clinic modules (022, FR-001/FR-002), fetched by the page. */
+  readonly modules: readonly ClinicModule[];
+  readonly loading: boolean;
+  readonly loadFailed: boolean;
+  readonly onRetry: () => void;
 }) {
   const { fields } = text.detail;
 
@@ -159,7 +200,13 @@ export function SubscriptionDetailFields({
           {subscription.clinicsCount ?? text.clinics.notAvailable}
         </Field>
         <Field label={fields.modules}>
-          <Modules moduleKeys={subscription.moduleKeys} />
+          <Modules
+            moduleKeys={subscription.moduleKeys}
+            modules={modules}
+            loading={loading}
+            loadFailed={loadFailed}
+            onRetry={onRetry}
+          />
         </Field>
         <Field label={fields.consultingRoomsLimit}>{subscription.consultingRoomsLimit}</Field>
         <Field label={fields.doctorsLimit}>{subscription.doctorsLimit}</Field>

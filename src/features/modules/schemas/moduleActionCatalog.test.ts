@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  MODULE_ACTION_ID,
-  MODULE_ACTION_ORDER,
-  MODULE_STATUS,
-  MODULE_TYPE,
-  REQUIRED_ACTION_KEY,
-} from './moduleActionCatalog';
+import { MODULE_ACTION_ID, MODULE_ACTION_ORDER, MODULE_STATUS, MODULE_TYPE } from './moduleActionCatalog';
 
 describe('moduleActionCatalog', () => {
   it('fixes the four actions in the order the mockup shows them', () => {
@@ -15,10 +9,6 @@ describe('moduleActionCatalog', () => {
 
   it('maps each action to its real id in the API', () => {
     expect(MODULE_ACTION_ID).toEqual({ read: 1, write: 2, update: 3, delete: 4 });
-  });
-
-  it('never lets "read" be unchecked', () => {
-    expect(REQUIRED_ACTION_KEY).toBe('read');
   });
 
   it('fixes the two module types', () => {

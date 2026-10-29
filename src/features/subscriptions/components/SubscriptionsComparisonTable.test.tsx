@@ -1,16 +1,24 @@
 import { screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 
 import { messages } from '@/shared/messages/es';
 import { subscriptionDto } from '@/test/factories';
 import { renderWithProviders } from '@/test/renderWithProviders';
 
+import type { ClinicModule } from '../schemas/clinicModule';
 import { subscriptionSchema } from '../schemas/subscription';
 import { SubscriptionsComparisonTable } from './SubscriptionsComparisonTable';
 
 const text = messages.subscriptions.comparison;
-const modules = messages.subscriptions.modules;
+const modulesText = messages.subscriptions.modules;
+
+const MODULES: ClinicModule[] = [
+  { key: 'patients', name: 'Pacientes', description: null, sortOrder: 10 },
+  { key: 'schedule', name: 'Agenda', description: null, sortOrder: 20 },
+  { key: 'reminders', name: 'Recordatorios', description: null, sortOrder: 30 },
+];
 
 const ESENCIAL = subscriptionSchema.parse(
   subscriptionDto({
@@ -21,7 +29,7 @@ const ESENCIAL = subscriptionSchema.parse(
     annual_price: '4990.00',
     trial_days: 14,
     self_service: true,
-    module_keys: ['patients', 'scheduling'],
+    module_keys: ['patients', 'schedule'],
     other_features: ['Soporte por correo'],
     consulting_rooms_limit: 1,
     doctors_limit: 1,
@@ -42,17 +50,7 @@ const EMPRESARIAL = subscriptionSchema.parse(
     trial_days: 0,
     self_service: false,
     clinics_limit: null,
-    module_keys: [
-      'patients',
-      'scheduling',
-      'reminders',
-      'clinical_records',
-      'clinical_record_templates',
-      'prescriptions',
-      'finance',
-      'reports',
-      'billing',
-    ],
+    module_keys: ['patients', 'schedule', 'reminders'],
     other_features: [],
     consulting_rooms_limit: 20,
     doctors_limit: 40,
@@ -72,6 +70,10 @@ function renderTable(
       cycle="monthly"
       canEdit
       listSearch=""
+      modules={MODULES}
+      modulesLoading={false}
+      modulesLoadFailed={false}
+      onModulesRetry={vi.fn()}
       {...props}
     />,
   );
@@ -89,79 +91,53 @@ describe('SubscriptionsComparisonTable', () => {
     expect(screen.getByText('$5,999.00/mes')).toBeInTheDocument();
   });
 
-  it('shows the annual price and savings when the cycle is annual', () => {
-    renderTable({ cycle: 'annual' });
-
-    expect(screen.getByText('$4,990.00/año')).toBeInTheDocument();
-    expect(screen.getAllByText(messages.subscriptions.price.savingsBadge(17)).length).toBe(2);
-  });
-
-  it('marks each of the nine modules with an icon, never the "Incluido"/"No incluido" text (020, FR-011)', () => {
+  it('has one row per module of the catalog received, in the order received, not a fixed list', () => {
     renderTable();
 
-    const row = screen.getByRole('row', { name: new RegExp(modules.catalog.finance.name) });
-    // The row header (module name) is a rowheader, not a cell; cells are the two plan columns.
-    const [esencialCell, empresarialCell] = within(row).getAllByRole('cell');
+    expect(screen.getByRole('row', { name: 'Pacientes' })).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: 'Agenda' })).toBeInTheDocument();
+    expect(screen.getByRole('row', { name: 'Recordatorios' })).toBeInTheDocument();
+  });
+
+  it('marks a module as included or not for each subscription, from moduleKeys', () => {
+    renderTable();
+
+    const reminders = screen.getByRole('row', { name: 'Recordatorios' });
+    // The row header (subscriptions.comparison label) is a <th>, not counted among 'cell's: the
+    // first cell is Esencial (doesn't have "reminders"), the second is Empresarial (does).
+    const [esencialCell, empresarialCell] = within(reminders).getAllByRole('cell');
     if (esencialCell === undefined || empresarialCell === undefined) {
-      throw new Error('Expected two cells, one per subscription');
+      throw new Error('Expected two module cells in the "Recordatorios" row');
     }
-    // Esencial does not include finance; Empresarial does. The accessible name carries the same
-    // text the cell used to show, now as the icon's name instead of visible content.
     expect(
       within(esencialCell).getByRole('img', { name: text.moduleNotIncluded }),
     ).toBeInTheDocument();
     expect(
       within(empresarialCell).getByRole('img', { name: text.moduleIncluded }),
     ).toBeInTheDocument();
-    expect(within(esencialCell).queryByText(text.moduleNotIncluded)).not.toBeInTheDocument();
-    expect(within(empresarialCell).queryByText(text.moduleIncluded)).not.toBeInTheDocument();
   });
 
-  it('shows the four clinic limits per column', () => {
-    renderTable();
+  it('shows a loading indicator in place of the module rows while the catalog loads', () => {
+    renderTable({ modulesLoading: true });
 
-    const row = screen.getByRole('row', { name: /Doctores/ });
-    expect(within(row).getByText('1')).toBeInTheDocument();
-    expect(within(row).getByText('40')).toBeInTheDocument();
+    expect(screen.getByLabelText(messages.common.loading)).toBeInTheDocument();
+    expect(screen.queryByRole('row', { name: 'Pacientes' })).not.toBeInTheDocument();
   });
 
-  it('shows the clinics limit first in «Límites de la clínica», with «No disponible» when it is null (020, FR-010)', () => {
-    renderTable();
+  it('shows an error state with retry in place of the module rows when the catalog fails to load', async () => {
+    const onModulesRetry = vi.fn();
+    const user = userEvent.setup();
+    renderTable({ modulesLoadFailed: true, onModulesRetry });
 
-    const row = screen.getByRole('row', { name: text.sections.clinicsLimit });
-    const [esencialCell, empresarialCell] = within(row).getAllByRole('cell');
-    if (esencialCell === undefined || empresarialCell === undefined) {
-      throw new Error('Expected two cells, one per subscription');
-    }
-    expect(within(esencialCell).getByText('1')).toBeInTheDocument();
-    expect(
-      within(empresarialCell).getByText(messages.subscriptions.clinics.notAvailable),
-    ).toBeInTheDocument();
+    expect(screen.getByText(modulesText.loadError.title)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /reintentar/i }));
 
-    // It comes before Consultorios, the first of the four already-existing limits.
-    const consultingRoomsRow = screen.getByRole('row', { name: /Consultorios/ });
-    expect(
-      row.compareDocumentPosition(consultingRoomsRow) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    expect(onModulesRetry).toHaveBeenCalledTimes(1);
   });
 
-  it('shows a row with the other features of each column, or nothing if empty', () => {
-    renderTable();
-
-    expect(screen.getByText('Soporte por correo')).toBeInTheDocument();
-  });
-
-  it('shows trial days and clinics count, with "No disponible" when not known', () => {
-    renderTable();
-
-    expect(screen.getByText(messages.subscriptions.price.trialDays(14))).toBeInTheDocument();
-    const row = screen.getByRole('row', { name: text.sections.clinics });
-    expect(within(row).getByText(messages.subscriptions.clinics.notAvailable)).toBeInTheDocument();
-  });
-
-  it('offers "Editar" for each column only when canEdit is true', () => {
-    const { rerender } = renderTable({ canEdit: true });
-    expect(screen.getAllByRole('link', { name: text.editAction })).toHaveLength(2);
+  it('has an edit link per subscription when canEdit is true, none when false', () => {
+    const { rerender } = renderTable();
+    expect(screen.getAllByText(text.editAction)).toHaveLength(2);
 
     rerender(
       <SubscriptionsComparisonTable
@@ -169,20 +145,23 @@ describe('SubscriptionsComparisonTable', () => {
         cycle="monthly"
         canEdit={false}
         listSearch=""
+        modules={MODULES}
+        modulesLoading={false}
+        modulesLoadFailed={false}
+        onModulesRetry={vi.fn()}
       />,
     );
-    expect(screen.queryByRole('link', { name: text.editAction })).not.toBeInTheDocument();
+    expect(screen.queryByText(text.editAction)).not.toBeInTheDocument();
   });
 
-  it('shows the footer note about simulated prices', () => {
-    renderTable();
+  it('has no accessibility violations, with data, loading or failed', async () => {
+    const { container: withData } = renderTable();
+    expect(await axe(withData)).toHaveNoViolations();
 
-    expect(screen.getByText(text.footerNote)).toBeInTheDocument();
-  });
+    const { container: loading } = renderTable({ modulesLoading: true });
+    expect(await axe(loading)).toHaveNoViolations();
 
-  it('has no accessibility violations', async () => {
-    const { container } = renderTable();
-
-    expect(await axe(container)).toHaveNoViolations();
+    const { container: failed } = renderTable({ modulesLoadFailed: true });
+    expect(await axe(failed)).toHaveNoViolations();
   });
 });

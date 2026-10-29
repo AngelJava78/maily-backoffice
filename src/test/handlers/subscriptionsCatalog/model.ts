@@ -1,8 +1,4 @@
-import {
-  CLINIC_MODULE_ORDER,
-  MODULE_PREREQUISITE,
-  REQUIRED_MODULE_KEY,
-} from '@/features/subscriptions/schemas/clinicModuleCatalog';
+import { REQUIRED_MODULE_KEY } from '@/features/subscriptions/schemas/clinicModule';
 
 import type { SubscriptionDto } from '../../factories';
 
@@ -197,7 +193,31 @@ function orNull(text: string | null | undefined): string | null {
   return trimmed === '' ? null : trimmed;
 }
 
-const KNOWN_MODULE_KEYS: ReadonlySet<string> = new Set(CLINIC_MODULE_ORDER);
+/**
+ * The 18 real clinic modules of the current catalog (022, FR-011), its own literal list, not
+ * imported from `subscriptionModulesCatalog.ts` (research D6): they simulate two independent
+ * services, and this one never calls the users API to validate `module_keys`.
+ */
+const KNOWN_MODULE_KEYS: ReadonlySet<string> = new Set([
+  'overview',
+  'schedule',
+  'appointments',
+  'patients',
+  'prescriptions',
+  'vital_signs',
+  'patient_diagnoses',
+  'templates',
+  'clinics',
+  'consulting_rooms',
+  'staff',
+  'finance',
+  'billing',
+  'expenses',
+  'incomes',
+  'services',
+  'reports',
+  'reminders',
+]);
 
 /**
  * `subscription_type_id` is discovered at the `INSERT`, by the foreign key, not with an earlier
@@ -244,8 +264,8 @@ function requireClinicsLimitForType(subscriptionTypeId: number, clinicsLimit: nu
 /**
  * The module keys a creation or an edition sends, always including `patients`, validated the way
  * the real API does (research D9 of the Backoffice's plan; `maily-system-api/src/clinic_modules.py`):
- * every key must be a clinic module the users API recognises (here, the fixed catalog of nine), and
- * every dependent module needs its prerequisite among the keys.
+ * every key must be a clinic module the users API recognises (here, its own literal catalog of 18).
+ * No dependency between modules is validated any more (022, FR-008, FR-011).
  */
 function normalizeModuleKeys(keys: readonly string[] | undefined): string[] {
   const requested = new Set([...(keys ?? []), REQUIRED_MODULE_KEY]);
@@ -255,15 +275,6 @@ function normalizeModuleKeys(keys: readonly string[] | undefined): string[] {
         422,
         'subscription_module_not_found',
         `La API de usuarios no reconoce el módulo «${key}» como un módulo de clínica vigente.`,
-      );
-    }
-  }
-  for (const [dependent, prerequisite] of Object.entries(MODULE_PREREQUISITE)) {
-    if (requested.has(dependent) && !requested.has(prerequisite)) {
-      throw new CatalogError(
-        409,
-        'subscription_module_prerequisite_missing',
-        `El módulo «${dependent}» exige el módulo «${prerequisite}», que no está incluido.`,
       );
     }
   }

@@ -54,6 +54,23 @@ async function closeDialog(user: ReturnType<typeof open>['user']) {
   await noDialog();
 }
 
+/**
+ * Creates a module with none of its four actions marked (022, FR-016), then stays in the same
+ * dialog, now showing its edit panel (research of 013-manage-modules: creating moves straight into
+ * editing the new module).
+ */
+async function createWithNoActions(user: ReturnType<typeof open>['user'], key: string) {
+  await user.click(screen.getByRole('button', { name: '+ Nuevo módulo' }));
+  await user.type(screen.getByRole('textbox', { name: 'Clave' }), key);
+  await user.type(screen.getByRole('textbox', { name: 'Nombre' }), key);
+  for (const actionName of [/Ver/, /Crear/, /Modificar/, /Eliminar/]) {
+    await user.click(screen.getByRole('checkbox', { name: actionName }));
+  }
+  await user.click(screen.getByRole('button', { name: 'Crear módulo' }));
+  await screen.findByText('Módulo creado.');
+  await screen.findByRole('heading', { name: 'Editar módulo' });
+}
+
 describe('the modules section: editing (feature 013, user story 3)', () => {
   it('changes description and order while key and type stay fixed (W10)', async () => {
     start();
@@ -112,6 +129,88 @@ describe('the modules section: editing (feature 013, user story 3)', () => {
     await closeDialog(user);
 
     const row = await screen.findByRole('row', { name: /Agenda y citas/ });
+    expect(row).not.toHaveTextContent('Eliminar');
+  });
+
+  it('saves a module with none of its actions marked, changing only its name (022, FR-016, Z8)', async () => {
+    const { modules } = start();
+    const { user } = open('/modules');
+    await screen.findByText('23 módulos activos');
+    await createWithNoActions(user, 'zeroactions');
+    expect(modules.state.findActiveModuleByKey('zeroactions')?.id).toBeDefined();
+
+    await user.clear(screen.getByRole('textbox', { name: 'Nombre' }));
+    await user.type(screen.getByRole('textbox', { name: 'Nombre' }), 'Sin permisos');
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(await screen.findByText('Cambios guardados.')).toBeInTheDocument();
+    const created = modules.state.findActiveModuleByKey('zeroactions');
+    if (created === undefined) {
+      throw new Error('Expected the module "zeroactions" to exist');
+    }
+    expect(modules.state.activePermissionsCountOf(created.id)).toBe(0);
+  });
+
+  it('marks "Ver" on a module with no permissions, creating "<key>:read" (022, FR-012, FR-013, Z7)', async () => {
+    const { modules } = start();
+    const { user } = open('/modules');
+    await screen.findByText('23 módulos activos');
+    await createWithNoActions(user, 'overview');
+    const created = modules.state.findActiveModuleByKey('overview');
+    if (created === undefined) {
+      throw new Error('Expected the module "overview" to exist');
+    }
+    expect(modules.state.activePermissionsCountOf(created.id)).toBe(0);
+
+    await user.click(screen.getByRole('checkbox', { name: /Ver/ }));
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(await screen.findByText('Cambios guardados.')).toBeInTheDocument();
+    expect(modules.state.activePermissionsCountOf(created.id)).toBe(1);
+    expect(
+      modules.state.listPermissions().some((permission) => permission.name === 'overview:read'),
+    ).toBe(true);
+  });
+
+  it('shows the FR-015 error and does not save when "Ver" is unchecked but "Crear" stays marked (022, Z9)', async () => {
+    start();
+    const { user } = open('/modules');
+    await screen.findByText('23 módulos activos');
+
+    // "Agenda y citas" (schedule) starts with its four actions marked (seed.ts).
+    await openEditFor(user, /Agenda y citas/);
+    await user.click(screen.getByRole('checkbox', { name: /Ver/ }));
+    const dialog = await screen.findByRole('dialog', { name: 'Quitar acción' });
+    await user.click(within(dialog).getByRole('button', { name: 'Quitar' }));
+    await noConfirmDialog();
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(
+      await screen.findByText('Para usar Crear, Modificar o Eliminar, marca también Ver.'),
+    ).toBeInTheDocument();
+  });
+
+  it('asks for confirmation on each of the four actions when unchecking all of them, and removes all four on save (022, Z10)', async () => {
+    start();
+    const { user } = open('/modules');
+    await screen.findByText('23 módulos activos');
+
+    // "Agenda y citas" (schedule) starts with its four actions marked (seed.ts).
+    await openEditFor(user, /Agenda y citas/);
+    for (const actionName of [/Eliminar/, /Modificar/, /Crear/, /Ver/]) {
+      await user.click(screen.getByRole('checkbox', { name: actionName }));
+      const dialog = await screen.findByRole('dialog', { name: 'Quitar acción' });
+      await user.click(within(dialog).getByRole('button', { name: 'Quitar' }));
+      await noConfirmDialog();
+    }
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+    await screen.findByText('Cambios guardados.');
+    await closeDialog(user);
+
+    const row = await screen.findByRole('row', { name: /Agenda y citas/ });
+    expect(row).not.toHaveTextContent('Ver');
+    expect(row).not.toHaveTextContent('Crear');
+    expect(row).not.toHaveTextContent('Modificar');
     expect(row).not.toHaveTextContent('Eliminar');
   });
 
