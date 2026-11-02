@@ -192,7 +192,7 @@ Lo produce `describeMonitoredComponentError(error, operation)` (research D16):
 
 | Ajuste | Origen | Tipo | Regla |
 |---|---|---|---|
-| `healthRefreshMs` | `VITE_HEALTH_REFRESH_SECONDS` × 1000 | número | Entero de 10 a 300 s, solo dígitos; 30 s si no se define (FR-046) |
+| `healthRefreshMs` | `VITE_HEALTH_REFRESH_SECONDS` × 1000 | número | Entero de 10 a 300 s, solo dígitos; 300 s (5 minutos) si no se define (FR-046) |
 | `healthServices` (en `HttpClients`) | `VITE_HEALTH_DIRECT_SERVICES` | `{ code, name, client }[]` | Lista JSON de hasta 20, validada al arrancar; `[]` si no se define (FR-072) |
 | `backofficeBuild` | `__APP_VERSION__`, `__APP_COMMIT_SHA__` y `__APP_BUILD_DATE__` | `BackofficeBuild` | Nunca impide arrancar (FR-045) |
 

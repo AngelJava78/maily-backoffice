@@ -39,7 +39,7 @@ describe('parseEnv', () => {
         VITE_CLINICS_API_URL: undefined,
         VITE_DASHBOARD_REFRESH_MINUTES: 5,
         VITE_MAILYSOFT_APP_URL: undefined,
-        VITE_HEALTH_REFRESH_SECONDS: 30,
+        VITE_HEALTH_REFRESH_SECONDS: 300,
         VITE_HEALTH_DIRECT_SERVICES: [],
       },
     });
@@ -275,7 +275,7 @@ describe('parseEnv', () => {
   });
 
   // How often the page "Salud de servicios" refreshes itself (feature 016, contracts/environment.md):
-  // whole seconds from 10 to 300, written with digits only, and 30 when it is not set.
+  // whole seconds from 10 to 300, written with digits only, and 300 (5 minutes) when it is not set.
   describe('VITE_HEALTH_REFRESH_SECONDS', () => {
     function refreshSecondsOf(value: string | undefined): number {
       const source =
@@ -287,9 +287,9 @@ describe('parseEnv', () => {
       return result.env.VITE_HEALTH_REFRESH_SECONDS;
     }
 
-    it('is 30 when it is not set, or set to an empty value', () => {
-      expect(refreshSecondsOf(undefined)).toBe(30);
-      expect(refreshSecondsOf('')).toBe(30);
+    it('is 300 (5 minutes) when it is not set, or set to an empty value', () => {
+      expect(refreshSecondsOf(undefined)).toBe(300);
+      expect(refreshSecondsOf('')).toBe(300);
     });
 
     it.each([

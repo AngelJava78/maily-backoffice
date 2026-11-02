@@ -52,7 +52,7 @@ describe('ConfigErrorScreen', () => {
 
     expect(
       screen.getByText(
-        'VITE_HEALTH_REFRESH_SECONDS: Entero de 10 a 300 (segundos), escrito solo con dígitos; si no se define, 30.',
+        'VITE_HEALTH_REFRESH_SECONDS: Entero de 10 a 300 (segundos), escrito solo con dígitos; si no se define, 300 (5 minutos).',
       ),
     ).toBeInTheDocument();
     expect(container).not.toHaveTextContent('301');

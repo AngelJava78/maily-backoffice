@@ -788,7 +788,7 @@ export const messages = {
         'Ruta que empieza con `/` o URL `http(s)`; en builds de producción una URL absoluta debe ser `https`. Sin `/` final.',
       refreshMinutes: 'Entero de 1 a 60 (minutos), escrito solo con dígitos; si no se define, 5.',
       healthRefreshSeconds:
-        'Entero de 10 a 300 (segundos), escrito solo con dígitos; si no se define, 30.',
+        'Entero de 10 a 300 (segundos), escrito solo con dígitos; si no se define, 300 (5 minutos).',
       healthDirectServices:
         'Lista JSON de hasta 20 objetos { code, name, url }: code con el formato del código de un componente, único y distinto de maily-system-api y mailysoft-usuarios; name de 1 a 100 caracteres; url con las reglas de las URL base de las APIs.',
       mailySoftAppUrl: 'URL http(s) completa; en builds de producción debe ser https.',

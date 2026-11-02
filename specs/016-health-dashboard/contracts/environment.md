@@ -8,13 +8,13 @@ Lo que la feature añade a la configuración del Backoffice. Las reglas comunes 
 
 | Variable | Obligatoria | Ejemplo | Regla de validación | Si es inválida |
 |---|---|---|---|---|
-| `VITE_HEALTH_REFRESH_SECONDS` | No | `60` | Entero de 10 a 300 (segundos), escrito solo con dígitos; ausente o vacía vale 30 | El Backoffice no arranca y la pantalla de configuración inválida nombra la variable y su regla, sin el valor (FR-047) |
+| `VITE_HEALTH_REFRESH_SECONDS` | No | `60` | Entero de 10 a 300 (segundos), escrito solo con dígitos; ausente o vacía vale 300 (5 minutos) | El Backoffice no arranca y la pantalla de configuración inválida nombra la variable y su regla, sin el valor (FR-047) |
 | `VITE_HEALTH_DIRECT_SERVICES` | No | `[{"code":"mailysoft-pacientes","name":"mailySoft-pacientes","url":"https://pacientes.maily.example"}]` | Lista JSON de hasta 20 objetos con **exactamente** `code`, `name` y `url` (abajo); ausente, vacía o `[]` vale `[]` | Igual (FR-073) |
 
 ### `VITE_HEALTH_REFRESH_SECONDS`
 
 - Válidos: `10`, `030` (30) y `300`. Inválidos: `9`, `301`, `30.5`, `+30`, `-30`, `3e1`, `treinta`, ` 30 ` y solo espacios.
-- Regla (`messages.config.rules.healthRefreshSeconds`): «Entero de 10 a 300 (segundos), escrito solo con dígitos; si no se define, 30.»
+- Regla (`messages.config.rules.healthRefreshSeconds`): «Entero de 10 a 300 (segundos), escrito solo con dígitos; si no se define, 300 (5 minutos).»
 - Llega a la página como `healthRefreshMs` (`AppSettingsProvider`).
 
 ### `VITE_HEALTH_DIRECT_SERVICES`
@@ -54,8 +54,8 @@ Los lee `vite.config.ts` en Node al compilar y los inyecta con `define`. A difer
 ## `.env.example`
 
 ```text
-# Segundos entre actualizaciones de «Salud de servicios» (10 a 300; 30 si no se define). Se fija al compilar.
-# VITE_HEALTH_REFRESH_SECONDS=30
+# Segundos entre actualizaciones de «Salud de servicios» (10 a 300; 300, es decir 5 minutos, si no se define). Se fija al compilar.
+# VITE_HEALTH_REFRESH_SECONDS=300
 # Servicios que la comprobación directa consulta además de maily-system-api y mailySoft-usuarios:
 # lista JSON de hasta 20 { code, name, url }. Cada origen absoluto debe estar en el connect-src de la CSP
 # y responder con CORS en /health/live y /health/ready. Se fija al compilar.

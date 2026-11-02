@@ -39,7 +39,7 @@ Quien tiene el permiso `health:read` abre «Salud de servicios» desde el menú 
 
 ### User Story 2 - Mantener la página al día sin intervenir (Priority: P1)
 
-Mientras la persona tiene la página a la vista, el estado se actualiza solo cada 30 segundos (configurable por entorno entre 10 y 300). Ve cuánto hace de la última actualización («Actualizado hace 12 s») y puede pedir una al instante con «Actualizar». Con la pestaña oculta o fuera de la página no se consulta nada, nunca hay dos consultas a la vez y las consultas automáticas no mantienen abierta la sesión, como exige la constitución (principio IV). Si una actualización falla, la persona sigue viendo los últimos datos, con su antigüedad y un aviso.
+Mientras la persona tiene la página a la vista, el estado se actualiza solo cada 5 minutos (configurable por entorno entre 10 y 300 segundos). Ve cuánto hace de la última actualización («Actualizado hace 12 s») y puede pedir una al instante con «Actualizar». Con la pestaña oculta o fuera de la página no se consulta nada, nunca hay dos consultas a la vez y las consultas automáticas no mantienen abierta la sesión, como exige la constitución (principio IV). Si una actualización falla, la persona sigue viendo los últimos datos, con su antigüedad y un aviso.
 
 **Why this priority**: Una página de salud desactualizada engaña: puede mostrar operativo algo que acaba de caer. Consultar de más carga el agregador sin aportar nada a quien no está mirando, y el botón cubre el caso de «lo acabo de arreglar y quiero verlo ya».
 
@@ -58,7 +58,7 @@ Mientras la persona tiene la página a la vista, el estado se actualiza solo cad
 9. **Given** datos en pantalla, **When** una actualización falla, **Then** se conservan los datos con su antigüedad y aparece un aviso de que no se pudieron actualizar, anunciado una vez a los lectores de pantalla; cuando una actualización posterior sale bien, el aviso desaparece.
 10. **Given** la página abierta y sin actividad de la persona, **When** pasan 15 minutos con las consultas automáticas en marcha, **Then** la sesión se cierra por inactividad como en cualquier otra pantalla: las consultas automáticas no cuentan como actividad.
 11. **Given** la sesión deja de ser válida durante las actualizaciones, **When** una consulta se rechaza por ese motivo, **Then** se aplica el manejo de sesión existente: un intento de renovarla y, si no se puede, la pantalla de acceso, que devuelve a «Salud de servicios» tras identificarse.
-12. **Given** un Backoffice compilado sin `VITE_HEALTH_REFRESH_SECONDS` o con la variable vacía, **When** la persona está en la página, **Then** se actualiza cada 30 s; con un entero de 10 a 300, cada ese número de segundos; con un valor fuera de rango, con decimales, con signo, con texto o con solo espacios, el Backoffice no arranca y muestra la pantalla de configuración inválida, que nombra la variable sin repetir su valor.
+12. **Given** un Backoffice compilado sin `VITE_HEALTH_REFRESH_SECONDS` o con la variable vacía, **When** la persona está en la página, **Then** se actualiza cada 300 s (5 minutos); con un entero de 10 a 300, cada ese número de segundos; con un valor fuera de rango, con decimales, con signo, con texto o con solo espacios, el Backoffice no arranca y muestra la pantalla de configuración inválida, que nombra la variable sin repetir su valor.
 13. **Given** la persona cierra sesión, **When** ella u otra persona vuelve a entrar en el mismo navegador y abre la página, **Then** no se ve ningún dato de la sesión anterior: se muestra la carga hasta que llega la respuesta.
 
 ---
@@ -277,7 +277,7 @@ Si maily-system-api deja de responder, no hay agregador ni estado público: «Sa
 
 **Configuración**
 
-- **FR-046**: El intervalo de actualización DEBE configurarse por entorno con `VITE_HEALTH_REFRESH_SECONDS`: un entero de 10 a 300 escrito solo con dígitos. Si la variable no está definida o está vacía, DEBE valer 30.
+- **FR-046**: El intervalo de actualización DEBE configurarse por entorno con `VITE_HEALTH_REFRESH_SECONDS`: un entero de 10 a 300 escrito solo con dígitos. Si la variable no está definida o está vacía, DEBE valer 300 (5 minutos).
 - **FR-047**: Un valor inválido de `VITE_HEALTH_REFRESH_SECONDS` (fuera de rango, con decimales, con signo, con texto o con solo espacios) DEBE impedir que el Backoffice arranque y mostrar la pantalla de configuración inválida, que nombra la variable y su regla sin repetir el valor.
 - **FR-048**: La variable DEBE documentarse en `.env.example` y en el README, con su rango, su valor por defecto y que se fija al compilar (cambiarla exige volver a compilar y desplegar).
 
@@ -364,14 +364,14 @@ Si maily-system-api deja de responder, no hay agregador ni estado público: «Sa
 - **Componente integrado**: maily-system-api y la base de datos de Azure. Siempre están en el resultado, no están en el registro y no se editan.
 - **Identificación del build del Backoffice**: versión, commit y fecha de build del propio Backoffice, fijados al compilar; cualquiera puede faltar.
 - **Estado de la página en la sesión**: el último resultado correcto y el momento en que llegó. Vive en memoria durante la sesión y se descarta al cerrarla o al perder el permiso.
-- **Intervalo de actualización**: segundos entre consultas automáticas (10 a 300, 30 por defecto), fijado por entorno al compilar.
+- **Intervalo de actualización**: segundos entre consultas automáticas (10 a 300, 300 por defecto, es decir 5 minutos), fijado por entorno al compilar.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
 - **SC-001**: Una persona con `health:read` ve el estado general y el de todos los componentes en menos de 5 segundos desde que abre la página por primera vez en la sesión, en el 95 % de las visitas con maily-system-api disponible, aunque un componente no responda.
-- **SC-002**: Un componente registrado desde el Backoffice aparece en «Salud de servicios» sin desplegar de nuevo el Backoffice ni ningún servicio, en menos de 1 minuto con la configuración por defecto (actualización cada 30 s y caché del agregador de 15 s), en el 100 % de los casos probados.
+- **SC-002**: Un componente registrado desde el Backoffice aparece en «Salud de servicios» sin desplegar de nuevo el Backoffice ni ningún servicio, en menos de 6 minutos con la configuración por defecto (actualización cada 5 minutos y caché del agregador de 15 s), y en menos de 1 minuto con `VITE_HEALTH_REFRESH_SECONDS=30`, en el 100 % de los casos probados.
 - **SC-003**: Las dos pantallas presentan 0 violaciones en las verificaciones automáticas de accesibilidad en estos estados: carga, todo operativo, éxito parcial, todos caídos, base de datos detenida por horario, registro no disponible, fallo con datos y sin datos, y sin permiso; listado con datos y vacío, detalle, formulario con errores y diálogo de eliminación. El 100 % de los estados se distinguen sin color, y a 1024 px y a 320 px de ancho la página no corta contenido ni provoca desplazamiento horizontal.
 - **SC-004**: Con la pestaña oculta o fuera de la página se hacen 0 consultas al agregador. Con la página visible y un simulador que responde al instante, en 10 minutos se hacen 600 dividido entre el intervalo configurado (redondeado hacia abajo) consultas automáticas, y tras pulsar «Actualizar» 10 veces seguidas con la respuesta retrasada nunca hay más de una consulta en curso.
 - **SC-005**: El JS de la ruta de entrada sigue dentro del presupuesto vigente de la constitución (300 KB comprimidos en la 1.6.0, o el valor que fije una enmienda posterior tras medir la línea base) y no contiene las pantallas de esta feature, que se descargan solo al visitarlas.
