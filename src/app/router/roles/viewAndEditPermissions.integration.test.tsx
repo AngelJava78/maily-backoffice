@@ -64,12 +64,12 @@ describe(
       expect(screen.getByText(`${text.detail.fields.type}: Clínica`)).toBeInTheDocument();
       // 10 de Clínica (Pacientes/Agenda/Recordatorios) + 16 de Sistema que ya puede recibir (015).
       expect(screen.getByText(text.detail.permissionsCount(0, 26))).toBeInTheDocument();
-      // "Recordatorios" only has Ver and Modificar in the catalog (mockup): no Crear/Eliminar checkbox.
-      expect(screen.getByRole('checkbox', { name: 'Ver de Recordatorios' })).toBeInTheDocument();
+      // "Recordatorios" only has Ver and Modificar in the catalog (mockup): no Crear/Eliminar button.
+      expect(screen.getByRole('button', { name: 'Ver de Recordatorios' })).toBeInTheDocument();
       expect(
-        screen.queryByRole('checkbox', { name: 'Crear de Recordatorios' }),
+        screen.queryByRole('button', { name: 'Crear de Recordatorios' }),
       ).not.toBeInTheDocument();
-      expect(screen.getByRole('checkbox', { name: 'Crear de Pacientes' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Crear de Pacientes' })).toBeInTheDocument();
     });
 
     it('US1-3, US1-4: granting write/update/delete also grants read, and revoking read clears the row', async () => {
@@ -78,15 +78,25 @@ describe(
       await user.click(await screen.findByText('Owner'));
       await screen.findByLabelText(text.detail.fields.name);
 
-      await user.click(screen.getByRole('checkbox', { name: 'Modificar de Recordatorios' }));
-      expect(screen.getByRole('checkbox', { name: 'Ver de Recordatorios' })).toBeChecked();
-      expect(screen.getByRole('checkbox', { name: 'Modificar de Recordatorios' })).toBeChecked();
+      await user.click(screen.getByRole('button', { name: 'Modificar de Recordatorios' }));
+      expect(screen.getByRole('button', { name: 'Ver de Recordatorios' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      expect(screen.getByRole('button', { name: 'Modificar de Recordatorios' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
 
-      await user.click(screen.getByRole('checkbox', { name: 'Ver de Recordatorios' }));
-      expect(screen.getByRole('checkbox', { name: 'Ver de Recordatorios' })).not.toBeChecked();
-      expect(
-        screen.getByRole('checkbox', { name: 'Modificar de Recordatorios' }),
-      ).not.toBeChecked();
+      await user.click(screen.getByRole('button', { name: 'Ver de Recordatorios' }));
+      expect(screen.getByRole('button', { name: 'Ver de Recordatorios' })).toHaveAttribute(
+        'aria-pressed',
+        'false',
+      );
+      expect(screen.getByRole('button', { name: 'Modificar de Recordatorios' })).toHaveAttribute(
+        'aria-pressed',
+        'false',
+      );
     });
 
     it('US1-5: "Todo el módulo" grants every action that module has, no more', async () => {
@@ -95,20 +105,34 @@ describe(
       await user.click(await screen.findByText('Owner'));
       await screen.findByLabelText(text.detail.fields.name);
 
-      await user.click(screen.getByRole('checkbox', { name: 'Todo el módulo de Recordatorios' }));
+      await user.click(screen.getByRole('button', { name: 'Todo el módulo de Recordatorios' }));
 
-      expect(screen.getByRole('checkbox', { name: 'Ver de Recordatorios' })).toBeChecked();
-      expect(screen.getByRole('checkbox', { name: 'Modificar de Recordatorios' })).toBeChecked();
+      expect(screen.getByRole('button', { name: 'Ver de Recordatorios' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      expect(screen.getByRole('button', { name: 'Modificar de Recordatorios' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      expect(
+        screen.getByRole('button', { name: 'Todo el módulo de Recordatorios' }),
+      ).toHaveAttribute('aria-pressed', 'true');
+      // "Recordatorios" has no Crear/Eliminar: "Todo el módulo" does not invent them (FR-006).
+      expect(
+        screen.queryByRole('button', { name: 'Crear de Recordatorios' }),
+      ).not.toBeInTheDocument();
       expect(screen.getByText(text.detail.permissionsCount(2, 26))).toBeInTheDocument();
     });
 
-    it('US1-6: Guardar cambios updates the table and the counter, and it is still there after reopening', async () => {
+    it('US1-6: Guardar cambios updates the list and the counter, and it is still there after reopening', async () => {
       start();
       const { user, unmount } = open();
       await user.click(await screen.findByText('Owner'));
       await screen.findByLabelText(text.detail.fields.name);
 
-      await user.click(screen.getByRole('checkbox', { name: 'Todo el módulo de Recordatorios' }));
+      // "Modificar" grants "Ver" too (FR-008): the same two permissions "Todo el módulo" would give.
+      await user.click(screen.getByRole('button', { name: 'Modificar de Recordatorios' }));
       await user.click(screen.getByRole('button', { name: text.detail.save }));
 
       await waitFor(() => {
@@ -123,7 +147,10 @@ describe(
 
       await waitFor(() => {
         expect(screen.getByText(text.detail.permissionsCount(2, 26))).toBeInTheDocument();
-        expect(screen.getByRole('checkbox', { name: 'Ver de Recordatorios' })).toBeChecked();
+        expect(screen.getByRole('button', { name: 'Ver de Recordatorios' })).toHaveAttribute(
+          'aria-pressed',
+          'true',
+        );
       });
     });
 
@@ -135,11 +162,14 @@ describe(
       const nameField = await screen.findByLabelText(text.detail.fields.name);
 
       await user.type(nameField, ' Jr');
-      await user.click(screen.getByRole('checkbox', { name: 'Ver de Usuarios' }));
+      await user.click(screen.getByRole('button', { name: 'Ver de Usuarios' }));
       await user.click(screen.getByRole('button', { name: text.detail.discard }));
 
       expect(nameField).toHaveValue('Developer');
-      expect(screen.getByRole('checkbox', { name: 'Ver de Usuarios' })).not.toBeChecked();
+      expect(screen.getByRole('button', { name: 'Ver de Usuarios' })).toHaveAttribute(
+        'aria-pressed',
+        'false',
+      );
       expect(screen.getByText(text.detail.permissionsCount(0, 16))).toBeInTheDocument();
     });
 
@@ -158,10 +188,13 @@ describe(
 
       // Taken by another role (any type): rejected by the service, nothing saved either.
       await user.type(nameField, 'Owner');
-      await user.click(screen.getByRole('checkbox', { name: 'Ver de Usuarios' }));
+      await user.click(screen.getByRole('button', { name: 'Ver de Usuarios' }));
       await user.click(screen.getByRole('button', { name: text.detail.save }));
       expect(await screen.findByText(text.errors.nameAlreadyExists)).toBeInTheDocument();
-      expect(screen.getByRole('checkbox', { name: 'Ver de Usuarios' })).toBeChecked();
+      expect(screen.getByRole('button', { name: 'Ver de Usuarios' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
 
       // Corrected: name and the pending permission save together.
       await user.clear(nameField);

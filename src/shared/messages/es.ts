@@ -840,11 +840,10 @@ export const messages = {
       discard: 'Descartar cambios',
       matrixTitle: (roleName: string) => `Permisos de ${roleName} por módulo y acción`,
       matrixHelper:
-        'Marca lo que puede hacer en cada módulo. Para crear, modificar o eliminar también necesita Ver.',
-      matrixError: 'No se pudo cargar la tabla de permisos.',
+        'Activa lo que puede hacer en cada módulo. Para crear, modificar o eliminar también necesita Ver.',
+      matrixError: 'No se pudo cargar la lista de permisos.',
       moduleGroupHeader: (typeName: string) => `Módulos de ${typeName}`,
-      columns: {
-        module: 'Módulo',
+      actions: {
         read: 'Ver',
         write: 'Crear',
         update: 'Modificar',
@@ -862,7 +861,7 @@ export const messages = {
       typeHelper: 'No se puede cambiar después.',
       copyFrom: 'Copiar permisos de',
       copyFromHelper:
-        'Opcional. Llena la tabla con los permisos de otro role; después la puedes ajustar.',
+        'Opcional. Llena la lista de permisos con los de otro role; después la puedes ajustar.',
       create: 'Crear role',
       cancel: 'Cancelar',
     },

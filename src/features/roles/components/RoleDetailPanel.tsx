@@ -23,7 +23,7 @@ import type { RoleCapabilities } from '../policy/roleCapabilities';
 import { countGranted, countTotal } from '../schemas/permissionMatrix';
 import { nameChangesOf, roleEditInputSchema, type Role, type RoleEditInput } from '../schemas/role';
 import { DeleteRoleDialog } from './DeleteRoleDialog';
-import { PermissionsMatrix } from './PermissionsMatrix';
+import { PermissionsList } from './PermissionsList';
 import { RoleDetailActions } from './RoleDetailActions';
 
 const text = messages.roles.detail;
@@ -38,11 +38,12 @@ interface RoleDetailPanelProps {
 }
 
 /**
- * Nombre, descripción, tipo y la tabla de permisos de un role (FR-005, FR-006 a FR-010, FR-021):
- * every pending change (own fields and the table alike) is saved or discarded together. The type
- * is shown as text, never a field — it cannot change once the role exists. A role that still fails
- * to load (network/5xx, not "no longer exists": `useRoleDetail` already tells those apart) is the
- * only case that takes over the whole panel; a catalog failure only takes the table (FR-020).
+ * Nombre, descripción, tipo y la lista de permisos de un role (FR-005, FR-006 a FR-010, FR-021):
+ * every pending change (own fields and the permission list alike) is saved or discarded together.
+ * The type is shown as text, never a field — it cannot change once the role exists. A role that
+ * still fails to load (network/5xx, not "no longer exists": `useRoleDetail` already tells those
+ * apart) is the only case that takes over the whole panel; a catalog failure only takes the
+ * permission list (FR-020).
  */
 export function RoleDetailPanel({
   roleId,
@@ -223,7 +224,8 @@ export function RoleDetailPanel({
         ) : matrixEditor.matrix === undefined ? (
           <CircularProgress aria-label={messages.common.loading} />
         ) : (
-          <PermissionsMatrix
+          <PermissionsList
+            label={text.matrixTitle(role.name)}
             matrix={matrixEditor.matrix}
             pending={fieldsDisabled}
             onToggle={matrixEditor.toggle}

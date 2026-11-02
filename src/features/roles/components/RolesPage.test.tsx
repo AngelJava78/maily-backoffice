@@ -184,14 +184,17 @@ describe('RolesPage', () => {
       throw new Error(`No focusable element matched within ${max} presses of Tab`);
     }
 
-    function isCheckbox(element: Element | null): element is HTMLInputElement {
-      return element instanceof HTMLInputElement && element.type === 'checkbox';
+    /** A toggle button: the permission buttons are the only elements here with a pressed state. */
+    function isToggleButton(element: Element | null): element is HTMLButtonElement {
+      return element instanceof HTMLButtonElement && element.hasAttribute('aria-pressed');
     }
 
-    it('reaches the tabs, the role list and the permission table by keyboard alone', async () => {
+    it('reaches the tabs, the role list and the permission list by keyboard alone', async () => {
       start();
       const { user } = renderPage('/roles?type=sistema&roleId=1');
       await screen.findByDisplayValue('Administrator');
+      // The permission list loads on its own, after the role: wait for it, or Tab would skip it.
+      await screen.findByRole('button', { name: 'Ver de Roles' });
 
       await tabUntil(user, (el) => el?.getAttribute('role') === 'tab');
       expect(document.activeElement).toHaveAccessibleName(messages.roles.tabs.sistema);
@@ -200,14 +203,15 @@ describe('RolesPage', () => {
       await tabUntil(user, (el) => el?.tagName === 'INPUT');
       expect(document.activeElement).toHaveAccessibleName(messages.roles.detail.fields.name);
 
-      await tabUntil(user, isCheckbox);
-      const checkbox = document.activeElement;
-      if (!isCheckbox(checkbox)) {
-        throw new Error('Expected the focus to be on a checkbox');
+      // MUI's group of toggle buttons has a single Tab stop: the focus enters it on one button.
+      await tabUntil(user, isToggleButton);
+      const toggle = document.activeElement;
+      if (!isToggleButton(toggle)) {
+        throw new Error('Expected the focus to be on a toggle button');
       }
-      const wasChecked = checkbox.checked;
+      const wasPressed = toggle.getAttribute('aria-pressed');
       await user.keyboard(' ');
-      expect(checkbox.checked).toBe(!wasChecked);
+      expect(toggle).toHaveAttribute('aria-pressed', wasPressed === 'true' ? 'false' : 'true');
     });
   });
 });

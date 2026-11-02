@@ -41,17 +41,17 @@ test.describe('the roles section: Sistema roles, end to end (A1)', () => {
     await page.getByText('Developer', { exact: true }).click();
     await expect(nameField(page)).toHaveValue('Developer');
 
-    const checkbox = page.getByRole('checkbox', { name: 'Ver de Roles' });
-    const wasChecked = await checkbox.isChecked();
+    const toggle = page.getByRole('button', { name: 'Ver de Roles', exact: true });
+    const wasPressed = (await toggle.getAttribute('aria-pressed')) === 'true';
 
-    await checkbox.click();
+    await toggle.click();
     await page.getByRole('button', { name: text.detail.save }).click();
-    await expect(checkbox).toBeChecked({ checked: !wasChecked });
+    await expect(toggle).toHaveAttribute('aria-pressed', String(!wasPressed));
 
     // Leaves the real environment exactly as it was found.
-    await checkbox.click();
+    await toggle.click();
     await page.getByRole('button', { name: text.detail.save }).click();
-    await expect(checkbox).toBeChecked({ checked: wasChecked });
+    await expect(toggle).toHaveAttribute('aria-pressed', String(wasPressed));
   });
 
   test('W8, W9: creates a Sistema role copying the permissions of another', async ({ page }) => {

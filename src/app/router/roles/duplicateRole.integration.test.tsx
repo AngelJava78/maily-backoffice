@@ -64,8 +64,8 @@ describe(
         expect(screen.getByLabelText(text.detail.fields.name)).toHaveValue('Administrator (copia)');
       });
 
-      // Unchecking "Ver" also unchecks the rest of that row (FR-008): all four actions of Usuarios.
-      await user.click(screen.getByRole('checkbox', { name: 'Ver de Usuarios' }));
+      // Unpressing "Ver" also unpresses the rest of that module (FR-008): all four actions of Usuarios.
+      await user.click(screen.getByRole('button', { name: 'Ver de Usuarios' }));
       await user.click(screen.getByRole('button', { name: text.detail.save }));
       await waitFor(() => {
         expect(screen.getByText(text.detail.permissionsCount(12, 16))).toBeInTheDocument();

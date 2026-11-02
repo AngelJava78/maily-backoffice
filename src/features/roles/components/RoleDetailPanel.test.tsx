@@ -38,7 +38,19 @@ describe('RoleDetailPanel', () => {
     expect(screen.getByLabelText(text.fields.description)).toHaveValue('');
     expect(screen.getByText(`${text.fields.type}: Sistema`)).toBeInTheDocument();
     expect(screen.getByText(text.permissionsCount(16, 16))).toBeInTheDocument();
-    expect(screen.getByRole('checkbox', { name: 'Ver de Roles' })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'Ver de Roles', pressed: true })).toBeInTheDocument();
+  });
+
+  it('lists the permissions under a name that carries the role (FR-001, FR-014)', async () => {
+    start();
+
+    renderPanel(1);
+
+    await screen.findByLabelText(text.fields.name);
+    expect(
+      screen.getByRole('list', { name: text.matrixTitle('Administrator') }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
   it('starts with Guardar/Descartar disabled, and enables them once the name changes', async () => {
@@ -75,7 +87,7 @@ describe('RoleDetailPanel', () => {
     await screen.findByLabelText(text.fields.name);
     expect(screen.getByText(text.permissionsCount(0, 16))).toBeInTheDocument();
 
-    await user.click(screen.getByRole('checkbox', { name: 'Ver de Roles' }));
+    await user.click(screen.getByRole('button', { name: 'Ver de Roles' }));
     expect(screen.getByRole('button', { name: text.save })).toBeEnabled();
 
     await user.click(screen.getByRole('button', { name: text.save }));
@@ -83,8 +95,29 @@ describe('RoleDetailPanel', () => {
     await waitFor(() => {
       expect(screen.getByText(text.permissionsCount(1, 16))).toBeInTheDocument();
     });
-    expect(screen.getByRole('checkbox', { name: 'Ver de Roles' })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'Ver de Roles' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(screen.getByRole('button', { name: text.save })).toBeDisabled();
+  });
+
+  it('pressing a button and pressing it again leaves no pending change (US2-4)', async () => {
+    start();
+    const { user } = renderPanel(2);
+
+    await screen.findByLabelText(text.fields.name);
+    await user.click(screen.getByRole('button', { name: 'Ver de Roles' }));
+    expect(screen.getByRole('button', { name: text.save })).toBeEnabled();
+    expect(screen.getByRole('button', { name: text.discard })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Ver de Roles' }));
+
+    expect(
+      screen.getByRole('button', { name: 'Ver de Roles', pressed: false }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: text.save })).toBeDisabled();
+    expect(screen.getByRole('button', { name: text.discard })).toBeDisabled();
   });
 
   it('a Clínica role can grant and save a Sistema module permission (asymmetric rule, FR-001)', async () => {
@@ -94,14 +127,17 @@ describe('RoleDetailPanel', () => {
     await screen.findByLabelText(text.fields.name);
     expect(screen.getByText(text.permissionsCount(0, 16))).toBeInTheDocument();
 
-    await user.click(screen.getByRole('checkbox', { name: 'Ver de Roles' }));
+    await user.click(screen.getByRole('button', { name: 'Ver de Roles' }));
     expect(screen.getByRole('button', { name: text.save })).toBeEnabled();
 
     await user.click(screen.getByRole('button', { name: text.save }));
 
     await waitFor(() => {
       expect(screen.getByText(text.permissionsCount(1, 16))).toBeInTheDocument();
-      expect(screen.getByRole('checkbox', { name: 'Ver de Roles' })).toBeChecked();
+      expect(screen.getByRole('button', { name: 'Ver de Roles' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
     });
     expect(screen.getByRole('button', { name: text.save })).toBeDisabled();
   });
@@ -131,7 +167,7 @@ describe('RoleDetailPanel', () => {
 
     expect(await screen.findByLabelText(text.fields.name)).toHaveValue('Administrator');
     expect(screen.getByText(text.matrixError)).toBeInTheDocument();
-    expect(screen.queryByRole('checkbox', { name: 'Ver de Roles' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Ver de Roles' })).not.toBeInTheDocument();
   });
 
   describe('capabilities', () => {
@@ -141,7 +177,7 @@ describe('RoleDetailPanel', () => {
 
       expect(await screen.findByLabelText(text.fields.name)).toBeDisabled();
       expect(screen.getByLabelText(text.fields.description)).toBeDisabled();
-      expect(screen.getByRole('checkbox', { name: 'Ver de Roles' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Ver de Roles' })).toBeDisabled();
       expect(screen.getByRole('button', { name: text.save })).toBeDisabled();
     });
 

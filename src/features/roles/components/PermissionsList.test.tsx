@@ -3,15 +3,19 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { messages } from '@/shared/messages/es';
+
 import type { Module } from '../schemas/module';
 import {
   buildPermissionMatrix,
-  withAllPermissionsToggled,
   withPermissionToggled,
+  type ActionKey,
   type PermissionMatrix as Matrix,
 } from '../schemas/permissionMatrix';
 import type { Permission } from '../schemas/permission';
-import { PermissionsMatrix } from './PermissionsMatrix';
+import { PermissionsList } from './PermissionsList';
+
+const LABEL = 'Permisos de Doctor por módulo y acción';
 
 function module(overrides: Partial<Module> & Pick<Module, 'id' | 'key' | 'name'>): Module {
   return { sortOrder: 0, type: { id: 2, name: 'Clínica' }, ...overrides };
@@ -64,115 +68,184 @@ function mixedTypeMatrix(): Matrix {
   return [...clinicRows, ...systemRows];
 }
 
-function Harness({ initial }: { readonly initial: Matrix }) {
+function renderList(matrix: Matrix, pending = false) {
+  return render(
+    <PermissionsList
+      matrix={matrix}
+      label={LABEL}
+      pending={pending}
+      onToggle={vi.fn()}
+      onToggleAll={vi.fn()}
+    />,
+  );
+}
+
+/** A stateful harness: applies the same pure rules `RoleDetailPanel` uses, and reports every toggle. */
+function Harness({
+  initial,
+  onToggle = vi.fn(),
+}: {
+  readonly initial: Matrix;
+  readonly onToggle?: (moduleId: number, actionKey: ActionKey, checked: boolean) => void;
+}) {
   const [matrix, setMatrix] = useState(initial);
   return (
-    <PermissionsMatrix
+    <PermissionsList
       matrix={matrix}
+      label={LABEL}
       pending={false}
       onToggle={(moduleId, actionKey, checked) => {
+        onToggle(moduleId, actionKey, checked);
         setMatrix(
           matrix.map((row) =>
             row.module.id === moduleId ? withPermissionToggled(row, actionKey, checked) : row,
           ),
         );
       }}
-      onToggleAll={(moduleId, checked) => {
-        setMatrix(
-          matrix.map((row) =>
-            row.module.id === moduleId ? withAllPermissionsToggled(row, checked) : row,
-          ),
-        );
-      }}
+      onToggleAll={vi.fn()}
     />
   );
 }
 
-describe('PermissionsMatrix', () => {
-  it('shows a column header only for actions at least one module has', () => {
-    render(<Harness initial={richMatrix()} />);
+/** The list item of a module (a `<li>` has no accessible name of its own, so it is found by its text). */
+function itemOf(moduleName: string): HTMLElement {
+  const item = screen
+    .getAllByRole('listitem')
+    .find((candidate) => within(candidate).queryByText(moduleName) !== null);
+  if (item === undefined) {
+    throw new Error(`No list item for the module "${moduleName}"`);
+  }
+  return item;
+}
 
-    const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
-    expect(headers).toEqual(['Módulo', 'Ver', 'Crear', 'Modificar', 'Eliminar', 'Todo el módulo']);
+function buttonNamesOf(item: HTMLElement): (string | null)[] {
+  return within(item)
+    .getAllByRole('button')
+    .map((button) => button.getAttribute('aria-label'));
+}
+
+describe('PermissionsList', () => {
+  it('is a list named after the role and described by a visible helper text (FR-001, FR-014)', () => {
+    renderList(richMatrix());
+
+    const list = screen.getByRole('list', { name: LABEL });
+    expect(list).toHaveAccessibleDescription(messages.roles.detail.matrixHelper);
+    expect(screen.getByText(messages.roles.detail.matrixHelper)).toBeVisible();
   });
 
-  it("omits a column no module has at all (e.g. no module with 'Eliminar' in this type)", () => {
-    const matrix = buildPermissionMatrix(
-      [REMINDERS],
-      [permission(5, REMINDERS, 'read'), permission(6, REMINDERS, 'update')],
-      new Set(),
-      2,
-    );
-    render(<Harness initial={matrix} />);
+  it('shows one item per module, in the order received', () => {
+    renderList(richMatrix());
 
-    const headers = screen.getAllByRole('columnheader').map((header) => header.textContent);
-    expect(headers).toEqual(['Módulo', 'Ver', 'Modificar', 'Todo el módulo']);
+    const items = within(screen.getByRole('list', { name: LABEL })).getAllByRole('listitem');
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent('Pacientes');
+    expect(items[1]).toHaveTextContent('Recordatorios');
   });
 
-  it('leaves a cell empty for a module that does not have that action (Recordatorios: no Crear/Eliminar)', () => {
-    render(<Harness initial={richMatrix()} />);
-
-    const remindersRow = screen.getByRole('row', { name: /Recordatorios/ });
-    expect(within(remindersRow).getAllByRole('checkbox')).toHaveLength(3); // Ver, Modificar, Todo el módulo
-  });
-
-  it('shows the empty-catalog message instead of a table when there are no modules of this type', () => {
-    render(
-      <PermissionsMatrix matrix={[]} pending={false} onToggle={vi.fn()} onToggleAll={vi.fn()} />,
-    );
+  it('is no longer a table: no table and no column headers', () => {
+    renderList(richMatrix());
 
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(screen.queryAllByRole('columnheader')).toHaveLength(0);
+  });
+
+  it('gives each module only the buttons of its own actions (Recordatorios: no Crear/Eliminar)', () => {
+    renderList(richMatrix());
+
+    expect(buttonNamesOf(itemOf('Pacientes'))).toEqual([
+      'Ver de Pacientes',
+      'Crear de Pacientes',
+      'Modificar de Pacientes',
+      'Eliminar de Pacientes',
+      'Todo el módulo de Pacientes',
+    ]);
+    expect(buttonNamesOf(itemOf('Recordatorios'))).toEqual([
+      'Ver de Recordatorios',
+      'Modificar de Recordatorios',
+      'Todo el módulo de Recordatorios',
+    ]);
+  });
+
+  it('shows the empty-catalog message instead of a list when there are no modules of this type', () => {
+    renderList([]);
+
+    expect(screen.queryByRole('list')).not.toBeInTheDocument();
     expect(
       screen.getByText('Este tipo todavía no tiene módulos en el catálogo.'),
     ).toBeInTheDocument();
   });
 
-  it('toggling a cell updates the matrix through the callbacks (Ver-prerequisite still applies)', async () => {
-    const user = userEvent.setup();
-    render(<Harness initial={richMatrix()} />);
-
-    await user.click(screen.getByRole('checkbox', { name: 'Crear de Pacientes' }));
-
-    expect(screen.getByRole('checkbox', { name: 'Crear de Pacientes' })).toBeChecked();
-    expect(screen.getByRole('checkbox', { name: 'Ver de Pacientes' })).toBeChecked();
-  });
-
-  it('groups rows by module type under a header, Clínica first, when the matrix mixes types (FR-004)', () => {
-    render(<Harness initial={mixedTypeMatrix()} />);
+  it('groups items by module type under a header, Clínica first, when the matrix mixes types (FR-009)', () => {
+    renderList(mixedTypeMatrix());
 
     expect(screen.getByText('Módulos de Clínica')).toBeInTheDocument();
     expect(screen.getByText('Módulos de Sistema')).toBeInTheDocument();
 
-    const rowTexts = screen.getAllByRole('row').map((row) => row.textContent);
-    const clinicHeaderIndex = rowTexts.findIndex((text) => text === 'Módulos de Clínica');
-    const patientsRowIndex = rowTexts.findIndex((text) => text.includes('Pacientes'));
-    const systemHeaderIndex = rowTexts.findIndex((text) => text === 'Módulos de Sistema');
-    const usersRowIndex = rowTexts.findIndex((text) => text.includes('Usuarios'));
-    expect(clinicHeaderIndex).toBeLessThan(patientsRowIndex);
-    expect(patientsRowIndex).toBeLessThan(systemHeaderIndex);
-    expect(systemHeaderIndex).toBeLessThan(usersRowIndex);
+    const texts = screen.getAllByRole('listitem').map((item) => item.textContent);
+    const clinicHeaderIndex = texts.findIndex((text) => text === 'Módulos de Clínica');
+    const patientsIndex = texts.findIndex((text) => text.includes('Pacientes'));
+    const systemHeaderIndex = texts.findIndex((text) => text === 'Módulos de Sistema');
+    const usersIndex = texts.findIndex((text) => text.includes('Usuarios'));
+    expect(clinicHeaderIndex).toBeLessThan(patientsIndex);
+    expect(patientsIndex).toBeLessThan(systemHeaderIndex);
+    expect(systemHeaderIndex).toBeLessThan(usersIndex);
   });
 
-  it('shows no group header when every row is of the same module type (no regression, FR-005)', () => {
-    render(<Harness initial={richMatrix()} />);
+  it('shows no group header when every module is of the same type (no regression, FR-009)', () => {
+    renderList(richMatrix());
 
     expect(screen.queryByText(/^Módulos de /)).not.toBeInTheDocument();
   });
 
-  it('reports which moduleId changed when a whole-row toggle happens', async () => {
+  it('keeps every button not operable while pending', () => {
+    renderList(richMatrix(), true);
+
+    for (const button of screen.getAllByRole('button')) {
+      expect(button).toBeDisabled();
+    }
+  });
+
+  it('toggling a button updates the list through the callbacks (the Ver prerequisite still applies)', async () => {
+    const user = userEvent.setup();
+    render(<Harness initial={richMatrix()} />);
+
+    await user.click(screen.getByRole('button', { name: 'Crear de Pacientes' }));
+
+    expect(screen.getByRole('button', { name: 'Crear de Pacientes', pressed: true })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Ver de Pacientes', pressed: true })).toBeVisible();
+    // Another module is not affected.
+    expect(
+      screen.getByRole('button', { name: 'Ver de Recordatorios', pressed: false }),
+    ).toBeVisible();
+  });
+
+  it('reports which module and action changed, and the value asked for', async () => {
+    const onToggle = vi.fn();
+    const user = userEvent.setup();
+    render(<Harness initial={richMatrix()} onToggle={onToggle} />);
+
+    await user.click(screen.getByRole('button', { name: 'Crear de Pacientes' }));
+
+    expect(onToggle).toHaveBeenCalledTimes(1);
+    expect(onToggle).toHaveBeenCalledWith(PATIENTS.id, 'write', true);
+  });
+
+  it('reports which module changed when a whole-module toggle happens', async () => {
     const onToggleAll = vi.fn();
     const user = userEvent.setup();
     render(
-      <PermissionsMatrix
+      <PermissionsList
         matrix={richMatrix()}
+        label={LABEL}
         pending={false}
         onToggle={vi.fn()}
         onToggleAll={onToggleAll}
       />,
     );
 
-    await user.click(screen.getByRole('checkbox', { name: 'Todo el módulo de Pacientes' }));
+    await user.click(screen.getByRole('button', { name: 'Todo el módulo de Pacientes' }));
 
+    expect(onToggleAll).toHaveBeenCalledTimes(1);
     expect(onToggleAll).toHaveBeenCalledWith(PATIENTS.id, true);
   });
 });
