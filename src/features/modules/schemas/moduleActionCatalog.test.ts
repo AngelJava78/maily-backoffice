@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { MODULE_ACTION_ID, MODULE_ACTION_ORDER, MODULE_STATUS, MODULE_TYPE } from './moduleActionCatalog';
+import {
+  MODULE_ACTION_ID,
+  MODULE_ACTION_ORDER,
+  MODULE_STATUS,
+  MODULE_TYPE,
+} from './moduleActionCatalog';
 
 describe('moduleActionCatalog', () => {
   it('fixes the four actions in the order the mockup shows them', () => {
