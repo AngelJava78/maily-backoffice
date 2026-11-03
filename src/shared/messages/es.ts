@@ -7,6 +7,36 @@ const PRICE_RULE =
 /** How a clinic limit is written (consultorios, doctores, asistentes, pacientes nuevos al año). */
 const LIMIT_RULE = 'Escribe un número entero de 0 a 1,000,000.';
 
+/** "1 módulo" / "3 módulos". */
+function modulesOf(count: number): string {
+  return `${count} ${count === 1 ? 'módulo' : 'módulos'}`;
+}
+
+/** "5 submódulos" / "1 submódulo". */
+function submodulesOf(count: number): string {
+  return `${count} ${count === 1 ? 'submódulo' : 'submódulos'}`;
+}
+
+/** "23 módulos activos", "1 módulo bloqueado" or "23 módulos y 5 submódulos activos": the adjective agrees with the last noun. */
+function modulesCount(
+  modules: number,
+  submodules: number,
+  adjective: 'activo' | 'bloqueado',
+): string {
+  const last = submodules > 0 ? submodules : modules;
+  const ending = last === 1 ? adjective : `${adjective}s`;
+  const nouns =
+    submodules > 0 ? `${modulesOf(modules)} y ${submodulesOf(submodules)}` : modulesOf(modules);
+  return `${nouns} ${ending}`;
+}
+
+/** The heading of a group of the modules table: "· 9 módulos" or "· 9 módulos y 4 submódulos". */
+function groupCount(modules: number, submodules: number): string {
+  return submodules > 0
+    ? `${modulesOf(modules)} y ${submodulesOf(submodules)}`
+    : modulesOf(modules);
+}
+
 export const messages = {
   common: {
     appName: 'MailySoft Backoffice',
@@ -144,8 +174,9 @@ export const messages = {
       search: 'Nombre o clave',
     },
     count: {
-      active: (n: number) => `${n} módulos activos`,
-      blocked: (n: number) => `${n} módulos bloqueados`,
+      active: (modules: number, submodules: number) => modulesCount(modules, submodules, 'activo'),
+      blocked: (modules: number, submodules: number) =>
+        modulesCount(modules, submodules, 'bloqueado'),
       noResults: 'Ningún módulo coincide con la búsqueda.',
       noneActive: 'No hay módulos activos.',
       noneBlocked: 'No hay módulos bloqueados.',
@@ -155,8 +186,23 @@ export const messages = {
       message: 'Ocurrió un problema al consultar los módulos. Inténtalo de nuevo.',
     },
     groups: {
-      system: (n: number) => `Sistema, pantallas del Backoffice · ${n} módulos`,
-      clinic: (n: number) => `Clínica, aplicación para clínicas · ${n} módulos`,
+      system: (modules: number, submodules: number) =>
+        `Sistema, pantallas del Backoffice · ${groupCount(modules, submodules)}`,
+      clinic: (modules: number, submodules: number) =>
+        `Clínica, aplicación para clínicas · ${groupCount(modules, submodules)}`,
+    },
+    tree: {
+      /** What is seen on the control that collapses the submodules of a module. */
+      submodulesButton: (count: number) => submodulesOf(count),
+      /** What a screen reader says for that control (it contains the visible text). */
+      submodulesOf: (count: number, moduleName: string) =>
+        `${submodulesOf(count)} de ${moduleName}`,
+      /** Said before the name of a submodule, so that a screen reader knows whose it is. */
+      submoduleOf: (parentName: string) => `Submódulo de ${parentName}`,
+      /** The parent of a context row is in the other status view than the one being shown. */
+      contextOtherView: (viewedStatus: 'active' | 'blocked') =>
+        viewedStatus === 'blocked' ? 'Está en «Activos»' : 'Está en «Bloqueados»',
+      contextSearch: 'Su submódulo coincide con la búsqueda',
     },
     columns: {
       order: 'Orden',

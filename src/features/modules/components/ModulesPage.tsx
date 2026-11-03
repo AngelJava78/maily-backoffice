@@ -12,8 +12,9 @@ import { useFocusOnMount } from '@/shared/ui/useFocusOnMount';
 
 import type { ModuleCapabilities } from '..';
 import { useModulesCatalog } from '../hooks/useModulesCatalog';
+import { useCollapsedModules } from '../hooks/useCollapsedModules';
 import { useModulesLocation } from '../hooks/useModulesLocation';
-import { filterModules } from '../policy/filterModules';
+import { buildModuleTree } from '../policy/buildModuleTree';
 import { MODULE_STATUS } from '../schemas/moduleActionCatalog';
 import { ModuleCreatePanel } from './ModuleCreatePanel';
 import { ModuleEditPanel } from './ModuleEditPanel';
@@ -42,10 +43,12 @@ export function ModulesPage({ capabilities }: ModulesPageProps) {
   const query = useModulesCatalog(statusId);
   const loaded = query.data !== undefined;
 
-  const filtered = useMemo(
-    () => filterModules(query.data ?? [], { type: location.type, search: location.search }),
-    [query.data, location.type, location.search],
-  );
+  const { collapsed, toggle } = useCollapsedModules();
+  // The submodules go under their parent (spec 024); the type filter and the search keep that.
+  const groups = buildModuleTree(query.data ?? [], {
+    type: location.type,
+    search: location.search,
+  });
   // research D13: the default order is global (every type together), computed from whatever is
   // already loaded — only a display hint, the server computes the value it actually uses.
   const nextSortOrder = useMemo(
@@ -75,22 +78,28 @@ export function ModulesPage({ capabilities }: ModulesPageProps) {
     if (!loaded) {
       return <PageLoader />;
     }
-    if (filtered.length === 0) {
+    if (groups.length === 0) {
       return <EmptyState message={emptyMessage()} />;
     }
+    const moduleTotal = groups.reduce((total, group) => total + group.moduleCount, 0);
+    const submoduleTotal = groups.reduce((total, group) => total + group.submoduleCount, 0);
     const countLabel =
       location.status === 'blocked'
-        ? text.count.blocked(filtered.length)
-        : text.count.active(filtered.length);
+        ? text.count.blocked(moduleTotal, submoduleTotal)
+        : text.count.active(moduleTotal, submoduleTotal);
     return (
       <Stack spacing={2}>
         <Typography color="text.secondary">{countLabel}</Typography>
         <ModulesTable
-          modules={filtered}
+          groups={groups}
           canEdit={capabilities.canEdit}
           onEdit={(moduleId) => {
             openEdit(moduleId);
           }}
+          collapsed={collapsed}
+          onToggle={toggle}
+          searching={location.search !== ''}
+          status={location.status}
         />
       </Stack>
     );

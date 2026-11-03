@@ -47,6 +47,8 @@ export interface CatalogModule {
   readonly createdAt: string;
   readonly statusId: number;
   readonly typeId: number;
+  /** The module this one is a submodule of, or `null` for a top-level module (spec 024). */
+  readonly parentModuleId: number | null;
 }
 
 /** A permission as the simulator keeps it, already resolved against its module and its action. */
@@ -153,6 +155,7 @@ export function catalogModule(overrides: Partial<CatalogModule> = {}): CatalogMo
     createdAt: '2026-10-22T00:00:00Z',
     statusId: ACTIVE,
     typeId: MODULE_TYPE.CLINIC,
+    parentModuleId: null,
     ...overrides,
   };
 }
@@ -253,6 +256,7 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
       createdAt: new Date().toISOString(),
       statusId: ACTIVE,
       typeId: input.type_id,
+      parentModuleId: null,
     };
     modules.set(id, created);
     return created;
@@ -340,14 +344,26 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
     }
   }
 
+  function isParentActive(module: CatalogModule): boolean {
+    return (
+      module.parentModuleId === null || modules.get(module.parentModuleId)?.statusId === ACTIVE
+    );
+  }
+
   function listModules(
     options: { readonly statusId?: number; readonly typeId?: number } = {},
   ): CatalogModule[] {
     const statusId = options.statusId ?? ACTIVE;
-    return [...modules.values()]
-      .filter((module) => module.statusId === statusId)
-      .filter((module) => options.typeId === undefined || module.typeId === options.typeId)
-      .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+    return (
+      [...modules.values()]
+        .filter((module) => module.statusId === statusId)
+        // A submodule whose parent is not Active is not available (spec 024, contract 5.4.0): it is
+        // not among the Active ones; among the Blocked ones it is only if it is Blocked itself,
+        // which the filter on its own status already says.
+        .filter((module) => statusId !== ACTIVE || isParentActive(module))
+        .filter((module) => options.typeId === undefined || module.typeId === options.typeId)
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
+    );
   }
 
   function activePermissionsCountOf(moduleId: number): number {
@@ -403,6 +419,7 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
   }
 
   function toModuleDto(module: CatalogModule) {
+    const parent = module.parentModuleId === null ? undefined : modules.get(module.parentModuleId);
     return {
       id: module.id,
       key: module.key,
@@ -413,6 +430,8 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
       status: { id: module.statusId, name: STATUS_NAME[module.statusId] ?? '' },
       type: { id: module.typeId, name: TYPE_NAME[module.typeId] ?? '' },
       active_permissions_count: activePermissionsCountOf(module.id),
+      parent_module:
+        parent === undefined ? null : { id: parent.id, key: parent.key, name: parent.name },
     };
   }
 

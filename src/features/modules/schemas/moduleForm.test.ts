@@ -22,6 +22,7 @@ function module(overrides: Partial<SystemModule> = {}): SystemModule {
     statusId: 1,
     typeId: MODULE_TYPE.CLINIC,
     activePermissionsCount: 4,
+    parentModule: null,
     actions: new Set(['read', 'write', 'update', 'delete']),
     permissionIdByAction: new Map([
       ['read', 1],
