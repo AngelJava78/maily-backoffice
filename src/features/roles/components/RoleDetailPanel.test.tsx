@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -290,6 +290,71 @@ describe('RoleDetailPanel', () => {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       });
       expect(roles.requests.filter((request) => request.method === 'DELETE')).toHaveLength(0);
+    });
+  });
+
+  describe('"Bloquear role" (feature 025, US3)', () => {
+    it('is offered with canEdit, after "Duplicar" and before "Eliminar role" (US3-1)', async () => {
+      start();
+      renderPanel(2);
+      await screen.findByDisplayValue('Developer');
+
+      const wanted: readonly string[] = [
+        text.duplicate,
+        messages.roles.status.block,
+        messages.roles.delete.action,
+      ];
+      const names = screen
+        .getAllByRole('button')
+        .map((button) => button.textContent)
+        .filter((name) => wanted.includes(name));
+      expect(names).toEqual([
+        text.duplicate,
+        messages.roles.status.block,
+        messages.roles.delete.action,
+      ]);
+    });
+
+    it('is not offered without canEdit (US3-1, SC-007)', async () => {
+      start();
+      renderPanel(2, { canCreate: true, canEdit: false, canDelete: true });
+      await screen.findByDisplayValue('Developer');
+
+      expect(
+        screen.queryByRole('button', { name: messages.roles.status.block }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('is not available while there are unsaved changes (US3-2, FR-013)', async () => {
+      start();
+      const { user } = renderPanel(2);
+      const nameField = await screen.findByDisplayValue('Developer');
+      expect(screen.getByRole('button', { name: messages.roles.status.block })).toBeEnabled();
+
+      await user.type(nameField, ' Jr');
+
+      expect(screen.getByRole('button', { name: messages.roles.status.block })).toBeDisabled();
+    });
+
+    it('confirming blocks the role and calls onBlocked', async () => {
+      const { users } = start();
+      const onBlocked = vi.fn<() => void>();
+      const { user } = renderWithProviders(
+        <RoleDetailPanel roleId={2} capabilities={FULL_CAPABILITIES} onBlocked={onBlocked} />,
+        { auth0: { isAuthenticated: true, user: auth0User({ sub: ADMIN_SUB }) } },
+      );
+      await screen.findByDisplayValue('Developer');
+
+      await user.click(screen.getByRole('button', { name: messages.roles.status.block }));
+      const dialog = await screen.findByRole('dialog', {
+        name: messages.roles.status.confirmTitle('Developer'),
+      });
+      await user.click(within(dialog).getByRole('button', { name: messages.roles.status.confirm }));
+
+      await waitFor(() => {
+        expect(onBlocked).toHaveBeenCalledOnce();
+      });
+      expect(users.state.findRole(2)?.statusId).toBe(2);
     });
   });
 });

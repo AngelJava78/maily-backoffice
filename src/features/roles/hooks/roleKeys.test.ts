@@ -10,6 +10,8 @@ import {
 describe('roleKeys', () => {
   it('nests list, detail and permissions under a common root, each distinct', () => {
     expect(roleKeys.lists()).toEqual(['roles', 'list']);
+    expect(roleKeys.list('active')).toEqual(['roles', 'list', 'active']);
+    expect(roleKeys.list('blocked')).toEqual(['roles', 'list', 'blocked']);
     expect(roleKeys.detail(6)).toEqual(['roles', 'detail', 6]);
     expect(roleKeys.permissions(6)).toEqual(['roles', 'detail', 6, 'permissions']);
     expect(roleKeys.detail(6)).not.toEqual(roleKeys.detail(7));

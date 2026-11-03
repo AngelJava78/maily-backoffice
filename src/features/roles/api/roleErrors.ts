@@ -14,6 +14,12 @@ export type RoleErrorOutcome =
   | {
       readonly kind: 'notFound' | 'forbidden' | 'retryable' | 'unexpected';
       readonly message: string;
+    }
+  | {
+      /** Blocking/unblocking a role that already had that status (feature 025): not a failure.
+       * `useChangeRoleStatusAction` words it with the role's name; `message` is the generic one. */
+      readonly kind: 'alreadyInStatus';
+      readonly message: string;
     };
 
 /** How a failure of `rolePermissionsApi`'s associate/disassociate is told (research D6). */
@@ -56,6 +62,9 @@ export function describeRoleError(error: unknown): RoleErrorOutcome {
       return fromValidation(error.fieldErrors);
     case 'role_not_found':
       return { kind: 'notFound', message: text.notFound };
+    case 'role_already_blocked':
+    case 'role_already_active':
+      return { kind: 'alreadyInStatus', message: text.alreadyInStatus };
     default:
       break;
   }

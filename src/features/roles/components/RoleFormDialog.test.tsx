@@ -75,7 +75,7 @@ describe('RoleFormDialog', () => {
     const { user, onCreated } = renderDialog();
     await user.type(await nameField(), 'Auditor');
     await user.click(typeField());
-    await user.click(screen.getByRole('option', { name: text.tabs.sistema }));
+    await user.click(screen.getByRole('option', { name: text.filters.type.system }));
 
     await user.click(createButton());
 
@@ -91,7 +91,7 @@ describe('RoleFormDialog', () => {
     const { user, onCreated } = renderDialog();
     await user.type(await nameField(), 'Auditor');
     await user.click(typeField());
-    await user.click(screen.getByRole('option', { name: text.tabs.sistema }));
+    await user.click(screen.getByRole('option', { name: text.filters.type.system }));
     await user.click(screen.getByLabelText(text.form.copyFrom));
     await user.click(await screen.findByRole('option', { name: 'Administrator' }));
 
@@ -111,13 +111,13 @@ describe('RoleFormDialog', () => {
     start();
     const { user } = renderDialog();
     await user.click(typeField());
-    await user.click(screen.getByRole('option', { name: text.tabs.sistema }));
+    await user.click(screen.getByRole('option', { name: text.filters.type.system }));
     await user.click(screen.getByLabelText(text.form.copyFrom));
     await user.click(await screen.findByRole('option', { name: 'Administrator' }));
     expect(screen.getByLabelText(text.form.copyFrom)).toHaveValue('Administrator');
 
     await user.click(typeField());
-    await user.click(screen.getByRole('option', { name: text.tabs.clinica }));
+    await user.click(screen.getByRole('option', { name: text.filters.type.clinic }));
 
     expect(screen.getByLabelText(text.form.copyFrom)).toHaveValue('');
   });
@@ -127,7 +127,7 @@ describe('RoleFormDialog', () => {
     const { user, onCreated } = renderDialog();
     await user.type(await nameField(), 'Administrator');
     await user.click(typeField());
-    await user.click(screen.getByRole('option', { name: text.tabs.sistema }));
+    await user.click(screen.getByRole('option', { name: text.filters.type.system }));
 
     await user.click(createButton());
 
@@ -152,7 +152,7 @@ describe('RoleFormDialog', () => {
     const { user } = renderDialog();
     await user.type(await nameField(), 'Auditor');
     await user.click(typeField());
-    await user.click(screen.getByRole('option', { name: text.tabs.sistema }));
+    await user.click(screen.getByRole('option', { name: text.filters.type.system }));
 
     roles.defer();
     await user.click(createButton());

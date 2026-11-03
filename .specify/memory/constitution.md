@@ -207,8 +207,8 @@ autorización vive en las APIs y los tokens nunca se persisten.
 - Los recursos administrados DEBEN seguir el mismo patrón para Listar, Mostrar, Crear, Modificar y
   Eliminar: listado paginado, detalle, formulario compartido para crear y editar, y eliminación con
   diálogo de confirmación. El recurso de Roles sigue este patrón con una variante de presentación:
-  lista maestro-detalle en una sola pantalla, con pestañas por tipo (Clínica/Sistema), en vez de
-  listado y detalle en rutas separadas; esta variante es parte normal del patrón para ese recurso y
+  lista maestro-detalle en una sola pantalla, filtrada por tipo y estatus, en vez de listado y
+  detalle en rutas separadas; esta variante es parte normal del patrón para ese recurso y
   no requiere Complexity Tracking.
 - Las acciones destructivas o de alto impacto (eliminar cualquier recurso, cambiar el role de
   sistema de un usuario, asignar o cambiar el owner de una clínica) DEBEN pedir confirmación
@@ -362,4 +362,4 @@ probar comportamiento y no implementación las mantiene útiles ante cambios de 
   trimestre o tras cada release mayor.
 - La guía operativa de desarrollo vive en `README.md` y en `specs/<feature>/quickstart.md`.
 
-**Version**: 1.7.0 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-10-24
+**Version**: 1.7.1 | **Ratified**: 2026-10-17 | **Last Amended**: 2026-11-02

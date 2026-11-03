@@ -559,6 +559,72 @@ describe('the catalog of roles', () => {
   });
 });
 
+describe('the roles of a status and their changes (feature 025)', () => {
+  function withRoles() {
+    return build({
+      users: [directoryUser({ id: uuidOf(1) })],
+      roles: [
+        directoryRole({ id: 6, name: 'Doctor', permissions: ['patients:read'] }),
+        directoryRole({ id: 1, name: 'Administrator' }),
+        directoryRole({ id: 7, name: 'Support', statusId: BLOCKED }),
+        directoryRole({ id: 8, name: 'Billing', statusId: DELETED }),
+      ],
+      associations: [{ userId: uuidOf(1), roleId: 6 }],
+    });
+  }
+
+  it('lists the roles of one status, sorted by name', () => {
+    const model = withRoles();
+
+    expect(model.listRolesWithStatus(ACTIVE).map((role) => role.name)).toEqual([
+      'Administrator',
+      'Doctor',
+    ]);
+    expect(model.listRolesWithStatus(BLOCKED).map((role) => role.name)).toEqual(['Support']);
+  });
+
+  it('blocks an active role, keeping its data, permissions and assignments', () => {
+    const model = withRoles();
+
+    const blocked = model.blockRole(6);
+
+    expect(blocked).toMatchObject({ id: 6, name: 'Doctor', statusId: BLOCKED });
+    expect(model.findRole(6)?.permissions).toEqual(['patients:read']);
+    expect(model.rolesOf(uuidOf(1)).map((role) => role.id)).toEqual([6]);
+  });
+
+  it('unblocks a blocked role, back as it was', () => {
+    const model = withRoles();
+
+    expect(model.unblockRole(7)).toMatchObject({ id: 7, name: 'Support', statusId: ACTIVE });
+  });
+
+  it('refuses a role already in the status asked for with a 409', () => {
+    const model = withRoles();
+
+    expect(failureOf(() => model.blockRole(7))).toMatchObject({
+      status: 409,
+      code: 'role_already_blocked',
+    });
+    expect(failureOf(() => model.unblockRole(6))).toMatchObject({
+      status: 409,
+      code: 'role_already_active',
+    });
+  });
+
+  it('refuses a role that does not exist or is deleted with a 404', () => {
+    const model = withRoles();
+
+    for (const action of [
+      () => model.blockRole(8),
+      () => model.unblockRole(8),
+      () => model.blockRole(99),
+    ]) {
+      expect(failureOf(action)).toMatchObject({ status: 404, code: 'role_not_found' });
+    }
+  });
+});
+
 describe('createRole (feature 014)', () => {
   it('stores an active role with the name trimmed and no permissions', () => {
     const role = build().createRole({

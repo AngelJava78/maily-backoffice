@@ -1,4 +1,4 @@
-import { configure, screen, waitFor } from '@testing-library/react';
+import { configure, screen, waitFor, within } from '@testing-library/react';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { messages } from '@/shared/messages/es';
@@ -32,7 +32,8 @@ const newRoleButton = () => screen.findByRole('button', { name: text.newRole });
 const createButton = () => screen.getByRole('button', { name: text.form.create });
 
 async function pickType(user: ReturnType<typeof open>['user'], label: string) {
-  await user.click(screen.getByLabelText(text.detail.fields.type));
+  // Within the dialog: the Tipo filter of the page (feature 025) has the same accessible name.
+  await user.click(within(screen.getByRole('dialog')).getByLabelText(text.detail.fields.type));
   await user.click(screen.getByRole('option', { name: label }));
 }
 
@@ -43,7 +44,7 @@ describe('Roles y permisos: create a role (feature 014, user story 2)', { timeou
 
     await user.click(await newRoleButton());
     await user.type(await nameField(), 'Soporte Nivel 2');
-    await pickType(user, text.tabs.sistema);
+    await pickType(user, text.filters.type.system);
     await user.click(createButton());
 
     await waitFor(() => {
@@ -51,7 +52,7 @@ describe('Roles y permisos: create a role (feature 014, user story 2)', { timeou
     });
     // Selected right after creating (T077): its own detail is already on screen.
     expect(await screen.findByDisplayValue('Soporte Nivel 2')).toBeInTheDocument();
-    expect(screen.getByText(text.detail.permissionsCount(0, 16))).toBeInTheDocument();
+    expect(await screen.findByText(text.detail.permissionsCount(0, 16))).toBeInTheDocument();
   });
 
   it('US2-2: creates a role copying the permissions of another of the same type', async () => {
@@ -60,7 +61,7 @@ describe('Roles y permisos: create a role (feature 014, user story 2)', { timeou
 
     await user.click(await newRoleButton());
     await user.type(await nameField(), 'Soporte Nivel 2');
-    await pickType(user, text.tabs.sistema);
+    await pickType(user, text.filters.type.system);
     await user.click(screen.getByLabelText(text.form.copyFrom));
     await user.click(await screen.findByRole('option', { name: 'Administrator' }));
     await user.click(createButton());
@@ -69,7 +70,7 @@ describe('Roles y permisos: create a role (feature 014, user story 2)', { timeou
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
     expect(await screen.findByDisplayValue('Soporte Nivel 2')).toBeInTheDocument();
-    expect(screen.getByText(text.detail.permissionsCount(16, 16))).toBeInTheDocument();
+    expect(await screen.findByText(text.detail.permissionsCount(16, 16))).toBeInTheDocument();
   });
 
   it('US2-3: "Copiar permisos de" only offers roles of the chosen type', async () => {
@@ -77,7 +78,7 @@ describe('Roles y permisos: create a role (feature 014, user story 2)', { timeou
     const { user } = open();
 
     await user.click(await newRoleButton());
-    await pickType(user, text.tabs.clinica);
+    await pickType(user, text.filters.type.clinic);
     await user.click(screen.getByLabelText(text.form.copyFrom));
 
     expect(screen.getByRole('option', { name: 'Owner' })).toBeInTheDocument();
@@ -89,7 +90,7 @@ describe('Roles y permisos: create a role (feature 014, user story 2)', { timeou
     const { user } = open();
 
     await user.click(await newRoleButton());
-    await pickType(user, text.tabs.sistema);
+    await pickType(user, text.filters.type.system);
     await user.click(createButton());
 
     expect(await screen.findByText(messages.roles.validation.nameRequired)).toBeInTheDocument();
@@ -102,7 +103,7 @@ describe('Roles y permisos: create a role (feature 014, user story 2)', { timeou
 
     await user.click(await newRoleButton());
     await user.type(await nameField(), 'Owner');
-    await pickType(user, text.tabs.sistema);
+    await pickType(user, text.filters.type.system);
     await user.click(createButton());
 
     expect(await screen.findByText(text.errors.nameAlreadyExists)).toBeInTheDocument();
@@ -130,7 +131,7 @@ describe('Roles y permisos: create a role (feature 014, user story 2)', { timeou
 
     await user.click(await newRoleButton());
     await user.type(await nameField(), 'Soporte Nivel 2');
-    await pickType(user, text.tabs.sistema);
+    await pickType(user, text.filters.type.system);
     await user.click(createButton());
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

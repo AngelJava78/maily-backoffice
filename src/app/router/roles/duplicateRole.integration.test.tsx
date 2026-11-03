@@ -73,5 +73,19 @@ describe(
 
       expect(users.state.findRole(1)?.permissions).toContain('users:read');
     });
+
+    it('SC-009, FR-010: with Todos, the duplicate is selected and visible, keeping Todos', async () => {
+      start();
+      const { user, router } = open('/roles?roleId=1');
+      await screen.findByDisplayValue('Administrator');
+
+      await user.click(screen.getByRole('button', { name: text.detail.duplicate }));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(text.detail.fields.name)).toHaveValue('Administrator (copia)');
+      });
+      expect(router.state.location.search).toBe('?roleId=10');
+      expect(await screen.findByText('Administrator (copia)')).toBeInTheDocument();
+    });
   },
 );

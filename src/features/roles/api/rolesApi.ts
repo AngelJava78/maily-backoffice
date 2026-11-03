@@ -13,9 +13,20 @@ interface Cancellable {
 
 const detailPath = (roleId: number): string => `${ROLES_PATH}/${roleId}`;
 
-/** Every active role, sorted by name, without pagination (`roles:read`). */
-export function listRoles(client: HttpClient, { signal }: Cancellable = {}): Promise<Role[]> {
-  return client.get(ROLES_PATH, { schema: rolesSchema, signal });
+/** Status id of a blocked role (contracts/roles-status-service.md); 1 is Activo, the default. */
+const BLOCKED_STATUS_ID = 2;
+
+/**
+ * Every role of a status, of both types, sorted by name, without pagination (`roles:read`). The
+ * active ones are asked for without `status_id`: the same request as before feature 025, which the
+ * users section also makes.
+ */
+export function listRoles(
+  client: HttpClient,
+  { statusId, signal }: Cancellable & { readonly statusId?: 1 | 2 } = {},
+): Promise<Role[]> {
+  const query = statusId === BLOCKED_STATUS_ID ? { status_id: BLOCKED_STATUS_ID } : undefined;
+  return client.get(ROLES_PATH, { schema: rolesSchema, query, signal });
 }
 
 /** Creates a role; its type is fixed from here on (`roles:write`). */
@@ -51,6 +62,37 @@ export function updateRole(
     path: detailPath(roleId),
     method: 'PATCH',
     body,
+    schema: roleSchema,
+    signal,
+  });
+}
+
+/**
+ * Blocks an active role (`roles:update`, feature 025): it keeps its data, its name and its
+ * assignments, which stop having any effect. 409 `role_already_blocked` if it already was.
+ */
+export function blockRole(
+  client: HttpClient,
+  roleId: number,
+  { signal }: Cancellable = {},
+): Promise<Role> {
+  return client.request({
+    path: `${detailPath(roleId)}/block`,
+    method: 'POST',
+    schema: roleSchema,
+    signal,
+  });
+}
+
+/** Unblocks a blocked role, as it was (`roles:update`). 409 `role_already_active` if it already was. */
+export function unblockRole(
+  client: HttpClient,
+  roleId: number,
+  { signal }: Cancellable = {},
+): Promise<Role> {
+  return client.request({
+    path: `${detailPath(roleId)}/unblock`,
+    method: 'POST',
     schema: roleSchema,
     signal,
   });

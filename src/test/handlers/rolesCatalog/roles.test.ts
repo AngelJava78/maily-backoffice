@@ -20,6 +20,8 @@ const patch = (roleId: number, body: unknown, sub = ADMIN) =>
   callService(`/api/v1/roles/${roleId}`, { method: 'PATCH', body, sub });
 const remove = (roleId: number, sub = ADMIN) =>
   callService(`/api/v1/roles/${roleId}`, { method: 'DELETE', sub });
+const changeStatus = (roleId: number, action: 'block' | 'unblock', sub = ADMIN) =>
+  callService(`/api/v1/roles/${roleId}/${action}`, { method: 'POST', sub });
 
 // `Array.isArray` narrows to `any[]`, which would make every element `any` from here on; this
 // predicate's declared type is what the compiler trusts instead, so each entry stays `unknown`.
@@ -207,5 +209,75 @@ describe('DELETE /api/v1/roles/:roleId', () => {
 
     expect(answer.status).toBe(404);
     expect(answer.body).toMatchObject({ code: 'role_not_found' });
+  });
+});
+
+describe('POST /api/v1/roles/:roleId/block and /unblock (feature 025)', () => {
+  it('blocks an active role: it leaves the active list and appears in the blocked one', async () => {
+    start();
+
+    const answer = await changeStatus(7, 'block');
+
+    expect(answer.status).toBe(200);
+    expect(answer.body).toMatchObject({ id: 7, status: { id: 2, name: 'Bloqueado' } });
+    expect(idsOf((await callService('/api/v1/roles', { sub: ADMIN })).body)).not.toContain(7);
+    expect(idsOf((await callService('/api/v1/roles?status_id=2', { sub: ADMIN })).body)).toEqual([
+      7,
+    ]);
+  });
+
+  it('unblocks it as it was, with the same permissions', async () => {
+    const { users } = start();
+    users.grant('Doctor', 'roles:read');
+    await changeStatus(7, 'block');
+
+    const answer = await changeStatus(7, 'unblock');
+
+    expect(answer.status).toBe(200);
+    expect(answer.body).toMatchObject({ id: 7, name: 'Doctor', status: { id: 1, name: 'Activo' } });
+    expect(users.state.findRole(7)?.permissions).toEqual(['roles:read']);
+  });
+
+  it('answers 409 when the role already has the status asked for', async () => {
+    start();
+    await changeStatus(7, 'block');
+
+    const again = await changeStatus(7, 'block');
+    const active = await changeStatus(6, 'unblock');
+
+    expect(again).toMatchObject({ status: 409, body: { code: 'role_already_blocked' } });
+    expect(active).toMatchObject({ status: 409, body: { code: 'role_already_active' } });
+  });
+
+  it('answers 404 for a role that does not exist or is deleted', async () => {
+    start();
+    await remove(7);
+
+    expect(await changeStatus(7, 'block')).toMatchObject({
+      status: 404,
+      body: { code: 'role_not_found' },
+    });
+    expect(await changeStatus(99, 'unblock')).toMatchObject({
+      status: 404,
+      body: { code: 'role_not_found' },
+    });
+  });
+
+  it('a blocked role cannot be read, changed or deleted (404), as in the service', async () => {
+    start();
+    await changeStatus(7, 'block');
+
+    expect((await callService('/api/v1/roles/7/permissions', { sub: ADMIN })).status).toBe(404);
+    expect((await patch(7, { name: 'Médico' })).status).toBe(404);
+    expect((await remove(7)).status).toBe(404);
+  });
+
+  it('asks for roles:update', async () => {
+    const { users } = start();
+    users.revoke('Administrator', 'roles:update');
+
+    const answer = await changeStatus(7, 'block');
+
+    expect(answer).toMatchObject({ status: 403, body: { code: 'permission_denied' } });
   });
 });

@@ -317,6 +317,22 @@ export function createDirectoryModel(initial: DirectoryInitial) {
     );
   }
 
+  /** Feature 025: moves a role between Activo and Bloqueado, with the refusals of the service. */
+  function changeRoleStatus(id: number, from: number, to: number): DirectoryRole {
+    const role = findRole(id);
+    if (role?.statusId === to) {
+      throw to === BLOCKED
+        ? new DirectoryError(409, 'role_already_blocked', 'El role ya está bloqueado.')
+        : new DirectoryError(409, 'role_already_active', 'El role ya está activo.');
+    }
+    if (role?.statusId !== from) {
+      throw roleNotFound();
+    }
+    const changed: DirectoryRole = { ...role, statusId: to };
+    replaceRole(changed);
+    return changed;
+  }
+
   function getActiveRole(id: number): DirectoryRole {
     const role = findRole(id);
     if (role?.statusId !== ACTIVE) {
@@ -386,6 +402,14 @@ export function createDirectoryModel(initial: DirectoryInitial) {
     listActiveRoles(): RoleRecordDto[] {
       return roles
         .filter((role) => role.statusId === ACTIVE)
+        .sort(byRoleName)
+        .map(toRoleRecordDto);
+    },
+
+    /** Feature 025: `GET /roles?status_id=`, the roles of one status (1 or 2), sorted by name. */
+    listRolesWithStatus(statusId: number): RoleRecordDto[] {
+      return roles
+        .filter((role) => role.statusId === statusId)
         .sort(byRoleName)
         .map(toRoleRecordDto);
     },
@@ -527,6 +551,20 @@ export function createDirectoryModel(initial: DirectoryInitial) {
     deleteRole(id: number): void {
       const role = getActiveRole(id);
       replaceRole({ ...role, statusId: DELETED });
+    },
+
+    /**
+     * Feature 025 (contracts/roles-status-service.md): an active role becomes blocked, keeping its
+     * data, its name, its permissions and its assignments. A role that does not exist, is deleted
+     * or has another status is "not found"; one already blocked is a 409.
+     */
+    blockRole(id: number): DirectoryRole {
+      return changeRoleStatus(id, ACTIVE, BLOCKED);
+    },
+
+    /** Feature 025: a blocked role goes back to active, exactly as it was; 409 if already active. */
+    unblockRole(id: number): DirectoryRole {
+      return changeRoleStatus(id, BLOCKED, ACTIVE);
     },
 
     // --- Helpers to prepare the data of a test, which apply no rule ---

@@ -58,10 +58,7 @@ export function useCreateRole(): UseMutationResult<CreateRoleResult, Error, Crea
       return { role, failedPermissionIds: realAssociationFailureIds(permissionIds, outcomes) };
     },
     onSettled: () => {
-      return atMost(
-        REFRESH_WAIT_MS,
-        queryClient.invalidateQueries({ queryKey: roleKeys.lists(), exact: true }),
-      );
+      return atMost(REFRESH_WAIT_MS, queryClient.invalidateQueries({ queryKey: roleKeys.lists() }));
     },
   });
 }

@@ -1,5 +1,6 @@
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
+import type { ReactNode } from 'react';
 
 import { messages } from '@/shared/messages/es';
 
@@ -15,10 +16,12 @@ interface RoleDetailActionsProps {
   readonly onDiscard: () => void;
   readonly onDuplicate: () => void;
   readonly onDelete: () => void;
+  /** More actions, before "Eliminar role" (feature 025: "Bloquear role"). */
+  readonly children?: ReactNode;
 }
 
-/** "Guardar cambios"/"Descartar cambios"/"Duplicar"/"Eliminar role", each gated by its own
- * capability (research: "Nuevo role" and "Duplicar" both need `canCreate`). */
+/** "Guardar cambios"/"Descartar cambios"/"Duplicar"/(`children`)/"Eliminar role", each gated by its
+ * own capability (research: "Nuevo role" and "Duplicar" both need `canCreate`). */
 export function RoleDetailActions({
   capabilities,
   isDirty,
@@ -27,6 +30,7 @@ export function RoleDetailActions({
   onDiscard,
   onDuplicate,
   onDelete,
+  children,
 }: RoleDetailActionsProps) {
   return (
     <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
@@ -46,6 +50,7 @@ export function RoleDetailActions({
           {text.duplicate}
         </Button>
       )}
+      {children}
       {capabilities.canDelete && (
         <Button color="error" disabled={savePending} onClick={onDelete}>
           {messages.roles.delete.action}
