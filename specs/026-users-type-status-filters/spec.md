@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-02
 
-**Status**: Draft (en espera de la API de usuarios 5.5.0, spec 018 de mailySoft-usuarios, antes de planear)
+**Status**: Draft (la API de usuarios 5.5.0, spec 018 de mailySoft-usuarios, ya está implementada desde el 2026-11-03)
 
 **Input**: User description: "Agrega la spec 026 para los usuarios. Con botones «Toggle Button» como los de la pantalla de Módulos. Tipo: Todos | Sistema | Clínica. Estatus: Activos | Bloqueados." Con el catálogo de estatus de usuarios: 1 Activo, 2 Bloqueado, 3 Eliminado.
 
@@ -16,7 +16,7 @@ Las pantallas de Módulos y de Roles (feature 025) filtran con dos grupos de bot
 
 Un usuario tiene su propio **estatus** (Activo, Bloqueado o Eliminado), pero no tiene un «tipo» propio: lo tienen sus **roles** (Sistema o Clínica), y cada rol tiene a su vez su propio estatus. Por eso el tipo de un usuario es el de sus **roles Activos**. Al asignar roles no se permite combinar los dos tipos, aunque solo se comparan los roles Activos, así que una persona puede acabar con roles Activos de ambos tipos (por ejemplo, al desbloquear un rol).
 
-Qué hace hoy la API de usuarios, comprobado en su código el 2026-11-02: la lista de usuarios admite solo la página y su tamaño, y devuelve únicamente a los usuarios **activos**; no permite pedir a los bloqueados ni filtrar por tipo, y los usuarios que devuelve no traen su tipo ni sus roles (los roles se piden usuario por usuario). La ampliación que lo resuelve ya está especificada y planeada en la API de usuarios (su spec 018, versión 5.5.0), pero el 2026-11-03 aún no está implementada. **Esta feature se planea cuando esa versión de la API esté implementada** (véase Clarifications y Assumptions).
+Qué hace hoy la API de usuarios, comprobado en su código el 2026-11-02: la lista de usuarios admite solo la página y su tamaño, y devuelve únicamente a los usuarios **activos**; no permite pedir a los bloqueados ni filtrar por tipo, y los usuarios que devuelve no traen su tipo ni sus roles (los roles se piden usuario por usuario). La ampliación que lo resuelve es la versión 5.5.0 de la API de usuarios (su spec 018), **implementada el 2026-11-03**: la lista ya puede pedir a los activos o a los bloqueados, filtrar por tipo y traer el tipo de cada usuario (véase Clarifications y Assumptions).
 
 ## Clarifications
 
@@ -165,7 +165,7 @@ Cualquier persona, sin importar cómo interactúe con la pantalla, puede cambiar
 ## Assumptions
 
 - **Tipo de un usuario** es el tipo de sus roles Activos (Sistema o Clínica), porque un usuario no tiene tipo propio; confirmado por el usuario el 2026-11-03 (véase Clarifications).
-- **Esta feature depende de la versión 5.5.0 de la API de usuarios** (spec 018 de mailySoft-usuarios, «Filtros de Estatus y Tipo en la Lista de Usuarios»), que añade a la lista de usuarios: (1) el filtro de estatus, Activos (por omisión) o Bloqueados, con su total y su paginación; (2) el filtro por el tipo de los roles Activos del usuario; y (3) el tipo de cada usuario en la propia lista, también de los bloqueados. Sin los parámetros nuevos responde como hoy, así que es compatible con el Backoffice actual. El 2026-11-03 esa spec tiene plan y tareas pero no está implementada (la API sigue en 5.4.0). Sin ella no hay forma razonable de hacerlo en el Backoffice: los bloqueados no se pueden listar y el tipo obligaría a pedir los roles usuario por usuario en cada página (y la API no da los roles de un usuario bloqueado). Por decisión del usuario, esta feature se planea cuando la API 5.5.0 esté implementada; entonces el plan toma como contrato el de la API ya construida.
+- **Esta feature depende de la versión 5.5.0 de la API de usuarios** (spec 018 de mailySoft-usuarios, «Filtros de Estatus y Tipo en la Lista de Usuarios»), que añade a la lista de usuarios: (1) el filtro de estatus, Activos (por omisión) o Bloqueados, con su total y su paginación; (2) el filtro por el tipo de los roles Activos del usuario; y (3) el tipo de cada usuario en la propia lista, también de los bloqueados. Sin los parámetros nuevos responde como hoy, así que es compatible con el Backoffice actual. Sin ella no habría forma razonable de hacerlo en el Backoffice: los bloqueados no se podrían listar y el tipo obligaría a pedir los roles usuario por usuario en cada página (y la API no da los roles de un usuario bloqueado). Por decisión del usuario, esta feature esperó a que la API 5.5.0 estuviera implementada, lo que ocurrió el 2026-11-03; el plan toma como contrato el de la API ya construida. Para usar la feature, el entorno debe tener desplegada la API 5.5.0 o posterior.
 - Los valores iniciales «Todos» y «Activos» son los de Módulos y Roles, para que las tres pantallas se comporten igual.
 - La tabla sigue paginada con el servidor (10, 25 o 50 por página, 10 por omisión); no se trae la lista completa para filtrar en el navegador.
 - El filtro de Estatus solo ofrece Activos y Bloqueados. Los usuarios eliminados nunca se muestran, como en Módulos y en Roles, y se llega a ellos por el buscador de correo, como hoy.
