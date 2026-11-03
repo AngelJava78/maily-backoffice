@@ -17,7 +17,7 @@ interface BlockedRoleDetailProps {
   readonly role: Role;
   /** "Desbloquear role" is offered (`roles:update`, research D6). */
   readonly canUnblock: boolean;
-  /** The role was unblocked (or already was active): the caller closes this detail. */
+  /** The role was unblocked (or already was active): the caller leaves this detail. */
   readonly onUnblocked: () => void;
 }
 
@@ -25,7 +25,8 @@ interface BlockedRoleDetailProps {
  * The detail of a blocked role (FR-012, FR-014; research D5): its data, that it is blocked, and why
  * its permissions are not shown — the service answers "not found" for them, for changing it and
  * for deleting it. It asks the service for nothing. "Desbloquear role" acts at once, without a
- * confirmation, since it gives the role back exactly as it was.
+ * confirmation, since it gives the role back exactly as it was. The name of the role is the title
+ * of the screen that shows this (feature 027), so there is no heading of it here.
  */
 export function BlockedRoleDetail({ role, canUnblock, onUnblocked }: BlockedRoleDetailProps) {
   const unblock = useChangeRoleStatusAction(role, 'unblock', onUnblocked);
@@ -33,9 +34,6 @@ export function BlockedRoleDetail({ role, canUnblock, onUnblocked }: BlockedRole
   return (
     <Paper variant="outlined" sx={{ p: 3 }}>
       <Stack spacing={2}>
-        <Typography variant="h6" component="h2" sx={{ overflowWrap: 'anywhere' }}>
-          {role.name}
-        </Typography>
         {role.description !== null && role.description !== '' && (
           <Typography sx={{ overflowWrap: 'anywhere' }}>{role.description}</Typography>
         )}

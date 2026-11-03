@@ -12,6 +12,7 @@ import { healthRoute } from './health/healthRoutes';
 import { HomeRoute } from './HomeRoute';
 import { ModulesRoute } from './modules/ModulesRoute';
 import { ProtectedRoute } from './ProtectedRoute';
+import { RoleDetailRoute } from './roles/RoleDetailRoute';
 import { RolesRoute } from './roles/RolesRoute';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
 import { SubscriptionCreateRoute } from './subscriptions/SubscriptionCreateRoute';
@@ -114,10 +115,11 @@ export const appRoutes: RouteObject[] = [
                   },
                 ],
               },
-              // Roles y permisos (feature 014): seeing it needs `roles:read`; creating, editing and
-              // deleting a role ask for `roles:write`/`roles:update`/`roles:delete` from the matrix
-              // itself (contracts/app-routes.md). A single route: the tab and the selected role live
-              // in the URL's search params (research D5), not in separate paths.
+              // Roles y permisos (features 014 and 027): seeing it needs `roles:read`; creating,
+              // editing and deleting a role ask for `roles:write`/`roles:update`/`roles:delete` from
+              // the screens themselves (contracts/app-routes.md). The table is the index; each role
+              // has its own screen, `:roleId`, which the table links to. The filters, the page and
+              // its size live in the URL's search params of the table (research D3).
               {
                 path: '/roles',
                 element: (
@@ -131,6 +133,12 @@ export const appRoutes: RouteObject[] = [
                     index: true,
                     Component: RolesRoute,
                     handle: { titleKey: 'roles' },
+                    ErrorBoundary: RouteErrorBoundary,
+                  },
+                  {
+                    path: ':roleId',
+                    Component: RoleDetailRoute,
+                    handle: { titleKey: 'roleDetail', roleIdParam: 'roleId' },
                     ErrorBoundary: RouteErrorBoundary,
                   },
                 ],

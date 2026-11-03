@@ -141,6 +141,31 @@ for (const size of SIZES) {
       await expectHeaderShortcuts(page);
     });
 
+    test('the roles table and the detail of a role (A1) reflow, with the shortcuts in the header (feature 027, quickstart V26)', async ({
+      page,
+    }) => {
+      test.skip(!hasAccounts('A1'), 'Needs E2E_AUTH0_USER_A1 and E2E_AUTH0_PASSWORD_A1');
+      await page.goto('/roles');
+      await signIn(page, account('A1'));
+
+      const text = messages.roles;
+      // The table scrolls inside its own box: the page itself does not.
+      await expect(page.getByRole('heading', { level: 1, name: text.title })).toBeVisible();
+      // The Tipo and Estatus groups reflow over several lines, as in users (FR-023, US5-5).
+      await expect(page.getByRole('group', { name: text.filters.typeLabel })).toBeVisible();
+      await expect(page.getByRole('group', { name: text.filters.statusLabel })).toBeVisible();
+      await expect(page.getByRole('grid', { name: text.list.gridLabel })).toBeVisible();
+      await expectNoHorizontalScroll(page);
+      await expectHeaderShortcuts(page);
+
+      await page.getByRole('grid', { name: text.list.gridLabel }).getByRole('link').first().click();
+      // The detail is a screen of its own: the way back, the name and the permissions fit the window.
+      await expect(page.getByRole('link', { name: text.detail.backToList })).toBeVisible();
+      await expect(page.getByLabel(text.detail.fields.name)).toBeVisible();
+      await expectNoHorizontalScroll(page);
+      await expectHeaderShortcuts(page);
+    });
+
     test('the subscriptions list, a detail with its menu and dialog, and both forms (A1) reflow (quickstart V25)', async ({
       page,
     }) => {

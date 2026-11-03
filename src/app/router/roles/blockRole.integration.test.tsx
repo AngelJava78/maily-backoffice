@@ -23,8 +23,16 @@ function start() {
   return { users, roles };
 }
 
-function open(url = '/roles?type=sistema&roleId=5') {
+function open(url = '/roles?type=sistema') {
   return renderApp({ url, sub: ADMIN_SUB, signedIn: true });
+}
+
+/** Enters by the table and opens Billing (role 5) by its name, so that its way back travels. */
+async function openBilling(url = '/roles?type=sistema') {
+  const app = open(url);
+  await app.user.click(await screen.findByRole('link', { name: 'Billing' }));
+  await screen.findByDisplayValue('Billing');
+  return app;
 }
 
 const filterButton = (group: string, name: string) =>
@@ -37,58 +45,64 @@ async function confirmBlock(user: ReturnType<typeof open>['user'], roleName: str
 }
 
 describe(
-  'Roles y permisos: block and unblock a role (feature 025, user story 3)',
+  'Roles y permisos: block and unblock a role (features 025 and 027, user story 3)',
   { timeout: 30_000 },
   () => {
-    it('US3-3 to US3-8, SC-005, SC-006: blocking moves the role to Bloqueados and unblocking brings it back as it was', async () => {
+    it('US3-3 to US3-8, SC-005, SC-006, SC-008: blocking takes the role back to the table, out of Activos, and unblocking brings it back as it was', async () => {
       const { users } = start();
       users.grant('Billing', 'users:read');
       users.grant('Billing', 'roles:read');
-      const { user, router } = open();
-      await screen.findByDisplayValue('Billing');
+      const { user, router } = await openBilling();
 
       await confirmBlock(user, 'Billing');
 
       expect(await screen.findByText(text.status.blocked('Billing'))).toBeInTheDocument();
-      // The notice comes first; the detail closes with the navigation that follows it.
-      expect(await screen.findByText(text.detail.emptySelection)).toBeInTheDocument();
+      // The table it came from takes the place of the detail, without the role, and the title of
+      // the screen takes the focus (FR-016).
+      await waitFor(() => {
+        expect(router.state.location.pathname).toBe('/roles');
+      });
       expect(router.state.location.search).toBe('?type=sistema');
-      expect(screen.queryByText('Billing')).not.toBeInTheDocument();
+      expect(await screen.findByRole('link', { name: 'Developer' })).toBeVisible();
+      expect(screen.queryByRole('link', { name: 'Billing' })).not.toBeInTheDocument();
       await waitFor(() => {
         expect(screen.getByRole('heading', { name: text.title, level: 1 })).toHaveFocus();
       });
 
       await user.click(filterButton(text.filters.statusLabel, text.filters.status.blocked));
-      await user.click(await screen.findByText('Billing'));
+      await user.click(await screen.findByRole('link', { name: 'Billing' }));
       await user.click(await screen.findByRole('button', { name: text.status.unblock }));
 
       expect(await screen.findByText(text.status.unblocked('Billing'))).toBeInTheDocument();
       await waitFor(() => {
         expect(router.state.location.search).toBe('?type=sistema&status=bloqueados');
       });
-      expect(await screen.findByText(text.list.emptyBlocked)).toBeInTheDocument();
+      // In the box of the table: the same message is also written in the status region.
+      const grid = await screen.findByRole('grid', { name: text.list.gridLabel });
+      expect(await within(grid).findByText(text.list.emptyBlocked)).toBeInTheDocument();
 
       await user.click(filterButton(text.filters.statusLabel, text.filters.status.active));
-      await user.click(await screen.findByText('Billing'));
+      await user.click(await screen.findByRole('link', { name: 'Billing' }));
       expect(await screen.findByDisplayValue('Billing')).toBeInTheDocument();
       expect(screen.getByText(`${text.detail.fields.type}: Sistema`)).toBeInTheDocument();
       expect(await screen.findByText(text.detail.permissionsCount(2, 16))).toBeInTheDocument();
     });
 
-    it('US3-10: a role someone else already blocked is told as information and the list is refreshed', async () => {
+    it('US3-10: a role someone else already blocked is told as information and the table is refreshed', async () => {
       const { users } = start();
-      const { user, router } = open();
-      await screen.findByDisplayValue('Billing');
+      const { user, router } = await openBilling();
       users.setRoleStatus(5, 2);
 
       await confirmBlock(user, 'Billing');
 
       expect(await screen.findByText(text.status.alreadyBlocked('Billing'))).toBeInTheDocument();
       await waitFor(() => {
-        expect(router.state.location.search).toBe('?type=sistema');
+        expect(router.state.location.pathname).toBe('/roles');
       });
+      expect(router.state.location.search).toBe('?type=sistema');
+      expect(await screen.findByRole('link', { name: 'Developer' })).toBeVisible();
       await waitFor(() => {
-        expect(screen.queryByText('Billing')).not.toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: 'Billing' })).not.toBeInTheDocument();
       });
     });
 
@@ -100,13 +114,12 @@ describe(
         status: 500,
         code: 'internal_error',
       });
-      const { user, router } = open();
-      await screen.findByDisplayValue('Billing');
+      const { user, router } = await openBilling();
 
       await confirmBlock(user, 'Billing');
 
       expect(await screen.findByText(text.errors.retryable)).toBeInTheDocument();
-      expect(router.state.location.search).toBe('?type=sistema&roleId=5');
+      expect(router.state.location.pathname).toBe('/roles/5');
       expect(users.state.findRole(5)?.statusId).toBe(1);
 
       await waitFor(() => {
@@ -118,11 +131,12 @@ describe(
       expect(users.state.findRole(5)?.statusId).toBe(2);
     });
 
-    it('US3-12, FR-017: a blocked role offers no "Eliminar role", and its explanation says to unblock it first', async () => {
+    it('US3-12, FR-017: a blocked role, opened from Bloqueados, offers no "Eliminar role", and its explanation says to unblock it first', async () => {
       const { users } = start();
       users.setRoleStatus(5, 2);
+      const { user } = open('/roles?status=bloqueados');
 
-      open('/roles?status=bloqueados&roleId=5');
+      await user.click(await screen.findByRole('link', { name: 'Billing' }));
 
       expect(await screen.findByText(text.blocked.explanation)).toBeVisible();
       expect(screen.queryByRole('button', { name: text.delete.action })).not.toBeInTheDocument();

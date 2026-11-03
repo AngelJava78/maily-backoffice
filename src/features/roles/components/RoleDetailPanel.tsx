@@ -17,7 +17,6 @@ import { useDuplicateRoleAction } from '../hooks/useDuplicateRoleAction';
 import { useEditablePermissionMatrix } from '../hooks/useEditablePermissionMatrix';
 import { useRoleDetail } from '../hooks/useRoleDetail';
 import { useRolePermissionMatrix } from '../hooks/useRolePermissionMatrix';
-import { useRolePermissionsLocation } from '../hooks/useRolePermissionsLocation';
 import { useSaveRoleDetail } from '../hooks/useSaveRoleDetail';
 import type { RoleCapabilities } from '../policy/roleCapabilities';
 import { countGranted, countTotal } from '../schemas/permissionMatrix';
@@ -32,12 +31,14 @@ const text = messages.roles.detail;
 interface RoleDetailPanelProps {
   readonly roleId: number;
   readonly capabilities: RoleCapabilities;
-  /** T068: lets the screen warn before an action (change filter/role, leave `/roles`) would discard these. */
+  /** T068: lets the screen warn before leaving this detail (any way out) would discard these. */
   readonly onDirtyChange?: (dirty: boolean) => void;
-  /** T087: "Duplicar" selects the new role; the parent decides what that means for the URL/filters. */
+  /** T087: "Duplicar" opens the new role; the parent decides what that means for the address. */
   readonly onDuplicated?: (role: Role) => void;
-  /** Feature 025: the role was blocked; the parent closes this detail and moves the focus. */
+  /** Feature 025: the role was blocked; the parent leaves this detail. */
   readonly onBlocked?: () => void;
+  /** Feature 027: the role was deleted; what that means for the screen is the parent's (research D8). */
+  readonly onDeleted?: () => void;
 }
 
 /**
@@ -54,6 +55,7 @@ export function RoleDetailPanel({
   onDirtyChange,
   onDuplicated,
   onBlocked,
+  onDeleted,
 }: RoleDetailPanelProps) {
   const detail = useRoleDetail(roleId);
   const role = detail.data?.role;
@@ -63,9 +65,8 @@ export function RoleDetailPanel({
   );
   const matrixEditor = useEditablePermissionMatrix(matrixQuery.matrix, roleId);
   const save = useSaveRoleDetail();
-  const { setRoleId } = useRolePermissionsLocation();
   const deleteAction = useDeleteRoleAction(roleId, () => {
-    setRoleId(null);
+    onDeleted?.();
   });
   // T087: the next role loaded under this id gets the focus on its name field, once (the usual
   // role switch, read by the effect below, does not touch this ref at all).

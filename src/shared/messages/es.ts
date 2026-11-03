@@ -904,14 +904,15 @@ export const messages = {
     subscriptionEdit: 'Editar suscripción',
     token: 'Token',
     roles: 'Roles y permisos',
+    roleDetail: 'Detalle del role',
     health: 'Salud de servicios',
     healthComponents: 'Componentes monitoreados',
     healthComponentCreate: 'Nuevo componente',
     healthComponentDetail: 'Detalle del componente',
     healthComponentEdit: 'Editar componente',
   },
-  // Feature 014: "Roles y permisos" — pantalla maestro-detalle (filtros de Tipo y Estatus desde la
-  // feature 025, lista y permisos por módulo y acción).
+  // Feature 014: "Roles y permisos" — la tabla de roles con los filtros de Tipo y Estatus (features
+  // 025 y 027) y, en su propia pantalla, el detalle de un role con sus permisos por módulo y acción.
   roles: {
     title: 'Roles y permisos',
     newRole: 'Nuevo role',
@@ -923,17 +924,38 @@ export const messages = {
       status: { active: 'Activos', blocked: 'Bloqueados' },
     },
     list: {
-      label: 'Lista de roles',
+      // Feature 027: the table of roles, as the one of users (columns, footer and states).
+      gridLabel: 'Roles',
+      columns: { name: 'Nombre', status: 'Estatus', type: 'Tipo', permissions: 'Permisos' },
+      status: { active: 'Activo', blocked: 'Bloqueado' },
+      noValue: '—',
+      pageStatus: (from: number, to: number, total: number) =>
+        `Mostrando ${from} a ${to} de ${total} roles.`,
+      loadError: {
+        title: 'No se pudieron cargar los roles',
+        message: 'Ocurrió un problema al consultar los roles. Puedes reintentar.',
+      },
       clinicaDescription: 'Roles de los usuarios de las clínicas.',
       sistemaDescription: 'Roles del personal del Backoffice.',
       emptyAll: 'Todavía no hay roles. Crea el primero.',
       emptyClinica: 'Todavía no hay roles de Clínica. Crea el primero.',
       emptySistema: 'Todavía no hay roles de Sistema. Crea el primero.',
       emptyBlocked: 'No hay roles bloqueados.',
-      permissionsCount: (count: number) => `${count} permisos`,
+      permissionsCount: (count: number) => (count === 1 ? '1 permiso' : `${count} permisos`),
     },
     detail: {
-      emptySelection: 'Elige un role para ver y cambiar lo que puede hacer en cada módulo.',
+      // Feature 027: the detail of a role is a screen of its own.
+      title: 'Detalle del role',
+      backToList: 'Volver al listado',
+      notFound: {
+        title: 'Este role ya no existe',
+        message:
+          'Puede que se haya eliminado o bloqueado desde otra sesión. Vuelve al listado para ver los roles que hay.',
+      },
+      loadError: {
+        title: 'No se pudo cargar el role',
+        message: 'Ocurrió un problema al consultar el role. Puedes reintentar.',
+      },
       fields: { name: 'Nombre', description: 'Descripción', type: 'Tipo' },
       nameHelper: 'Hasta 50 caracteres.',
       permissionsCount: (granted: number, total: number) => `${granted} de ${total} permisos`,

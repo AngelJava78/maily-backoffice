@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useSearchParams } from 'react-router';
 
 import {
-  locationAfterCreate,
+  locationSearch,
   parseRolePermissionsSearchParams,
   toRolePermissionsSearchParams,
   type RolePermissionsLocation,
@@ -11,24 +11,29 @@ import {
 } from '../schemas/rolePermissionsLocation';
 
 export interface RolePermissionsLocationApi {
+  /** What the address of the table asks for: both filters, the page and its size. */
   readonly location: RolePermissionsLocation;
-  /** Changes the Tipo filter, keeping Estatus; always clears the selected role (FR-007). */
+  /**
+   * The search of the address as the table writes it (`?type=sistema&page=2`, or an empty text), to
+   * hand it to the detail of a role so that it can come back to the same table (research D6).
+   */
+  readonly search: string;
+  /** Changes the Tipo filter, keeping Estatus and the page size; goes to the first page (FR-007). */
   readonly setType: (type: RolesTypeFilter) => void;
-  /** Changes the Estatus filter, keeping Tipo; always clears the selected role (FR-007). */
+  /** Changes the Estatus filter, keeping Tipo and the page size; goes to the first page (FR-007). */
   readonly setStatus: (status: RolesStatusFilter) => void;
-  /** Selects a role within the current filters, or clears the selection with `null`. */
-  readonly setRoleId: (roleId: number | null) => void;
-  /** Selects a role just created or duplicated, adjusting the filters so it is shown (FR-010). */
-  readonly selectCreated: (role: {
-    readonly id: number;
-    readonly type: { readonly id: 1 | 2 };
-  }) => void;
+  /** Goes to a page of the table, keeping the filters and the page size. `replace` adds no entry. */
+  readonly setPage: (page: number, options?: { readonly replace?: boolean }) => void;
+  /** Changes the page size, which takes the table back to the first page (FR-008). */
+  readonly setPageSize: (pageSize: number) => void;
 }
 
 /**
- * The state of `/roles` lives in the address (constitution III): both filters and which role, so
- * they are shareable, survive a reload and work with the Back button. An address with an invalid
- * value is replaced by its normal form, without adding a history entry.
+ * The state of the table of `/roles` lives in the address (constitution III): both filters, the
+ * page and its size, so they are shareable, survive a reload and work with the Back button. An
+ * address with a value that is not valid, or with an old `roleId` (which `RolesPage` redirects
+ * before it gets here), is replaced by its normal form, without adding a history entry; that is
+ * the only effect, and its subject is the address, an external system.
  */
 export function useRolePermissionsLocation(): RolePermissionsLocationApi {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -44,17 +49,24 @@ export function useRolePermissionsLocation(): RolePermissionsLocationApi {
 
   return {
     location,
+    search: locationSearch(location),
     setType: (type) => {
-      setSearchParams(toRolePermissionsSearchParams({ ...location, type, roleId: null }));
+      setSearchParams(toRolePermissionsSearchParams({ ...location, type, page: 1 }));
     },
     setStatus: (status) => {
-      setSearchParams(toRolePermissionsSearchParams({ ...location, status, roleId: null }));
+      setSearchParams(toRolePermissionsSearchParams({ ...location, status, page: 1 }));
     },
-    setRoleId: (roleId) => {
-      setSearchParams(toRolePermissionsSearchParams({ ...location, roleId }));
+    setPage: (page, options) => {
+      setSearchParams(toRolePermissionsSearchParams({ ...location, page }), {
+        replace: options?.replace === true,
+      });
     },
-    selectCreated: (role) => {
-      setSearchParams(toRolePermissionsSearchParams(locationAfterCreate(location, role)));
+    setPageSize: (nextPageSize) => {
+      // The sizes the table offers are the only ones accepted: anything else becomes the default.
+      const { pageSize } = parseRolePermissionsSearchParams(
+        new URLSearchParams({ page_size: String(nextPageSize) }),
+      );
+      setSearchParams(toRolePermissionsSearchParams({ ...location, pageSize, page: 1 }));
     },
   };
 }

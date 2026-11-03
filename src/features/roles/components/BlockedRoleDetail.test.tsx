@@ -42,12 +42,13 @@ function renderDetail({ role = DOCTOR, canUnblock = true } = {}) {
 }
 
 describe('BlockedRoleDetail', () => {
-  it('shows the name, description, type, that it is blocked and why (US2-4, FR-012)', () => {
+  it('shows the description, type, that it is blocked and why; the name is the title of the screen (US2-5, FR-012)', () => {
     start();
 
     renderDetail();
 
-    expect(screen.getByRole('heading', { name: 'Doctor', level: 2 })).toBeVisible();
+    // Feature 027: the `h1` of the screen of the detail is the name of the role, so there is no `h2` of it here.
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument();
     expect(screen.getByText('Atiende a los pacientes.')).toBeVisible();
     expect(screen.getByText(`${text.detail.fields.type}: Clínica`)).toBeVisible();
     expect(

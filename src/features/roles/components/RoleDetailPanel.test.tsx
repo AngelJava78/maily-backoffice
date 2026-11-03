@@ -197,15 +197,15 @@ describe('RoleDetailPanel', () => {
   });
 
   describe('duplicating (US4, T087)', () => {
-    /** Stands in for `RolesPage`: selects whatever role `onDuplicated` reports. */
+    /** Stands in for `RoleDetailPage`: opens whatever role `onDuplicated` reports. */
     function SelectsOnDuplicate({ initialRoleId }: { readonly initialRoleId: number }) {
-      const [roleId, setRoleId] = useState(initialRoleId);
+      const [openRoleId, setOpenRoleId] = useState(initialRoleId);
       return (
         <RoleDetailPanel
-          roleId={roleId}
+          roleId={openRoleId}
           capabilities={FULL_CAPABILITIES}
           onDuplicated={(role: Role) => {
-            setRoleId(role.id);
+            setOpenRoleId(role.id);
           }}
         />
       );
@@ -265,9 +265,13 @@ describe('RoleDetailPanel', () => {
   });
 
   describe('deleting (US3, T083)', () => {
-    it('opens the confirmation naming the role, deletes it and clears the selection (FR-015)', async () => {
-      start();
-      const { user, router } = renderPanel(5);
+    it('opens the confirmation naming the role, deletes it and tells the screen (FR-015, research D8)', async () => {
+      const { roles } = start();
+      const onDeleted = vi.fn<() => void>();
+      const { user } = renderWithProviders(
+        <RoleDetailPanel roleId={5} capabilities={FULL_CAPABILITIES} onDeleted={onDeleted} />,
+        { auth0: { isAuthenticated: true, user: auth0User({ sub: ADMIN_SUB }) } },
+      );
       await screen.findByLabelText(text.fields.name);
 
       await user.click(screen.getByRole('button', { name: messages.roles.delete.action }));
@@ -279,7 +283,8 @@ describe('RoleDetailPanel', () => {
       await waitFor(() => {
         expect(dialog).not.toBeInTheDocument();
       });
-      expect(router.state.location.search).not.toContain('roleId');
+      expect(onDeleted).toHaveBeenCalledTimes(1);
+      expect(roles.requests.filter((request) => request.method === 'DELETE')).toHaveLength(1);
     });
 
     it('closes without deleting anything when cancelled', async () => {

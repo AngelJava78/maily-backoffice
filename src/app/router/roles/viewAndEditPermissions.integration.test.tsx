@@ -40,7 +40,7 @@ const rolesLink = () =>
   within(navigation()).queryByRole('link', { name: messages.nav.sections.roles });
 
 describe(
-  'Roles y permisos: view and edit an existing role (feature 014, user story 1)',
+  'Roles y permisos: view and edit an existing role, opened from the table (features 014 and 027, user story 1)',
   { timeout: 30_000 },
   () => {
     it('US1-1: Todos is selected by default, and the Tipo filter shows each type on its own (025)', async () => {
@@ -63,12 +63,14 @@ describe(
       start();
       const { user } = open();
 
-      await user.click(await screen.findByText('Owner'));
+      await user.click(await screen.findByRole('link', { name: 'Owner' }));
 
       expect(await screen.findByLabelText(text.detail.fields.name)).toHaveValue('Owner');
       expect(screen.getByText(`${text.detail.fields.type}: Clínica`)).toBeInTheDocument();
+      // The screen opens on its own address, so the name shows before the permission list does
+      // (it needs the catalog too): wait for the counter, which only appears with the list.
       // 10 de Clínica (Pacientes/Agenda/Recordatorios) + 16 de Sistema que ya puede recibir (015).
-      expect(screen.getByText(text.detail.permissionsCount(0, 26))).toBeInTheDocument();
+      expect(await screen.findByText(text.detail.permissionsCount(0, 26))).toBeInTheDocument();
       // "Recordatorios" only has Ver and Modificar in the catalog (mockup): no Crear/Eliminar button.
       expect(screen.getByRole('button', { name: 'Ver de Recordatorios' })).toBeInTheDocument();
       expect(
@@ -80,7 +82,7 @@ describe(
     it('US1-3, US1-4: granting write/update/delete also grants read, and revoking read clears the row', async () => {
       start();
       const { user } = open();
-      await user.click(await screen.findByText('Owner'));
+      await user.click(await screen.findByRole('link', { name: 'Owner' }));
       await screen.findByLabelText(text.detail.fields.name);
 
       await user.click(screen.getByRole('button', { name: 'Modificar de Recordatorios' }));
@@ -107,7 +109,7 @@ describe(
     it('US1-5: "Todo el módulo" grants every action that module has, no more', async () => {
       start();
       const { user } = open();
-      await user.click(await screen.findByText('Owner'));
+      await user.click(await screen.findByRole('link', { name: 'Owner' }));
       await screen.findByLabelText(text.detail.fields.name);
 
       await user.click(screen.getByRole('button', { name: 'Todo el módulo de Recordatorios' }));
@@ -133,7 +135,7 @@ describe(
     it('US1-6: Guardar cambios updates the list and the counter, and it is still there after reopening', async () => {
       start();
       const { user, unmount } = open();
-      await user.click(await screen.findByText('Owner'));
+      await user.click(await screen.findByRole('link', { name: 'Owner' }));
       await screen.findByLabelText(text.detail.fields.name);
 
       // "Modificar" grants "Ver" too (FR-008): the same two permissions "Todo el módulo" would give.
@@ -148,7 +150,7 @@ describe(
 
       // A fresh load (as if the person came back later): the server, not the page, is the source.
       const { user: userAgain } = open();
-      await userAgain.click(await screen.findByText('Owner'));
+      await userAgain.click(await screen.findByRole('link', { name: 'Owner' }));
 
       await waitFor(() => {
         expect(screen.getByText(text.detail.permissionsCount(2, 26))).toBeInTheDocument();
@@ -163,7 +165,7 @@ describe(
       start();
       const { user } = open();
       await user.click(await typeFilter(text.filters.type.system));
-      await user.click(await screen.findByText('Developer'));
+      await user.click(await screen.findByRole('link', { name: 'Developer' }));
       const nameField = await screen.findByLabelText(text.detail.fields.name);
 
       await user.type(nameField, ' Jr');
@@ -182,7 +184,7 @@ describe(
       const { roles } = start();
       const { user } = open();
       await user.click(await typeFilter(text.filters.type.system));
-      await user.click(await screen.findByText('Developer'));
+      await user.click(await screen.findByRole('link', { name: 'Developer' }));
       const nameField = await screen.findByLabelText(text.detail.fields.name);
 
       // Empty: blocked client-side, nothing sent.
@@ -225,29 +227,8 @@ describe(
       expect(rolesLink()).not.toBeInTheDocument();
     });
 
-    it('FR-017: warns before leaving the section, from the main menu, with unsaved changes', async () => {
-      start();
-      const { user } = open();
-      await user.click(await screen.findByText('Owner'));
-      const nameField = await screen.findByLabelText(text.detail.fields.name);
-
-      await user.type(nameField, ' Jr');
-      await user.click(
-        within(navigation()).getByRole('link', { name: messages.nav.sections.users }),
-      );
-
-      expect(
-        await screen.findByRole('dialog', { name: text.detail.unsavedChangesTitle }),
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('heading', { name: messages.titles.users }),
-      ).not.toBeInTheDocument();
-
-      await user.click(screen.getByRole('button', { name: text.detail.unsavedChangesDiscard }));
-
-      expect(
-        await screen.findByRole('heading', { level: 1, name: messages.titles.users }),
-      ).toBeInTheDocument();
-    });
+    // «FR-017 of 014: warns before leaving the section, from the main menu, with unsaved changes» is
+    // checked in `rolesTable.integration.test.tsx` (feature 027, user story 4), where the guard of the
+    // screen of the detail is tested.
   },
 );

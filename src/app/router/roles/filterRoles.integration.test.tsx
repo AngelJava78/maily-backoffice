@@ -34,12 +34,12 @@ function open(url = '/roles') {
 const filterButton = (group: string, name: string) =>
   within(screen.getByRole('group', { name: group })).getByRole('button', { name });
 
-/** The names in the list, in order: the primary text of each item. */
+/** The names in the table, in order: the link of the column Nombre of each row (feature 027). */
 function listedNames(): string[] {
-  const list = screen.getByRole('list', { name: text.list.label });
-  return within(list)
-    .getAllByRole('listitem')
-    .map((item) => item.querySelector('.MuiListItemText-primary')?.textContent ?? '');
+  const grid = screen.getByRole('grid', { name: text.list.gridLabel });
+  return within(grid)
+    .getAllByRole('link')
+    .map((link) => link.textContent);
 }
 
 const ALL_ACTIVE = [
@@ -52,8 +52,10 @@ const ALL_ACTIVE = [
   'Receptionist',
 ];
 
+// What opening a role does (its detail, a blocked role, a reload with `/roles/{id}`) is checked in
+// `roleDetail.integration.test.tsx`, which needs the screen of the detail.
 describe(
-  'Roles y permisos: Tipo and Estatus filters (feature 025, user stories 1 and 2)',
+  'Roles y permisos: the table with the Tipo and Estatus filters (features 025 and 027, user story 1)',
   { timeout: 30_000 },
   () => {
     it.each([
@@ -86,41 +88,5 @@ describe(
         });
       },
     );
-
-    it('US2-4, FR-012: a blocked role shows its explanation, with no error and no request for its permissions', async () => {
-      const { roles } = start();
-      const { user } = open('/roles?status=bloqueados');
-
-      await user.click(await screen.findByText('Support'));
-
-      expect(await screen.findByText(text.blocked.explanation)).toBeVisible();
-      expect(screen.getByRole('heading', { name: 'Support', level: 2 })).toBeVisible();
-      expect(screen.queryByText(messages.errors.unexpected)).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('list', { name: text.detail.matrixTitle('Support') }),
-      ).not.toBeInTheDocument();
-      expect(
-        roles.requests.filter((request) => request.path === '/api/v1/roles/3/permissions'),
-      ).toEqual([]);
-    });
-
-    it('US4-1: the filters and the role survive a reload of the address', async () => {
-      start();
-      const first = open('/roles?type=clinica&status=bloqueados&roleId=8');
-      await screen.findByText(text.blocked.explanation);
-      first.unmount();
-
-      open('/roles?type=clinica&status=bloqueados&roleId=8');
-
-      expect(await screen.findByRole('heading', { name: 'Nurse', level: 2 })).toBeVisible();
-      expect(filterButton(text.filters.typeLabel, text.filters.type.clinic)).toHaveAttribute(
-        'aria-pressed',
-        'true',
-      );
-      expect(filterButton(text.filters.statusLabel, text.filters.status.blocked)).toHaveAttribute(
-        'aria-pressed',
-        'true',
-      );
-    });
   },
 );
