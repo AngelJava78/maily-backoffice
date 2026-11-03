@@ -61,12 +61,12 @@ export function ModuleNameCell({
     // One level is half as wide on a phone, so that the deepest row still fits (FR-017).
     <Stack spacing={0.5} sx={{ pl: { xs: depth * 1.5, sm: depth * 3 } }}>
       <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-        {parent !== undefined && (
-          <Box component="span" sx={visuallyHidden}>
-            {text.tree.submoduleOf(parent.name)}
-          </Box>
-        )}
         <Typography component="span" variant="body2" sx={{ fontWeight: 600 }}>
+          {parent !== undefined && (
+            <Box component="span" sx={visuallyHidden}>
+              {text.tree.submoduleOf(parent.name)}
+            </Box>
+          )}
           {module.name}
         </Typography>
         {isProtectedModule(module.key) && <Chip size="small" label={text.baseBadge} />}

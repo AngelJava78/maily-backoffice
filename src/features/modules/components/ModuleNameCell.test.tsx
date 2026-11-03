@@ -116,7 +116,8 @@ describe('ModuleNameCell', () => {
 
     const hint = screen.getByText('Submódulo de Pacientes');
     const name = screen.getByText('Recetas');
-    expect(hint.compareDocumentPosition(name) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // The hint is the first thing inside the name: it is read before it.
+    expect(name.firstElementChild).toBe(hint);
   });
 
   it('says nothing about a parent for a top-level module', () => {
