@@ -84,7 +84,41 @@ export function readPermissionId(params: PathParams): number {
   return readId(params.permissionId, 'permission_id');
 }
 
-const MODULE_CREATE_FIELDS = ['key', 'name', 'type_id', 'description', 'sort_order'] as const;
+const MODULE_CREATE_FIELDS = [
+  'key',
+  'name',
+  'type_id',
+  'description',
+  'sort_order',
+  'parent_module_id',
+] as const;
+
+/**
+ * `parent_module_id` is a positive whole number, or `null` (no parent); anything else is a 422 on
+ * that field (spec 024, contract 5.4.0). Not sending it is `undefined`.
+ */
+function readParentModuleId(value: unknown): number | null | undefined {
+  if (value === undefined || value === null) {
+    return value;
+  }
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1) {
+    throw validationError([
+      {
+        field: 'parent_module_id',
+        message: 'El módulo padre (parent_module_id) debe ser un número entero positivo.',
+      },
+    ]);
+  }
+  return value;
+}
+
+/** The `parent_module_id` of a body, only when it was sent (`null` is a value: remove the parent). */
+function withParentModuleId(
+  data: Record<string, unknown>,
+): { parent_module_id: number | null } | Record<string, never> {
+  const parentId = readParentModuleId(data.parent_module_id);
+  return parentId === undefined ? {} : { parent_module_id: parentId };
+}
 
 export function moduleInputFromBody(body: unknown): ModuleInput {
   const data = objectBody(body);
@@ -95,10 +129,11 @@ export function moduleInputFromBody(body: unknown): ModuleInput {
     type_id: typeof data.type_id === 'number' ? data.type_id : -1,
     ...(data.description === undefined ? {} : { description: readDescription(data.description) }),
     ...(typeof data.sort_order === 'number' ? { sort_order: data.sort_order } : {}),
+    ...withParentModuleId(data),
   };
 }
 
-const MODULE_UPDATE_FIELDS = ['name', 'description', 'sort_order'] as const;
+const MODULE_UPDATE_FIELDS = ['name', 'description', 'sort_order', 'parent_module_id'] as const;
 
 export function moduleChangesFromBody(body: unknown): ModuleChanges {
   const data = objectBody(body);
@@ -112,6 +147,7 @@ export function moduleChangesFromBody(body: unknown): ModuleChanges {
     ...(typeof data.name === 'string' ? { name: data.name } : {}),
     ...(data.description === undefined ? {} : { description: readDescription(data.description) }),
     ...(typeof data.sort_order === 'number' ? { sort_order: data.sort_order } : {}),
+    ...withParentModuleId(data),
   };
 }
 

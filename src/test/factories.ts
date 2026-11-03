@@ -250,6 +250,7 @@ export function moduleDto(overrides: Partial<ModuleDto> = {}): ModuleDto {
     status: { id: 1, name: 'Activo' },
     type: { id: 2, name: 'Clínica' },
     active_permissions_count: 4,
+    parent_module: null,
     ...overrides,
   };
 }

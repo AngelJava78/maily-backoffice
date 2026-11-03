@@ -4,7 +4,14 @@ import type { ModuleErrorOutcome, ModuleFormField } from '../api/moduleErrors';
 import type { ModuleFormValues } from '../schemas/moduleForm';
 
 /** The inputs a refusal can name, in the order in which they appear on screen. */
-const FORM_FIELDS: readonly ModuleFormField[] = ['type', 'key', 'name', 'description', 'sortOrder'];
+const FORM_FIELDS: readonly ModuleFormField[] = [
+  'type',
+  'key',
+  'name',
+  'description',
+  'sortOrder',
+  'parentModuleId',
+];
 
 /**
  * Puts a refusal of the API where the person sees it (same pattern as `applyRefusal` of

@@ -47,6 +47,8 @@ export interface CatalogModule {
   readonly createdAt: string;
   readonly statusId: number;
   readonly typeId: number;
+  /** The module this one is a submodule of, or `null` for a top-level module (spec 024). */
+  readonly parentModuleId: number | null;
 }
 
 /** A permission as the simulator keeps it, already resolved against its module and its action. */
@@ -66,12 +68,16 @@ export interface ModuleInput {
   readonly type_id: number;
   readonly description?: string | null;
   readonly sort_order?: number;
+  /** The parent of the new module (spec 024); without it, or `null`, it is a top-level module. */
+  readonly parent_module_id?: number | null;
 }
 
 export interface ModuleChanges {
   readonly name?: string;
   readonly description?: string | null;
   readonly sort_order?: number;
+  /** A number assigns or changes the parent, `null` removes it, and not sending it leaves it as it is. */
+  readonly parent_module_id?: number | null;
 }
 
 export interface PermissionInput {
@@ -133,12 +139,26 @@ export function permissionNotFoundError(id: number): ModuleCatalogError {
   );
 }
 
-function protectedError(key: string, verb: 'bloquear' | 'eliminar'): ModuleCatalogError {
+type ProtectedVerb = 'bloquear' | 'eliminar' | 'convertir en submódulo' | 'usar como módulo padre';
+
+function protectedError(key: string, verb: ProtectedVerb): ModuleCatalogError {
   return new ModuleCatalogError(
     409,
     'module_protected',
     `El módulo «${key}» es uno de los módulos base de administración y no se puede ${verb}.`,
   );
+}
+
+function parentNotFoundError(parentId: number): ModuleCatalogError {
+  return new ModuleCatalogError(
+    404,
+    'module_parent_not_found',
+    `No se encontró el módulo padre con el identificador ${parentId}.`,
+  );
+}
+
+function hierarchyError(code: string, message: string): ModuleCatalogError {
+  return new ModuleCatalogError(409, code, message);
 }
 
 /** An active module of Clínica, without description, whose key and name depend on its id. */
@@ -153,6 +173,7 @@ export function catalogModule(overrides: Partial<CatalogModule> = {}): CatalogMo
     createdAt: '2026-10-22T00:00:00Z',
     statusId: ACTIVE,
     typeId: MODULE_TYPE.CLINIC,
+    parentModuleId: null,
     ...overrides,
   };
 }
@@ -213,6 +234,63 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
     );
   }
 
+  function existingModule(id: number): CatalogModule | undefined {
+    const found = modules.get(id);
+    return found === undefined || found.statusId === DELETED ? undefined : found;
+  }
+
+  function hasSubmodules(moduleId: number): boolean {
+    return nonDeletedModules().some((module) => module.parentModuleId === moduleId);
+  }
+
+  /**
+   * The rules a parent must meet, in the order of the error catalog of the service (spec 017):
+   * it exists and is not deleted (Blocked is fine), it is not the module itself, neither side is
+   * a base module, it is top level, it has the same type, and the module has no submodules of its
+   * own. `selfId` is `null` while creating.
+   */
+  function checkParent(
+    parentId: number,
+    subject: { readonly key: string; readonly typeId: number },
+    selfId: number | null,
+  ): CatalogModule {
+    const parent = existingModule(parentId);
+    if (parent === undefined) {
+      throw parentNotFoundError(parentId);
+    }
+    if (parentId === selfId) {
+      throw hierarchyError(
+        'module_parent_self_reference',
+        `El módulo «${subject.key}» no puede ser su propio módulo padre.`,
+      );
+    }
+    if (selfId !== null && PROTECTED_MODULE_KEYS.includes(subject.key)) {
+      throw protectedError(subject.key, 'convertir en submódulo');
+    }
+    if (PROTECTED_MODULE_KEYS.includes(parent.key)) {
+      throw protectedError(parent.key, 'usar como módulo padre');
+    }
+    if (parent.parentModuleId !== null) {
+      throw hierarchyError(
+        'module_parent_is_submodule',
+        `El módulo «${parent.key}» ya es un submódulo y no puede ser módulo padre: la jerarquía tiene un solo nivel.`,
+      );
+    }
+    if (parent.typeId !== subject.typeId) {
+      throw hierarchyError(
+        'module_parent_type_mismatch',
+        `El módulo «${subject.key}» no puede tener como padre a «${parent.key}»: los dos deben ser del mismo tipo (Sistema o Clínica).`,
+      );
+    }
+    if (selfId !== null && hasSubmodules(selfId)) {
+      throw hierarchyError(
+        'module_has_submodules',
+        `El módulo «${subject.key}» tiene submódulos y no puede convertirse en submódulo: la jerarquía tiene un solo nivel.`,
+      );
+    }
+    return parent;
+  }
+
   function createModule(input: ModuleInput): CatalogModule {
     const fieldErrors = [
       keyError(input.key),
@@ -223,6 +301,10 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
     if (fieldErrors.length > 0) {
       throw validationError(fieldErrors);
     }
+    const parent =
+      input.parent_module_id === undefined || input.parent_module_id === null
+        ? null
+        : checkParent(input.parent_module_id, { key: input.key, typeId: input.type_id }, null);
     if (keyInUse(input.key)) {
       throw new ModuleCatalogError(
         409,
@@ -253,6 +335,7 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
       createdAt: new Date().toISOString(),
       statusId: ACTIVE,
       typeId: input.type_id,
+      parentModuleId: parent?.id ?? null,
     };
     modules.set(id, created);
     return created;
@@ -270,6 +353,14 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
     if (fieldErrors.length > 0) {
       throw validationError(fieldErrors);
     }
+    const parent =
+      changes.parent_module_id === undefined || changes.parent_module_id === null
+        ? null
+        : checkParent(
+            changes.parent_module_id,
+            { key: current.key, typeId: current.typeId },
+            current.id,
+          );
     if (changes.name !== undefined && nameInUse(changes.name, id)) {
       throw new ModuleCatalogError(
         409,
@@ -282,6 +373,7 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
       ...(changes.name === undefined ? {} : { name: changes.name }),
       ...(changes.description === undefined ? {} : { description: changes.description }),
       ...(changes.sort_order === undefined ? {} : { sortOrder: changes.sort_order }),
+      ...(changes.parent_module_id === undefined ? {} : { parentModuleId: parent?.id ?? null }),
     };
     modules.set(id, updated);
     return updated;
@@ -332,6 +424,13 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
     if (PROTECTED_MODULE_KEYS.includes(current.key)) {
       throw protectedError(current.key, 'eliminar');
     }
+    // Active and Blocked submodules count; deleted ones do not (spec 024, contract 5.4.0).
+    if (hasSubmodules(id)) {
+      throw hierarchyError(
+        'module_has_submodules',
+        `El módulo «${current.key}» tiene submódulos y no se puede eliminar: primero hay que eliminarlos o cambiarlos de padre.`,
+      );
+    }
     modules.set(id, { ...current, statusId: DELETED });
     for (const permission of permissions.values()) {
       if (permission.moduleId === id && permission.statusId !== DELETED) {
@@ -340,14 +439,26 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
     }
   }
 
+  function isParentActive(module: CatalogModule): boolean {
+    return (
+      module.parentModuleId === null || modules.get(module.parentModuleId)?.statusId === ACTIVE
+    );
+  }
+
   function listModules(
     options: { readonly statusId?: number; readonly typeId?: number } = {},
   ): CatalogModule[] {
     const statusId = options.statusId ?? ACTIVE;
-    return [...modules.values()]
-      .filter((module) => module.statusId === statusId)
-      .filter((module) => options.typeId === undefined || module.typeId === options.typeId)
-      .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+    return (
+      [...modules.values()]
+        .filter((module) => module.statusId === statusId)
+        // A submodule whose parent is not Active is not available (spec 024, contract 5.4.0): it is
+        // not among the Active ones; among the Blocked ones it is only if it is Blocked itself,
+        // which the filter on its own status already says.
+        .filter((module) => statusId !== ACTIVE || isParentActive(module))
+        .filter((module) => options.typeId === undefined || module.typeId === options.typeId)
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name))
+    );
   }
 
   function activePermissionsCountOf(moduleId: number): number {
@@ -403,6 +514,7 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
   }
 
   function toModuleDto(module: CatalogModule) {
+    const parent = module.parentModuleId === null ? undefined : modules.get(module.parentModuleId);
     return {
       id: module.id,
       key: module.key,
@@ -413,6 +525,8 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
       status: { id: module.statusId, name: STATUS_NAME[module.statusId] ?? '' },
       type: { id: module.typeId, name: TYPE_NAME[module.typeId] ?? '' },
       active_permissions_count: activePermissionsCountOf(module.id),
+      parent_module:
+        parent === undefined ? null : { id: parent.id, key: parent.key, name: parent.name },
     };
   }
 

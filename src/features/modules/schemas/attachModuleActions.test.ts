@@ -14,6 +14,7 @@ function module(overrides: Partial<SystemModuleBase> = {}): SystemModuleBase {
     statusId: 1,
     typeId: 2,
     activePermissionsCount: 2,
+    parentModule: null,
     ...overrides,
   };
 }

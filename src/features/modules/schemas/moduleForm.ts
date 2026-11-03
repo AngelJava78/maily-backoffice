@@ -45,6 +45,9 @@ export const moduleFormSchema = z.object({
   sortOrder: z
     .string({ error: validation.sortOrderInvalid })
     .regex(SORT_ORDER_PATTERN, { error: validation.sortOrderInvalid }),
+  // The id of the parent module as text, `''` for none (spec 024). It is chosen among the options
+  // the form offers, and the service validates the rest, so there is nothing to check here.
+  parentModuleId: z.string(),
   actions: z
     .custom<ReadonlySet<ModuleActionKey>>((value) => value instanceof Set)
     .refine(createUpdateDeleteRequireRead, { error: validation.createUpdateDeleteRequireRead }),
@@ -58,6 +61,7 @@ export const initialModuleFormValues: ModuleFormValues = {
   name: '',
   description: '',
   sortOrder: '',
+  parentModuleId: '',
   actions: new Set(MODULE_ACTION_ORDER),
 };
 
@@ -68,6 +72,7 @@ export interface CreateModuleBody {
   readonly type_id: ModuleTypeId;
   readonly description?: string;
   readonly sort_order?: number;
+  readonly parent_module_id?: number;
 }
 
 /** Body of `PATCH /api/v1/modules/{id}`: never `key` nor `type_id` (FR-015). */
@@ -75,6 +80,8 @@ export interface UpdateModuleBody {
   readonly name?: string;
   readonly description?: string;
   readonly sort_order?: number;
+  /** A number assigns or changes the parent; `null` removes it (spec 024). */
+  readonly parent_module_id?: number | null;
 }
 
 export function toCreateModuleBody(values: ModuleFormValues): CreateModuleBody {
@@ -84,12 +91,16 @@ export function toCreateModuleBody(values: ModuleFormValues): CreateModuleBody {
     type_id: ModuleTypeId;
     description?: string;
     sort_order?: number;
+    parent_module_id?: number;
   } = { key: values.key, name: values.name, type_id: values.type };
   if (values.description !== '') {
     body.description = values.description;
   }
   if (values.sortOrder !== '') {
     body.sort_order = Number(values.sortOrder);
+  }
+  if (values.parentModuleId !== '') {
+    body.parent_module_id = Number(values.parentModuleId);
   }
   return body;
 }
@@ -101,12 +112,13 @@ export function toFormValues(module: SystemModule): ModuleFormValues {
     name: module.name,
     description: module.description ?? '',
     sortOrder: String(module.sortOrder),
+    parentModuleId: module.parentModule === null ? '' : String(module.parentModule.id),
     actions: new Set(module.actions),
   };
 }
 
 /**
- * Only what changed in `name`/`description`/`sortOrder`, or `null` if nothing did (research D11:
+ * Only what changed in `name`/`description`/`sortOrder`/`parentModuleId`, or `null` if nothing did (research D11:
  * actions are not part of this body, they are separate `POST`/`DELETE` calls on `permissions`, see
  * `getChangedActions`; `type`/`key` are never read, even though `values` carries them). Clearing
  * "Orden" means "leave it as it was", not "recalculate": that default only applies when creating
@@ -116,7 +128,12 @@ export function toUpdateModuleBody(
   initial: SystemModule,
   values: ModuleFormValues,
 ): UpdateModuleBody | null {
-  const body: { name?: string; description?: string; sort_order?: number } = {};
+  const body: {
+    name?: string;
+    description?: string;
+    sort_order?: number;
+    parent_module_id?: number | null;
+  } = {};
   if (values.name !== initial.name) {
     body.name = values.name;
   }
@@ -125,6 +142,12 @@ export function toUpdateModuleBody(
   }
   if (values.sortOrder !== '' && Number(values.sortOrder) !== initial.sortOrder) {
     body.sort_order = Number(values.sortOrder);
+  }
+  // Only when it changed: a number assigns or changes the parent, `null` removes it (spec 024).
+  if (
+    values.parentModuleId !== (initial.parentModule === null ? '' : String(initial.parentModule.id))
+  ) {
+    body.parent_module_id = values.parentModuleId === '' ? null : Number(values.parentModuleId);
   }
   return Object.keys(body).length === 0 ? null : body;
 }

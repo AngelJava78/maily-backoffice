@@ -5,7 +5,6 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Stack from '@mui/material/Stack';
-import Typography from '@mui/material/Typography';
 import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
@@ -28,7 +27,9 @@ import type { SystemModule } from '../schemas/systemModule';
 import type { ModuleCapabilities } from '..';
 import { applyModuleRefusal } from './applyModuleRefusal';
 import { ModuleDangerZone } from './ModuleDangerZone';
+import { ModuleFixedInfo } from './ModuleFixedInfo';
 import { ModuleFormFields } from './ModuleFormFields';
+import { ModuleParentFieldWithOptions, parentLockedReason } from './ModuleParentFieldWithOptions';
 
 const text = messages.modules;
 
@@ -39,29 +40,30 @@ interface ModuleEditPanelProps {
   readonly titleId: string;
   /** The module was deleted (US5): the caller closes this panel, since there is nothing left to edit. */
   readonly onDeleted: () => void;
-}
-
-/** An uncheck waiting for its confirmation (research D9); `null` while none is pending. */
-interface PendingUncheck {
-  readonly action: ModuleActionKey;
+  /** How many submodules the module has in the list that is shown (spec 024, FR-012, FR-015, FR-016). */
+  readonly submoduleCount: number;
+  /** A module was given this parent: the caller expands it, so the module is seen in its new place (FR-013). */
+  readonly onParentAssigned?: (parentModuleId: number) => void;
 }
 
 /**
  * The edición panel of Módulos (US3): Clave and Tipo as fixed information, the fields `alta` and
- * `edición` share, and a confirmation before any action the module already had is taken away.
- * Bloquear/Desbloquear/Eliminar (US4, US5) live in `ModuleDangerZone`, which this panel only hosts.
+ * `edición` share, and a confirmation before any action is taken away. Bloquear, Desbloquear and
+ * Eliminar (US4, US5) live in `ModuleDangerZone`, which this panel only hosts.
  */
 export function ModuleEditPanel({
   module,
   capabilities,
   titleId,
   onDeleted,
+  submoduleCount,
+  onParentAssigned,
 }: ModuleEditPanelProps) {
   const notify = useNotify();
   const update = useUpdateModule();
   const errorRef = useRef<HTMLDivElement>(null);
   const [generalError, setGeneralError] = useState<string>();
-  const [pendingUncheck, setPendingUncheck] = useState<PendingUncheck | null>(null);
+  const [pendingUncheck, setPendingUncheck] = useState<ModuleActionKey | null>(null); // an uncheck waiting for its confirmation (research D9);
   const initialValues = toFormValues(module);
   const {
     register,
@@ -106,7 +108,7 @@ export function ModuleEditPanel({
 
   function handleActionToggle(action: ModuleActionKey, checked: boolean): void {
     if (!checked && module.actions.has(action)) {
-      setPendingUncheck({ action });
+      setPendingUncheck(action);
       return;
     }
     applyToggle(action, checked);
@@ -121,6 +123,9 @@ export function ModuleEditPanel({
         changes: toUpdateModuleBody(module, values),
         changedActions,
       });
+      if (values.parentModuleId !== '' && values.parentModuleId !== initialValues.parentModuleId) {
+        onParentAssigned?.(Number(values.parentModuleId));
+      }
       if (outcome.kind === 'saved') {
         notify({ severity: 'success', message: text.notices.saved });
         reset(values);
@@ -164,39 +169,36 @@ export function ModuleEditPanel({
             </Alert>
           )}
 
-          <Stack spacing={1}>
-            <Stack direction="row" useFlexGap sx={{ gap: 3, flexWrap: 'wrap' }}>
-              <Stack>
-                <Typography variant="caption" color="text.secondary">
-                  {text.form.fields.key}
-                </Typography>
-                <Typography sx={{ fontFamily: 'monospace' }}>{module.key}</Typography>
-              </Stack>
-              <Stack>
-                <Typography variant="caption" color="text.secondary">
-                  {text.form.fields.type}
-                </Typography>
-                <Typography>
-                  {module.typeId === MODULE_TYPE.SYSTEM ? text.type.system : text.type.clinic}
-                </Typography>
-              </Stack>
-            </Stack>
-            <Typography variant="caption" color="text.secondary">
-              {text.form.fields.keyAndTypeFixed}
-            </Typography>
-          </Stack>
+          <ModuleFixedInfo module={module} />
 
           <ModuleFormFields
             register={register}
             errors={errors}
             moduleKey={module.key}
             orderHelp={text.form.fields.orderHelpEdit}
+            afterOrder={
+              <ModuleParentFieldWithOptions
+                control={control}
+                typeId={
+                  module.typeId === MODULE_TYPE.SYSTEM ? MODULE_TYPE.SYSTEM : MODULE_TYPE.CLINIC
+                }
+                excludeModuleId={module.id}
+                currentParent={module.parentModule}
+                lockedReason={parentLockedReason(module, submoduleCount)}
+                error={errors.parentModuleId?.message}
+              />
+            }
             actions={actions}
             onActionToggle={handleActionToggle}
           />
         </Stack>
 
-        <ModuleDangerZone module={module} capabilities={capabilities} onDeleted={onDeleted} />
+        <ModuleDangerZone
+          module={module}
+          capabilities={capabilities}
+          onDeleted={onDeleted}
+          submoduleCount={submoduleCount}
+        />
       </DialogContent>
 
       <DialogActions>
@@ -225,13 +227,13 @@ export function ModuleEditPanel({
         message={
           pendingUncheck === null
             ? ''
-            : text.form.uncheckActionConfirm(text.actions[pendingUncheck.action], module.name)
+            : text.form.uncheckActionConfirm(text.actions[pendingUncheck], module.name)
         }
         confirmLabel={text.form.uncheckActionRemove}
         tone="danger"
         onConfirm={() => {
           if (pendingUncheck !== null) {
-            applyToggle(pendingUncheck.action, false);
+            applyToggle(pendingUncheck, false);
           }
           setPendingUncheck(null);
         }}

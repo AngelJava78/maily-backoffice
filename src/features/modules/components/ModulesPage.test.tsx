@@ -4,7 +4,7 @@ import { axe } from 'vitest-axe';
 import { describe, expect, it } from 'vitest';
 
 import { renderWithProviders } from '@/test/renderWithProviders';
-import { createModulesCatalogMock } from '@/test/handlers/modulesCatalog';
+import { catalogModule, createModulesCatalogMock } from '@/test/handlers/modulesCatalog';
 
 import { ModulesPage } from './ModulesPage';
 
@@ -148,5 +148,118 @@ describe('ModulesPage', () => {
     await screen.findByText('23 módulos activos');
 
     expect(screen.queryByRole('button', { name: '+ Nuevo módulo' })).not.toBeInTheDocument();
+  });
+});
+
+describe('ModulesPage as a tree (spec 024)', () => {
+  /** The real 23-module catalog plus a parent with two submodules. */
+  function withHierarchy() {
+    const mock = createModulesCatalogMock();
+    mock.addModule(
+      catalogModule({ id: 500, key: 'demo_parent', name: 'Demo padre', sortOrder: 5 }),
+    );
+    mock.addModule(
+      catalogModule({
+        id: 501,
+        key: 'demo_child_a',
+        name: 'Demo hija A',
+        sortOrder: 10,
+        parentModuleId: 500,
+      }),
+    );
+    mock.addModule(
+      catalogModule({
+        id: 502,
+        key: 'demo_child_b',
+        name: 'Demo hija B',
+        sortOrder: 20,
+        parentModuleId: 500,
+      }),
+    );
+    return mock;
+  }
+  const TOTAL = '24 módulos y 2 submódulos activos';
+
+  it('tells the modules and the submodules apart in the count of the list and in its group', async () => {
+    withHierarchy();
+    renderPage();
+
+    expect(await screen.findByText(TOTAL)).toBeInTheDocument();
+    expect(
+      screen.getByText('Clínica, aplicación para clínicas · 16 módulos y 2 submódulos'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Sistema, pantallas del Backoffice · 8 módulos')).toBeInTheDocument();
+  });
+
+  it('puts the submodules right under their parent, one level in', async () => {
+    withHierarchy();
+    renderPage();
+    await screen.findByText(TOTAL);
+
+    const rows = screen.getAllByRole('row').map((row) => row.textContent);
+    const parentAt = rows.findIndex((text) => text.includes('Demo padre'));
+    expect(rows[parentAt + 1]).toContain('Submódulo de Demo padre');
+    expect(rows[parentAt + 1]).toContain('Demo hija A');
+    expect(rows[parentAt + 2]).toContain('Demo hija B');
+  });
+
+  it('collapses and expands a parent from the keyboard, starting expanded', async () => {
+    withHierarchy();
+    renderPage();
+    await screen.findByText(TOTAL);
+    const user = userEvent.setup();
+    const toggle = screen.getByRole('button', { name: '2 submódulos de Demo padre' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    toggle.focus();
+    await user.keyboard('{Enter}');
+    expect(screen.queryByRole('row', { name: /Demo hija A/ })).not.toBeInTheDocument();
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle).toHaveFocus();
+
+    await user.keyboard(' ');
+    expect(await screen.findByRole('row', { name: /Demo hija A/ })).toBeInTheDocument();
+    expect(toggle).toHaveFocus();
+  });
+
+  it('shows the parent as context when a search only matches a submodule, and has no collapse control then', async () => {
+    withHierarchy();
+    renderPage();
+    await screen.findByText(TOTAL);
+
+    await userEvent
+      .setup()
+      .type(screen.getByRole('textbox', { name: 'Nombre o clave' }), 'child_b');
+
+    expect(await screen.findByRole('row', { name: /Demo hija B/ })).toBeInTheDocument();
+    expect(screen.queryByRole('row', { name: /Demo hija A/ })).not.toBeInTheDocument();
+    expect(screen.getByText('Su submódulo coincide con la búsqueda')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /submódulos de/ })).not.toBeInTheDocument();
+  });
+
+  it('shows a Blocked submodule under a context row of its Active parent in the Bloqueados view', async () => {
+    const mock = withHierarchy();
+    mock.state.blockModule(501);
+    renderPage();
+    await screen.findByText('24 módulos y 1 submódulo activo');
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Bloqueados' }));
+
+    expect(await screen.findByRole('row', { name: /Demo hija A/ })).toBeInTheDocument();
+    expect(screen.getByText('Está en «Activos»')).toBeInTheDocument();
+    expect(screen.getByText('0 módulos y 1 submódulo bloqueado')).toBeInTheDocument();
+  });
+
+  it('has no axe violations with the tree expanded, and with a context row', async () => {
+    const mock = withHierarchy();
+    mock.state.blockModule(501);
+    const { container } = renderPage();
+    await screen.findByText('24 módulos y 1 submódulo activo');
+    expect(await axe(container)).toHaveNoViolations();
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Bloqueados' }));
+    await screen.findByText('Está en «Activos»');
+
+    expect(await axe(container)).toHaveNoViolations();
   });
 });

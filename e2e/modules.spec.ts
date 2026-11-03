@@ -152,3 +152,74 @@ test.describe
     await expect(row(page, new RegExp(name))).toHaveCount(0);
   });
 });
+
+test.describe
+  .serial('the modules section: a disposable submodule under a disposable parent (A1, feature 024)', () => {
+  test.skip(!hasAccounts('A1') || !canWrite, 'Needs A1 and E2E_ALLOW_MODULE_WRITES=true');
+
+  const stamp = Date.now();
+  const parentKey = `qa024p_${stamp}`;
+  const parentName = `QA 024 padre ${stamp}`;
+  const childKey = `qa024h_${stamp}`;
+  const childName = `QA 024 hija ${stamp}`;
+
+  async function createModule(
+    page: Page,
+    { key, name, parent }: { key: string; name: string; parent?: string },
+  ): Promise<void> {
+    await openAs(page, '/modules');
+    await page.getByRole('button', { name: text.newAction }).click();
+    await page.getByRole('textbox', { name: text.form.fields.key }).fill(key);
+    await page.getByRole('textbox', { name: text.form.fields.name }).fill(name);
+    if (parent !== undefined) {
+      await page.getByRole('combobox', { name: text.form.fields.parent }).click();
+      await page.getByRole('option', { name: parent }).click();
+    }
+    await page.getByRole('button', { name: text.form.create }).click();
+    await expect(page.getByText(text.notices.created)).toBeVisible();
+    await page.keyboard.press('Escape');
+  }
+
+  async function deleteModule(page: Page, name: string): Promise<void> {
+    await openAs(page, '/modules');
+    await row(page, new RegExp(name)).getByRole('button', { name: text.editAction }).click();
+    await page.getByRole('button', { name: text.blockSection.delete }).click();
+    const dialog = page.getByRole('dialog', { name: text.blockSection.delete });
+    await dialog.getByRole('button', { name: text.blockSection.deleteConfirmButton }).click();
+    await expect(page.getByText(text.blockSection.deleted)).toBeVisible();
+  }
+
+  test('creates the parent, and then a submodule choosing it, and shows it nested under it', async ({
+    page,
+  }) => {
+    await createModule(page, { key: parentKey, name: parentName });
+    await createModule(page, { key: childKey, name: childName, parent: parentName });
+
+    await openAs(page, '/modules');
+    await expect(row(page, new RegExp(childName))).toContainText(text.tree.submoduleOf(parentName));
+    await expect(
+      page.getByRole('button', { name: new RegExp(text.tree.submodulesOf(1, parentName)) }),
+    ).toBeVisible();
+    // The submodule is right under its parent.
+    const names = await page.getByRole('row').allTextContents();
+    const parentAt = names.findIndex((content) => content.includes(parentName));
+    expect(names[parentAt + 1]).toContain(childName);
+  });
+
+  test('does not offer to delete the parent while it has the submodule', async ({ page }) => {
+    await openAs(page, '/modules');
+    await row(page, new RegExp(parentName)).getByRole('button', { name: text.editAction }).click();
+
+    await expect(page.getByRole('button', { name: text.blockSection.delete })).toHaveCount(0);
+    await expect(page.getByText(text.blockSection.deleteBlockedBySubmodules)).toBeVisible();
+  });
+
+  test('deletes the submodule, then the parent, and leaves nothing behind', async ({ page }) => {
+    await deleteModule(page, childName);
+    await deleteModule(page, parentName);
+
+    await openAs(page, '/modules');
+    await expect(row(page, new RegExp(parentName))).toHaveCount(0);
+    await expect(row(page, new RegExp(childName))).toHaveCount(0);
+  });
+});

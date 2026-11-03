@@ -14,6 +14,7 @@ function dto(overrides: Partial<z.input<typeof systemModuleSchema>> = {}) {
     status: { id: 1, name: 'Activo' },
     type: { id: 2, name: 'Clínica' },
     active_permissions_count: 0,
+    parent_module: null,
     ...overrides,
   };
 }
@@ -30,6 +31,7 @@ describe('systemModuleSchema', () => {
       statusId: 1,
       typeId: 2,
       activePermissionsCount: 0,
+      parentModule: null,
     });
   });
 
@@ -52,6 +54,43 @@ describe('systemModuleSchema', () => {
 
   it('rejects a description longer than 500 characters', () => {
     expect(() => systemModuleSchema.parse(dto({ description: 'a'.repeat(501) }))).toThrow();
+  });
+});
+
+describe('systemModuleSchema, the parent module (spec 024)', () => {
+  it('reads a top-level module as one without a parent', () => {
+    expect(systemModuleSchema.parse(dto({ parent_module: null })).parentModule).toBeNull();
+  });
+
+  it('reads the parent of a submodule as id, key and name', () => {
+    const parsed = systemModuleSchema.parse(
+      dto({ parent_module: { id: 6, key: 'patients', name: 'Pacientes' } }),
+    );
+
+    expect(parsed.parentModule).toEqual({ id: 6, key: 'patients', name: 'Pacientes' });
+  });
+
+  it('rejects an answer that has no parent_module at all: the field is required', () => {
+    const withoutParent: Record<string, unknown> = { ...dto() };
+    delete withoutParent.parent_module;
+
+    expect(() => systemModuleSchema.parse(withoutParent)).toThrow();
+  });
+
+  it.each([0, -1, 1.5, '6'])(
+    'rejects a parent whose id is not a positive whole number: %s',
+    (id) => {
+      expect(() =>
+        systemModuleSchema.parse({ ...dto(), parent_module: { id, key: 'p', name: 'P' } }),
+      ).toThrow();
+    },
+  );
+
+  it.each([
+    { id: 6, name: 'Pacientes' },
+    { id: 6, key: 'patients' },
+  ])('rejects a parent without its key or its name: %j', (parent) => {
+    expect(() => systemModuleSchema.parse({ ...dto(), parent_module: parent })).toThrow();
   });
 });
 

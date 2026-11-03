@@ -76,7 +76,7 @@ describe('the modules section: blocking and unblocking (feature 013, user story 
 
     await user.click(screen.getByRole('button', { name: 'Bloqueados' }));
     const blockedRow = await screen.findByRole('row', { name: /Recordatorios/ });
-    expect(screen.getByText('1 módulos bloqueados')).toBeInTheDocument();
+    expect(screen.getByText('1 módulo bloqueado')).toBeInTheDocument();
 
     await user.click(within(blockedRow).getByRole('button', { name: 'Editar' }));
     await user.click(screen.getByRole('button', { name: 'Desbloquear módulo' }));

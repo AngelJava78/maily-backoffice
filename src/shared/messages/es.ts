@@ -7,6 +7,36 @@ const PRICE_RULE =
 /** How a clinic limit is written (consultorios, doctores, asistentes, pacientes nuevos al año). */
 const LIMIT_RULE = 'Escribe un número entero de 0 a 1,000,000.';
 
+/** "1 módulo" / "3 módulos". */
+function modulesOf(count: number): string {
+  return `${count} ${count === 1 ? 'módulo' : 'módulos'}`;
+}
+
+/** "5 submódulos" / "1 submódulo". */
+function submodulesOf(count: number): string {
+  return `${count} ${count === 1 ? 'submódulo' : 'submódulos'}`;
+}
+
+/** "23 módulos activos", "1 módulo bloqueado" or "23 módulos y 5 submódulos activos": the adjective agrees with the last noun. */
+function modulesCount(
+  modules: number,
+  submodules: number,
+  adjective: 'activo' | 'bloqueado',
+): string {
+  const last = submodules > 0 ? submodules : modules;
+  const ending = last === 1 ? adjective : `${adjective}s`;
+  const nouns =
+    submodules > 0 ? `${modulesOf(modules)} y ${submodulesOf(submodules)}` : modulesOf(modules);
+  return `${nouns} ${ending}`;
+}
+
+/** The heading of a group of the modules table: "· 9 módulos" or "· 9 módulos y 4 submódulos". */
+function groupCount(modules: number, submodules: number): string {
+  return submodules > 0
+    ? `${modulesOf(modules)} y ${submodulesOf(submodules)}`
+    : modulesOf(modules);
+}
+
 export const messages = {
   common: {
     appName: 'MailySoft Backoffice',
@@ -144,8 +174,9 @@ export const messages = {
       search: 'Nombre o clave',
     },
     count: {
-      active: (n: number) => `${n} módulos activos`,
-      blocked: (n: number) => `${n} módulos bloqueados`,
+      active: (modules: number, submodules: number) => modulesCount(modules, submodules, 'activo'),
+      blocked: (modules: number, submodules: number) =>
+        modulesCount(modules, submodules, 'bloqueado'),
       noResults: 'Ningún módulo coincide con la búsqueda.',
       noneActive: 'No hay módulos activos.',
       noneBlocked: 'No hay módulos bloqueados.',
@@ -155,8 +186,23 @@ export const messages = {
       message: 'Ocurrió un problema al consultar los módulos. Inténtalo de nuevo.',
     },
     groups: {
-      system: (n: number) => `Sistema, pantallas del Backoffice · ${n} módulos`,
-      clinic: (n: number) => `Clínica, aplicación para clínicas · ${n} módulos`,
+      system: (modules: number, submodules: number) =>
+        `Sistema, pantallas del Backoffice · ${groupCount(modules, submodules)}`,
+      clinic: (modules: number, submodules: number) =>
+        `Clínica, aplicación para clínicas · ${groupCount(modules, submodules)}`,
+    },
+    tree: {
+      /** What is seen on the control that collapses the submodules of a module. */
+      submodulesButton: (count: number) => submodulesOf(count),
+      /** What a screen reader says for that control (it contains the visible text). */
+      submodulesOf: (count: number, moduleName: string) =>
+        `${submodulesOf(count)} de ${moduleName}`,
+      /** Said before the name of a submodule, so that a screen reader knows whose it is. */
+      submoduleOf: (parentName: string) => `Submódulo de ${parentName}`,
+      /** The parent of a context row is in the other status view than the one being shown. */
+      contextOtherView: (viewedStatus: 'active' | 'blocked') =>
+        viewedStatus === 'blocked' ? 'Está en «Activos»' : 'Está en «Bloqueados»',
+      contextSearch: 'Su submódulo coincide con la búsqueda',
     },
     columns: {
       order: 'Orden',
@@ -191,6 +237,14 @@ export const messages = {
         order: 'Orden',
         orderHelp: (n: number) => `Opcional. Si lo dejas vacío, queda al final (${n}).`,
         orderHelpEdit: 'Opcional. Si lo dejas vacío, queda como estaba.',
+        parent: 'Módulo padre',
+        parentNone: 'Ninguno (módulo de primer nivel)',
+        parentHelp: 'Opcional. Un submódulo es del mismo tipo que su módulo padre.',
+        parentLoading: 'Cargando módulos…',
+        parentLoadError: 'No se pudieron cargar los módulos padre.',
+        parentLockedWithChildren:
+          'Este módulo tiene submódulos, así que no puede tener un módulo padre.',
+        parentLockedBase: 'Los módulos base de administración no tienen módulo padre.',
         actionsLabel: 'Acciones del módulo',
       },
       actionsHelp:
@@ -215,6 +269,14 @@ export const messages = {
       deleted: 'Módulo eliminado.',
       protectedNotice:
         'Los módulos base de administración (Usuarios, Roles, Permisos y Módulos) no se pueden bloquear ni eliminar.',
+      /** What blocking a parent does to its Active submodules (spec 024, FR-015). */
+      submodulesNotice: (count: number) =>
+        count === 1
+          ? 'Si lo bloqueas, 1 submódulo dejará de estar disponible hasta que lo desbloquees; conserva su propio estatus.'
+          : `Si lo bloqueas, ${count} submódulos dejarán de estar disponibles hasta que lo desbloquees; conservan su propio estatus.`,
+      /** Said instead of the "Eliminar módulo" button while the module has submodules (FR-016). */
+      deleteBlockedBySubmodules:
+        'Este módulo tiene submódulos. Para eliminarlo, primero elimina sus submódulos o cámbialos de padre.',
     },
     validation: {
       keyRequired: 'Escribe la clave del módulo.',
@@ -244,6 +306,18 @@ export const messages = {
       protected:
         'Este módulo es uno de los módulos base de administración y no se puede bloquear ni eliminar.',
       statusUnchanged: 'El estatus de este módulo ya cambió; vuelve a intentarlo.',
+      hasSubmodules:
+        'Este módulo tiene submódulos y no se puede eliminar: primero elimínalos o cámbialos de padre.',
+      parentNotFound: 'El módulo padre ya no existe o fue eliminado. Elige otro.',
+      parentIsSubmodule:
+        'Ese módulo ya es un submódulo y no puede ser padre: la jerarquía tiene un solo nivel. Elige otro.',
+      parentTypeMismatch:
+        'El módulo padre debe ser del mismo tipo (Sistema o Clínica) que este módulo.',
+      parentSelfReference: 'Un módulo no puede ser su propio módulo padre.',
+      parentProtected:
+        'Los módulos base de administración (Usuarios, Roles, Permisos y Módulos) no pueden ser módulos padre ni submódulos.',
+      hasSubmodulesAsChild:
+        'Este módulo tiene submódulos y no puede pasar a ser submódulo: la jerarquía tiene un solo nivel.',
       retryable: 'No se pudo completar la operación. Inténtalo de nuevo.',
       fields: {
         key: 'Escribe una clave válida: minúsculas, números y guion bajo, empezando con una letra.',
@@ -251,6 +325,7 @@ export const messages = {
         description: 'La descripción admite hasta 500 caracteres.',
         sortOrder: 'Escribe un número entero, o déjalo vacío.',
         type: 'Elige un tipo de módulo.',
+        parentModuleId: 'Elige un módulo padre válido.',
       },
     },
   },

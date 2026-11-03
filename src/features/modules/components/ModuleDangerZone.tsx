@@ -22,6 +22,8 @@ interface ModuleDangerZoneProps {
   readonly capabilities: ModuleCapabilities;
   /** The module was deleted (US5): the caller closes this panel, since there is nothing left to edit. */
   readonly onDeleted: () => void;
+  /** How many submodules the module has in the list that is shown (spec 024, FR-015, FR-016). */
+  readonly submoduleCount: number;
 }
 
 /**
@@ -30,7 +32,12 @@ interface ModuleDangerZoneProps {
  * Eliminar does confirm, naming the module (constitution VI, irreversible). Hidden entirely for a
  * protected module, where an explanation replaces every action.
  */
-export function ModuleDangerZone({ module, capabilities, onDeleted }: ModuleDangerZoneProps) {
+export function ModuleDangerZone({
+  module,
+  capabilities,
+  onDeleted,
+  submoduleCount,
+}: ModuleDangerZoneProps) {
   const notify = useNotify();
   const changeStatus = useChangeModuleStatus();
   const deleteModuleMutation = useDeleteModule();
@@ -81,6 +88,13 @@ export function ModuleDangerZone({ module, capabilities, onDeleted }: ModuleDang
       <Typography variant="subtitle2" component="p">
         {text.blockSection.help}
       </Typography>
+      {statusId === MODULE_STATUS.ACTIVE &&
+        submoduleCount > 0 &&
+        !isProtectedModule(module.key) && (
+          <Typography variant="body2" color="text.secondary">
+            {text.blockSection.submodulesNotice(submoduleCount)}
+          </Typography>
+        )}
       {isProtectedModule(module.key) ? (
         <Alert severity="info">{text.blockSection.protectedNotice}</Alert>
       ) : (
@@ -97,7 +111,12 @@ export function ModuleDangerZone({ module, capabilities, onDeleted }: ModuleDang
                 : text.blockSection.unblock}
             </Button>
           )}
-          {capabilities.canDelete && (
+          {capabilities.canDelete && submoduleCount > 0 && (
+            <Typography variant="body2" color="text.secondary">
+              {text.blockSection.deleteBlockedBySubmodules}
+            </Typography>
+          )}
+          {capabilities.canDelete && submoduleCount === 0 && (
             <Button
               variant="outlined"
               color="error"

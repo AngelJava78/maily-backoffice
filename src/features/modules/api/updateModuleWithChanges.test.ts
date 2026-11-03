@@ -32,6 +32,7 @@ function seedInventory(mock: ModulesCatalogMock): void {
     createdAt: '2026-10-22T00:00:00Z',
     statusId: 1,
     typeId: 2,
+    parentModuleId: null,
   });
   mock.state.addPermission({
     id: 500,
@@ -127,6 +128,7 @@ describe('updateModuleWithChanges', () => {
       createdAt: '2026-10-22T00:00:00Z',
       statusId: 1,
       typeId: 2,
+      parentModuleId: null,
     });
     const module = await inventoryModule();
 

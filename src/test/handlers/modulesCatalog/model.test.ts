@@ -301,3 +301,103 @@ describe('ModuleCatalogError', () => {
     expect(error.fieldErrors).toEqual([{ field: 'name', message: 'y' }]);
   });
 });
+
+describe('toModuleDto, the parent module (spec 024)', () => {
+  it('gives parent_module null for a top-level module', () => {
+    const model = createModulesCatalogModel({ modules: [catalogModule({ id: 1 })] });
+
+    expect(model.toModuleDto(catalogModule({ id: 1 })).parent_module).toBeNull();
+  });
+
+  it('gives the id, key and name of the parent for a submodule', () => {
+    const parent = catalogModule({ id: 6, key: 'patients', name: 'Pacientes' });
+    const child = catalogModule({ id: 7, key: 'prescriptions', parentModuleId: 6 });
+    const model = createModulesCatalogModel({ modules: [parent, child] });
+
+    expect(model.toModuleDto(child).parent_module).toEqual({
+      id: 6,
+      key: 'patients',
+      name: 'Pacientes',
+    });
+  });
+});
+
+describe('listModules, the availability of the submodules (spec 024)', () => {
+  const patients = catalogModule({ id: 6, key: 'patients', name: 'Pacientes', sortOrder: 10 });
+  const prescriptions = catalogModule({
+    id: 7,
+    key: 'prescriptions',
+    name: 'Recetas',
+    sortOrder: 20,
+    parentModuleId: 6,
+  });
+
+  it('lists a submodule with an Active parent among the Active modules', () => {
+    const model = createModulesCatalogModel({ modules: [patients, prescriptions] });
+
+    expect(model.listModules({ statusId: 1 }).map((module) => module.key)).toEqual([
+      'patients',
+      'prescriptions',
+    ]);
+  });
+
+  it('does not list among the Active ones a submodule whose parent is Blocked', () => {
+    const blockedParent = { ...patients, statusId: 2 };
+    const model = createModulesCatalogModel({ modules: [blockedParent, prescriptions] });
+
+    expect(model.listModules({ statusId: 1 })).toEqual([]);
+  });
+
+  it('does not list among the Blocked ones an Active submodule of a Blocked parent', () => {
+    const blockedParent = { ...patients, statusId: 2 };
+    const model = createModulesCatalogModel({ modules: [blockedParent, prescriptions] });
+
+    expect(model.listModules({ statusId: 2 }).map((module) => module.key)).toEqual(['patients']);
+  });
+
+  it('lists among the Blocked ones a Blocked submodule, whatever the status of its parent', () => {
+    const blockedChild = { ...prescriptions, statusId: 2 };
+    const withActiveParent = createModulesCatalogModel({ modules: [patients, blockedChild] });
+    const withBlockedParent = createModulesCatalogModel({
+      modules: [{ ...patients, statusId: 2 }, blockedChild],
+    });
+
+    expect(withActiveParent.listModules({ statusId: 2 }).map((module) => module.key)).toEqual([
+      'prescriptions',
+    ]);
+    expect(withBlockedParent.listModules({ statusId: 2 }).map((module) => module.key)).toEqual([
+      'patients',
+      'prescriptions',
+    ]);
+  });
+
+  it('brings a submodule back among the Active ones when its parent is unblocked', () => {
+    const model = createModulesCatalogModel({
+      modules: [{ ...patients, statusId: 2 }, prescriptions],
+    });
+
+    model.unblockModule(6);
+
+    expect(model.listModules({ statusId: 1 }).map((module) => module.key)).toEqual([
+      'patients',
+      'prescriptions',
+    ]);
+  });
+
+  it('keeps the order by sort_order and then by name', () => {
+    const second = catalogModule({
+      id: 8,
+      key: 'vitals',
+      name: 'Aa',
+      sortOrder: 20,
+      parentModuleId: 6,
+    });
+    const model = createModulesCatalogModel({ modules: [patients, prescriptions, second] });
+
+    expect(model.listModules({ statusId: 1 }).map((module) => module.key)).toEqual([
+      'patients',
+      'vitals',
+      'prescriptions',
+    ]);
+  });
+});

@@ -4,6 +4,15 @@ import type { ModuleActionKey } from './moduleActionCatalog';
 
 const KEY_PATTERN = /^[a-z][a-z0-9_]*$/;
 
+/** The parent of a submodule, as every module that has one carries it (contracts/modules-service-changes.md). */
+const parentModuleRefSchema = z.object({
+  id: z.number().int().positive(),
+  key: z.string(),
+  name: z.string(),
+});
+
+export type ParentModuleRef = z.infer<typeof parentModuleRefSchema>;
+
 /** A module as `GET /api/v1/modules` gives it, converted from its DTO (constitution II). */
 export const systemModuleSchema = z
   .object({
@@ -16,6 +25,8 @@ export const systemModuleSchema = z
     status: z.object({ id: z.number().int(), name: z.string() }),
     type: z.object({ id: z.number().int(), name: z.string() }),
     active_permissions_count: z.number().int().nonnegative(),
+    // Required and nullable: `null` is a top-level module. An answer without the key is not valid.
+    parent_module: parentModuleRefSchema.nullable(),
   })
   .transform((dto) => ({
     id: dto.id,
@@ -27,6 +38,7 @@ export const systemModuleSchema = z
     statusId: dto.status.id,
     typeId: dto.type.id,
     activePermissionsCount: dto.active_permissions_count,
+    parentModule: dto.parent_module,
   }));
 
 export type SystemModuleBase = z.infer<typeof systemModuleSchema>;
