@@ -30,8 +30,9 @@ export function useUpdateModule(): UseMutationResult<
   return useMutation({
     mutationFn: ({ module, changes, changedActions }: UpdateModuleVariables) =>
       updateModuleWithChanges(users, module, changes, changedActions),
-    onSuccess: () => {
-      // The edited module's row (name, order, actions) can change what the list shows.
+    onSettled: () => {
+      // The edited module's row (name, order, parent, actions) can change what the list shows, and a
+      // refusal (a parent deleted by someone else) means the screen is out of date (research D13).
       void queryClient.invalidateQueries({ queryKey: moduleKeys.all });
     },
   });

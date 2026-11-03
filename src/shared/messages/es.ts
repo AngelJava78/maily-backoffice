@@ -237,6 +237,14 @@ export const messages = {
         order: 'Orden',
         orderHelp: (n: number) => `Opcional. Si lo dejas vacío, queda al final (${n}).`,
         orderHelpEdit: 'Opcional. Si lo dejas vacío, queda como estaba.',
+        parent: 'Módulo padre',
+        parentNone: 'Ninguno (módulo de primer nivel)',
+        parentHelp: 'Opcional. Un submódulo es del mismo tipo que su módulo padre.',
+        parentLoading: 'Cargando módulos…',
+        parentLoadError: 'No se pudieron cargar los módulos padre.',
+        parentLockedWithChildren:
+          'Este módulo tiene submódulos, así que no puede tener un módulo padre.',
+        parentLockedBase: 'Los módulos base de administración no tienen módulo padre.',
         actionsLabel: 'Acciones del módulo',
       },
       actionsHelp:
@@ -290,6 +298,16 @@ export const messages = {
       protected:
         'Este módulo es uno de los módulos base de administración y no se puede bloquear ni eliminar.',
       statusUnchanged: 'El estatus de este módulo ya cambió; vuelve a intentarlo.',
+      parentNotFound: 'El módulo padre ya no existe o fue eliminado. Elige otro.',
+      parentIsSubmodule:
+        'Ese módulo ya es un submódulo y no puede ser padre: la jerarquía tiene un solo nivel. Elige otro.',
+      parentTypeMismatch:
+        'El módulo padre debe ser del mismo tipo (Sistema o Clínica) que este módulo.',
+      parentSelfReference: 'Un módulo no puede ser su propio módulo padre.',
+      parentProtected:
+        'Los módulos base de administración (Usuarios, Roles, Permisos y Módulos) no pueden ser módulos padre ni submódulos.',
+      hasSubmodulesAsChild:
+        'Este módulo tiene submódulos y no puede pasar a ser submódulo: la jerarquía tiene un solo nivel.',
       retryable: 'No se pudo completar la operación. Inténtalo de nuevo.',
       fields: {
         key: 'Escribe una clave válida: minúsculas, números y guion bajo, empezando con una letra.',
@@ -297,6 +315,7 @@ export const messages = {
         description: 'La descripción admite hasta 500 caracteres.',
         sortOrder: 'Escribe un número entero, o déjalo vacío.',
         type: 'Elige un tipo de módulo.',
+        parentModuleId: 'Elige un módulo padre válido.',
       },
     },
   },

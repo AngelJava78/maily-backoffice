@@ -15,6 +15,7 @@ import { useModulesCatalog } from '../hooks/useModulesCatalog';
 import { useCollapsedModules } from '../hooks/useCollapsedModules';
 import { useModulesLocation } from '../hooks/useModulesLocation';
 import { buildModuleTree } from '../policy/buildModuleTree';
+import { submoduleCountOf } from '../policy/moduleHierarchy';
 import { MODULE_STATUS } from '../schemas/moduleActionCatalog';
 import { ModuleCreatePanel } from './ModuleCreatePanel';
 import { ModuleEditPanel } from './ModuleEditPanel';
@@ -43,7 +44,7 @@ export function ModulesPage({ capabilities }: ModulesPageProps) {
   const query = useModulesCatalog(statusId);
   const loaded = query.data !== undefined;
 
-  const { collapsed, toggle } = useCollapsedModules();
+  const { collapsed, toggle, expand } = useCollapsedModules();
   // The submodules go under their parent (spec 024); the type filter and the search keep that.
   const groups = buildModuleTree(query.data ?? [], {
     type: location.type,
@@ -113,6 +114,7 @@ export function ModulesPage({ capabilities }: ModulesPageProps) {
           nextSortOrder={nextSortOrder}
           titleId={titleId}
           onCreated={openEdit}
+          onParentAssigned={expand}
           onCancel={closePanel}
         />
       );
@@ -128,6 +130,8 @@ export function ModulesPage({ capabilities }: ModulesPageProps) {
             capabilities={capabilities}
             titleId={titleId}
             onDeleted={closePanel}
+            submoduleCount={submoduleCountOf(query.data ?? [], editing.id)}
+            onParentAssigned={expand}
           />
         );
       }

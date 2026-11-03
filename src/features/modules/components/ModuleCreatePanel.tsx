@@ -30,6 +30,7 @@ import {
 import { withActionChecked } from '../policy/moduleActionSelection';
 import { applyModuleRefusal } from './applyModuleRefusal';
 import { ModuleFormFields } from './ModuleFormFields';
+import { ModuleParentFieldWithOptions } from './ModuleParentFieldWithOptions';
 
 const text = messages.modules;
 
@@ -40,6 +41,8 @@ interface ModuleCreatePanelProps {
   readonly titleId: string;
   /** The module was created (even if partially, research D11): the caller opens it for editing. */
   readonly onCreated: (moduleId: number) => void;
+  /** The module was created with this parent: the caller expands it, so the module is seen under it (FR-013). */
+  readonly onParentAssigned?: (parentModuleId: number) => void;
   readonly onCancel: () => void;
 }
 
@@ -49,6 +52,7 @@ export function ModuleCreatePanel({
   nextSortOrder,
   titleId,
   onCreated,
+  onParentAssigned,
   onCancel,
 }: ModuleCreatePanelProps) {
   const notify = useNotify();
@@ -59,6 +63,7 @@ export function ModuleCreatePanel({
     register,
     handleSubmit,
     control,
+    getValues,
     setValue,
     setError,
     formState: { errors, isSubmitting },
@@ -94,6 +99,9 @@ export function ModuleCreatePanel({
           .map((failure) => text.actions[failure.action])
           .join(', ');
         notify({ severity: 'warning', message: text.notices.createdPartial(failedLabels) });
+      }
+      if (values.parentModuleId !== '') {
+        onParentAssigned?.(Number(values.parentModuleId));
       }
       onCreated(outcome.module.id);
     } catch (error) {
@@ -134,6 +142,10 @@ export function ModuleCreatePanel({
                     ? MODULE_TYPE.CLINIC
                     : MODULE_TYPE.SYSTEM;
                 setValue('type', next, { shouldDirty: true });
+                // The parent chosen was of the other type: it no longer applies (FR-011).
+                if (getValues('parentModuleId') !== '') {
+                  setValue('parentModuleId', '', { shouldDirty: true });
+                }
               }}
             >
               <Stack direction="row" useFlexGap sx={{ gap: 2, flexWrap: 'wrap' }}>
@@ -179,6 +191,15 @@ export function ModuleCreatePanel({
             errors={errors}
             moduleKey={key}
             orderHelp={text.form.fields.orderHelp(nextSortOrder)}
+            afterOrder={
+              <ModuleParentFieldWithOptions
+                control={control}
+                typeId={type}
+                excludeModuleId={null}
+                currentParent={null}
+                error={errors.parentModuleId?.message}
+              />
+            }
             actions={actions}
             onActionToggle={(action, checked) => {
               setValue('actions', withActionChecked(actions, action, checked), {

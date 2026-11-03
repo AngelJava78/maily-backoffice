@@ -13,10 +13,12 @@ import { moduleKeys } from './moduleKeys';
  */
 export function useModulesCatalog(
   statusId: ModuleStatusId = MODULE_STATUS.ACTIVE,
+  { staleTime }: { readonly staleTime?: number } = {},
 ): UseQueryResult<readonly SystemModule[]> {
   const { users } = useHttpClients();
   return useQuery({
     queryKey: moduleKeys.catalog(statusId),
     queryFn: ({ signal }) => listModules(users, { statusId, signal }),
+    staleTime,
   });
 }

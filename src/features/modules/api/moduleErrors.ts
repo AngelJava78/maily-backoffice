@@ -8,7 +8,8 @@ export type ModuleOperation =
   'list' | 'create' | 'update' | 'block' | 'unblock' | 'delete' | 'createAction' | 'deleteAction';
 
 /** The inputs of the form that the API can complain about. */
-export type ModuleFormField = 'type' | 'key' | 'name' | 'description' | 'sortOrder';
+export type ModuleFormField =
+  'type' | 'key' | 'name' | 'description' | 'sortOrder' | 'parentModuleId';
 
 /** How a failure is told to the person (contracts/modules-service.md, research D8). */
 export type ModuleErrorOutcome =
@@ -36,9 +37,15 @@ const FORM_FIELDS = new Map<string, ModuleFormField>([
   ['description', 'description'],
   ['sort_order', 'sortOrder'],
   ['type_id', 'type'],
+  ['parent_module_id', 'parentModuleId'],
 ]);
 
 const FORM_OPERATIONS: ReadonlySet<ModuleOperation> = new Set(['create', 'update']);
+
+/** A refusal about the parent module goes to its field (spec 024). */
+function parentField(message: string): ModuleErrorOutcome {
+  return { kind: 'field', message, fields: { parentModuleId: message } };
+}
 
 /** The rejected data go to the inputs they name, with our texts; the rest is a general error. */
 function fromValidation(fieldErrors: readonly FieldError[]): ModuleErrorOutcome {
@@ -77,7 +84,23 @@ export function describeModuleError(
     case 'permission_not_found':
       return { kind: 'notFound', message: text.notFound };
     case 'module_protected':
-      return { kind: 'protected', message: text.protected };
+      // On a form it is the parent that cannot be (the module or its parent is a base module).
+      return FORM_OPERATIONS.has(operation)
+        ? parentField(text.parentProtected)
+        : { kind: 'protected', message: text.protected };
+    case 'module_parent_not_found':
+      return parentField(text.parentNotFound);
+    case 'module_parent_is_submodule':
+      return parentField(text.parentIsSubmodule);
+    case 'module_parent_type_mismatch':
+      return parentField(text.parentTypeMismatch);
+    case 'module_parent_self_reference':
+      return parentField(text.parentSelfReference);
+    case 'module_has_submodules':
+      // Only a modification can turn a module with submodules into a submodule.
+      return operation === 'update'
+        ? parentField(text.hasSubmodulesAsChild)
+        : { kind: 'unexpected', message: messages.errors.unexpected };
     case 'module_already_blocked':
     case 'module_already_active':
       return { kind: 'statusUnchanged', message: text.statusUnchanged };

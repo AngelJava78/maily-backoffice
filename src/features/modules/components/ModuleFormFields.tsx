@@ -6,6 +6,7 @@ import FormLabel from '@mui/material/FormLabel';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import type { ReactNode } from 'react';
 import type { FieldErrors, UseFormRegister } from 'react-hook-form';
 
 import { messages } from '@/shared/messages/es';
@@ -26,6 +27,8 @@ interface ModuleFormFieldsProps {
    * exact text instead of a number this component would have to interpret.
    */
   readonly orderHelp: string;
+  /** What goes between Orden and the actions: the "Módulo padre" field (spec 024), which needs the options. */
+  readonly afterOrder?: ReactNode;
   readonly actions: ReadonlySet<ModuleActionKey>;
   /** The parent owns `actions` (US3 needs to confirm before applying an uncheck, research D9). */
   readonly onActionToggle: (action: ModuleActionKey, checked: boolean) => void;
@@ -41,6 +44,7 @@ export function ModuleFormFields({
   errors,
   moduleKey,
   orderHelp,
+  afterOrder,
   actions,
   onActionToggle,
 }: ModuleFormFieldsProps) {
@@ -80,6 +84,7 @@ export function ModuleFormFields({
         error={errors.sortOrder !== undefined}
         helperText={errors.sortOrder?.message ?? orderHelp}
       />
+      {afterOrder}
 
       <Stack component="fieldset" spacing={1} sx={{ border: 'none', p: 0, m: 0 }}>
         <FormLabel component="legend" sx={{ p: 0 }}>

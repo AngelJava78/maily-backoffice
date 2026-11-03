@@ -80,6 +80,7 @@ function renderPanel(
           capabilities={capabilities}
           titleId={titleId}
           onDeleted={onDeleted}
+          submoduleCount={0}
         />
       )}
     </DialogHarness>,
@@ -263,6 +264,7 @@ describe('ModuleEditPanel', () => {
             capabilities={FULL_ACCESS}
             titleId={titleId}
             onDeleted={vi.fn()}
+            submoduleCount={0}
           />
         </Dialog>
       );

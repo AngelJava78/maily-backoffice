@@ -50,6 +50,7 @@ describe('moduleFormSchema', () => {
     name: 'Inventario',
     description: '',
     sortOrder: '',
+    parentModuleId: '',
     actions: new Set(['read'] as const),
   };
 
@@ -123,6 +124,7 @@ describe('toCreateModuleBody', () => {
         name: 'Inventario',
         description: '',
         sortOrder: '',
+        parentModuleId: '',
         actions: new Set(['read']),
       }),
     ).toEqual({ key: 'inventory', name: 'Inventario', type_id: MODULE_TYPE.CLINIC });
@@ -136,6 +138,7 @@ describe('toCreateModuleBody', () => {
         name: 'Auditoría',
         description: 'Registro de auditoría.',
         sortOrder: '90',
+        parentModuleId: '',
         actions: new Set(['read']),
       }),
     ).toEqual({

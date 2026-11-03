@@ -28,8 +28,9 @@ export function useCreateModule(): UseMutationResult<
   return useMutation({
     mutationFn: ({ body, actions }: CreateModuleVariables) =>
       createModuleWithActions(users, body, actions),
-    onSuccess: () => {
-      // The new module belongs in the catalog; every status is marked stale.
+    onSettled: () => {
+      // The new module belongs in the catalog; every status is marked stale. Also after a refusal:
+      // it usually means the data on screen is old (spec 024, research D13).
       void queryClient.invalidateQueries({ queryKey: moduleKeys.all });
     },
   });
