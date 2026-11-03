@@ -79,6 +79,27 @@ const byName = (a: { readonly name: string }, b: { readonly name: string }): num
  * there is a single source of truth for "which roles exist" and "what a role can do"
  * (`role.permissions`, the same flat names the capability system already reads).
  */
+/** Ids of the role and module types (1 Sistema, 2 Clínica), as in `seed.ts`. */
+const SYSTEM_TYPE = 1;
+const CLINIC_TYPE = 2;
+
+/**
+ * Which type of role may receive the permissions of which type of module: the pairs of the
+ * `role_type_module_types` table of the users API (spec 013, and spec 015 for the asymmetric rule).
+ * A Sistema role only Sistema modules; a Clínica role both Clínica and Sistema modules.
+ */
+const ROLE_TYPE_MODULE_TYPES: readonly (readonly [number, number])[] = [
+  [SYSTEM_TYPE, SYSTEM_TYPE],
+  [CLINIC_TYPE, SYSTEM_TYPE],
+  [CLINIC_TYPE, CLINIC_TYPE],
+];
+
+function isModuleTypeAllowed(roleTypeId: number, moduleTypeId: number): boolean {
+  return ROLE_TYPE_MODULE_TYPES.some(
+    ([roleType, moduleType]) => roleType === roleTypeId && moduleType === moduleTypeId,
+  );
+}
+
 export function createRolesCatalogModel(
   initialModules: readonly ModuleRecord[],
   initialPermissions: readonly PermissionRecord[],
@@ -139,13 +160,16 @@ export function createRolesCatalogModel(
       return permission === undefined ? undefined : resolve(permission);
     },
 
-    /** The permissions a role has, resolved and limited to modules of `typeId` (FR-006). */
-    permissionsOfRole(role: DirectoryRole, typeId: number): ResolvedPermission[] {
+    /**
+     * The permissions a role has, resolved and sorted by name, as `GET /roles/{id}/permissions`
+     * answers them: every permission of the catalog associated with the role, whatever the type of
+     * its module (a Clínica role may also have Sistema ones, spec 015 of the users API).
+     */
+    permissionsOfRole(role: DirectoryRole): ResolvedPermission[] {
       return role.permissions
         .map((name) => permissions.find((permission) => permission.name === name))
         .filter((permission): permission is PermissionRecord => permission !== undefined)
         .map(resolve)
-        .filter((permission) => permission.module?.type.id === typeId)
         .sort(byName);
     },
 
@@ -168,7 +192,7 @@ export function createRolesCatalogModel(
         throw permissionNotFound();
       }
       const resolved = resolve(permission);
-      if (resolved.module !== null && resolved.module.type.id !== role.typeId) {
+      if (resolved.module !== null && !isModuleTypeAllowed(role.typeId, resolved.module.type.id)) {
         throw new DirectoryError(
           409,
           'role_permission_module_type_conflict',

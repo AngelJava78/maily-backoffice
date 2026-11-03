@@ -59,9 +59,7 @@ describe('useCreateRole', () => {
       created === undefined ? undefined : users.state.findRole(created.id);
     expect(createdDirectoryRole).toBeDefined();
     expect(
-      createdDirectoryRole === undefined
-        ? []
-        : roles.state.permissionsOfRole(createdDirectoryRole, 1),
+      createdDirectoryRole === undefined ? [] : roles.state.permissionsOfRole(createdDirectoryRole),
     ).toHaveLength(16);
   });
 

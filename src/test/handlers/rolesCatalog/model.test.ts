@@ -102,7 +102,7 @@ describe('listModules', () => {
 });
 
 describe('permissionsOfRole', () => {
-  it('resolves the flat permission names of a role against the catalog, filtered by type', () => {
+  it('resolves the flat permission names of a role against the catalog, of every module type', () => {
     const catalog = createRolesCatalogModel(
       modules([
         { key: 'patients', typeId: CLINIC_TYPE },
@@ -112,8 +112,12 @@ describe('permissionsOfRole', () => {
     );
     const role = directoryRole({ permissions: ['patients:read', 'users:read', 'ghost:read'] });
 
-    expect(catalog.permissionsOfRole(role, CLINIC_TYPE).map((p) => p.name)).toEqual([
+    // No filter by the type of the module (spec 015 of the users API), not even for a permission
+    // whose module the catalog does not know.
+    expect(catalog.permissionsOfRole(role).map((p) => p.name)).toEqual([
+      'ghost:read',
       'patients:read',
+      'users:read',
     ]);
   });
 });
@@ -122,7 +126,10 @@ describe('associate', () => {
   function setup() {
     const directory = createDirectoryModel({
       users: [directoryUser({ auth0Id: 'auth0|ana' })],
-      roles: [directoryRole({ id: 6, name: 'Doctor', typeId: CLINIC_TYPE, permissions: [] })],
+      roles: [
+        directoryRole({ id: 6, name: 'Doctor', typeId: CLINIC_TYPE, permissions: [] }),
+        directoryRole({ id: 7, name: 'Support', typeId: SYSTEM_TYPE, permissions: [] }),
+      ],
       associations: [],
     });
     const catalog = createRolesCatalogModel(
@@ -143,13 +150,21 @@ describe('associate', () => {
     expect(directory.findRole(6)?.permissions).toEqual(['patients:read']);
   });
 
-  it('rejects a permission whose module type does not match the role type, without granting it', () => {
+  it('grants a Sistema permission to a Clínica role: the asymmetric rule of spec 015', () => {
     const { directory, catalog } = setup();
 
-    expect(() => catalog.associate(directory, 6, 2)).toThrow(
+    catalog.associate(directory, 6, 2);
+
+    expect(directory.findRole(6)?.permissions).toEqual(['users:read']);
+  });
+
+  it('rejects a Clínica permission for a Sistema role, without granting it', () => {
+    const { directory, catalog } = setup();
+
+    expect(() => catalog.associate(directory, 7, 1)).toThrow(
       expect.objectContaining({ status: 409, code: 'role_permission_module_type_conflict' }),
     );
-    expect(directory.findRole(6)?.permissions).toEqual([]);
+    expect(directory.findRole(7)?.permissions).toEqual([]);
   });
 
   it('rejects a permission already associated', () => {

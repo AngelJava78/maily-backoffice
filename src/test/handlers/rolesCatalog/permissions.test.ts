@@ -125,10 +125,21 @@ describe('POST /api/v1/roles/:roleId/permissions', () => {
     expect(answer.body).toMatchObject({ permission: { id: 17, name: 'patients:read' } });
   });
 
-  it("rejects a permission whose module type does not match the role's type", async () => {
+  it('associates a Sistema permission to a Clínica role: the asymmetric rule of spec 015', async () => {
     start();
 
     const answer = await associate(7, 1);
+
+    expect(answer.status).toBe(201);
+    expect(answer.body).toMatchObject({ permission: { id: 1, name: 'users:read' } });
+    // And the list of the role answers it, although its module is not of the type of the role.
+    expect(namesOf((await list(7)).body)).toContain('users:read');
+  });
+
+  it('rejects a Clínica permission for a Sistema role', async () => {
+    start(richClinicModulesScenario());
+
+    const answer = await associate(2, 17);
 
     expect(answer.status).toBe(409);
     expect(answer.body).toMatchObject({ code: 'role_permission_module_type_conflict' });

@@ -81,7 +81,7 @@ describe('RoleDetailPanel', () => {
   });
 
   it('toggling a permission enables saving, and Guardar cambios persists it (FR-008, FR-010)', async () => {
-    start();
+    const { users } = start();
     const { user } = renderPanel(2);
 
     await screen.findByLabelText(text.fields.name);
@@ -92,9 +92,10 @@ describe('RoleDetailPanel', () => {
 
     await user.click(screen.getByRole('button', { name: text.save }));
 
-    await waitFor(() => {
-      expect(screen.getByText(text.permissionsCount(1, 16))).toBeInTheDocument();
-    });
+    // While it saves, the screen still shows the pending change: wait until it is done.
+    expect(await screen.findByText(text.saved)).toBeInTheDocument();
+    expect(users.state.findRole(2)?.permissions).toEqual(['roles:read']);
+    expect(screen.getByText(text.permissionsCount(1, 16))).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ver de Roles' })).toHaveAttribute(
       'aria-pressed',
       'true',
@@ -121,7 +122,7 @@ describe('RoleDetailPanel', () => {
   });
 
   it('a Clínica role can grant and save a Sistema module permission (asymmetric rule, FR-001)', async () => {
-    start();
+    const { users } = start();
     const { user } = renderPanel(6);
 
     await screen.findByLabelText(text.fields.name);
@@ -132,14 +133,17 @@ describe('RoleDetailPanel', () => {
 
     await user.click(screen.getByRole('button', { name: text.save }));
 
-    await waitFor(() => {
-      expect(screen.getByText(text.permissionsCount(1, 16))).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Ver de Roles' })).toHaveAttribute(
-        'aria-pressed',
-        'true',
-      );
-    });
+    // While it saves, the screen still shows the pending change: wait until it is done, so that
+    // what is checked is what the service kept (spec 015 of the users API), not the change.
+    expect(await screen.findByText(text.saved)).toBeInTheDocument();
+    expect(users.state.findRole(6)?.permissions).toEqual(['roles:read']);
+    expect(screen.getByText(text.permissionsCount(1, 16))).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ver de Roles' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(screen.getByRole('button', { name: text.save })).toBeDisabled();
+    expect(screen.queryByText(messages.roles.errors.saveIncomplete(1))).not.toBeInTheDocument();
   });
 
   it('rejects an empty name and saves nothing (US1-8)', async () => {

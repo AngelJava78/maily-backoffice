@@ -67,7 +67,7 @@ export function rolePermissionsHandlers(
         if (role?.statusId !== 1) {
           throw roleNotFound();
         }
-        const resolved = catalog.permissionsOfRole(role, role.typeId);
+        const resolved = catalog.permissionsOfRole(role);
         return HttpResponse.json(resolved.map(toPermissionReadDto));
       }),
     ),
