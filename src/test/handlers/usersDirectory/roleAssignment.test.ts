@@ -44,6 +44,24 @@ describe('GET /api/v1/roles', () => {
     ]);
   });
 
+  it('gives the blocked roles instead with status_id=2 (feature 025)', async () => {
+    start();
+
+    const answer = await callService('/api/v1/roles?status_id=2');
+
+    expect(answer.status).toBe(200);
+    expect(answer.body).toMatchObject([{ id: 9, name: 'Zeta', status: { id: BLOCKED } }]);
+  });
+
+  it.each(['0', '3', 'x'])('rejects status_id=%s with a 422', async (statusId) => {
+    start();
+
+    const answer = await callService(`/api/v1/roles?status_id=${statusId}`);
+
+    expect(answer.status).toBe(422);
+    expect(answer.body).toMatchObject({ code: 'validation_error' });
+  });
+
   it('asks for roles:read', async () => {
     const mock = start();
     mock.revoke('Administrator', 'roles:read');

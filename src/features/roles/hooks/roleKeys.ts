@@ -1,9 +1,14 @@
+import type { RolesStatusFilter } from '../schemas/rolePermissionsLocation';
+
 /**
  * The TanStack Query keys of Roles y permisos (constitution III): written here and nowhere else.
  */
 export const roleKeys = {
   all: ['roles'] as const,
+  /** The prefix of both lists: invalidating it refreshes the active and the blocked roles at once. */
   lists: () => [...roleKeys.all, 'list'] as const,
+  /** The roles of one status (feature 025, research D3), of both types. */
+  list: (status: RolesStatusFilter) => [...roleKeys.lists(), status] as const,
   detail: (roleId: number) => [...roleKeys.all, 'detail', roleId] as const,
   permissions: (roleId: number) => [...roleKeys.detail(roleId), 'permissions'] as const,
 };

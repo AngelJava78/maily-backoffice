@@ -816,17 +816,26 @@ export const messages = {
     healthComponentDetail: 'Detalle del componente',
     healthComponentEdit: 'Editar componente',
   },
-  // Feature 014: "Roles y permisos" — pantalla maestro-detalle (pestañas Clínica/Sistema, lista y
-  // matriz de permisos por módulo y acción).
+  // Feature 014: "Roles y permisos" — pantalla maestro-detalle (filtros de Tipo y Estatus desde la
+  // feature 025, lista y permisos por módulo y acción).
   roles: {
     title: 'Roles y permisos',
     newRole: 'Nuevo role',
-    tabs: { clinica: 'Clínica', sistema: 'Sistema', ariaLabel: 'Tipo de role' },
+    // Feature 025: the same labels as `modules.filters`, so both screens read the same (FR-020).
+    filters: {
+      typeLabel: 'Tipo',
+      type: { all: 'Todos', system: 'Sistema', clinic: 'Clínica' },
+      statusLabel: 'Estatus',
+      status: { active: 'Activos', blocked: 'Bloqueados' },
+    },
     list: {
+      label: 'Lista de roles',
       clinicaDescription: 'Roles de los usuarios de las clínicas.',
       sistemaDescription: 'Roles del personal del Backoffice.',
+      emptyAll: 'Todavía no hay roles. Crea el primero.',
       emptyClinica: 'Todavía no hay roles de Clínica. Crea el primero.',
       emptySistema: 'Todavía no hay roles de Sistema. Crea el primero.',
+      emptyBlocked: 'No hay roles bloqueados.',
       permissionsCount: (count: number) => `${count} permisos`,
     },
     detail: {
@@ -865,6 +874,28 @@ export const messages = {
       create: 'Crear role',
       cancel: 'Cancelar',
     },
+    // Feature 025: Bloquear (with a confirmation) and Desbloquear (at once), and their notices.
+    status: {
+      block: 'Bloquear role',
+      unblock: 'Desbloquear role',
+      confirmTitle: (roleName: string) => `¿Bloquear ${roleName}?`,
+      confirmBody: (roleName: string) =>
+        `Mientras ${roleName} esté bloqueado, las personas que lo tienen asignado dejan de recibir lo que concede y sus permisos no se podrán ver ni cambiar. Podrás volver a activarlo desbloqueándolo.`,
+      confirm: 'Bloquear role',
+      cancel: 'Cancelar',
+      blocked: (roleName: string) => `${roleName} quedó bloqueado. Ahora está en «Bloqueados».`,
+      unblocked: (roleName: string) => `${roleName} quedó desbloqueado. Ahora está en «Activos».`,
+      alreadyBlocked: (roleName: string) =>
+        `${roleName} ya estaba bloqueado. La lista se actualizó.`,
+      alreadyActive: (roleName: string) => `${roleName} ya estaba activo. La lista se actualizó.`,
+    },
+    // Feature 025: the detail of a blocked role, whose permissions the service does not give.
+    blocked: {
+      statusLabel: 'Estatus',
+      statusValue: 'Bloqueado',
+      explanation:
+        'Mientras esté bloqueado, sus permisos no se pueden ver ni cambiar y no se puede eliminar. Para hacerlo, primero desbloquéalo.',
+    },
     delete: {
       action: 'Eliminar role',
       confirmTitle: (roleName: string) => `¿Eliminar ${roleName}?`,
@@ -881,6 +912,7 @@ export const messages = {
     errors: {
       nameAlreadyExists: 'Ya existe un role con este nombre.',
       notFound: 'Este role ya no existe.',
+      alreadyInStatus: 'Este role ya tenía ese estatus. La lista se actualizó.',
       moduleTypeConflict: 'Este permiso no corresponde al tipo de este role.',
       saveIncomplete: (failed: number) =>
         `No se pudieron guardar ${failed} ${failed === 1 ? 'cambio' : 'cambios'}. Vuelve a intentarlo.`,

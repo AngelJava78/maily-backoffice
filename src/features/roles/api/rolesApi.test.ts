@@ -5,7 +5,7 @@ import { ApiError } from '@/shared/api/ApiError';
 import { server } from '@/test/server';
 import { createUsersClient, errorBody, usersUrl } from '@/test/usersClient';
 
-import { createRole, deleteRole, listRoles, updateRole } from './rolesApi';
+import { blockRole, createRole, deleteRole, listRoles, unblockRole, updateRole } from './rolesApi';
 
 const ROLES_URL = usersUrl('/api/v1/roles');
 
@@ -38,6 +38,37 @@ describe('listRoles', () => {
         type: { id: 2, name: 'Clínica' },
       },
     ]);
+  });
+
+  it('asks for the active roles without status_id, as it always did', async () => {
+    let search = 'unset';
+    server.use(
+      http.get(ROLES_URL, ({ request }) => {
+        search = new URL(request.url).search;
+        return HttpResponse.json([roleDto()]);
+      }),
+    );
+    const { client } = createUsersClient();
+
+    await listRoles(client, { statusId: 1 });
+
+    expect(search).toBe('');
+  });
+
+  it('asks for the blocked roles with status_id=2 (feature 025)', async () => {
+    let statusId: string | null = null;
+    server.use(
+      http.get(ROLES_URL, ({ request }) => {
+        statusId = new URL(request.url).searchParams.get('status_id');
+        return HttpResponse.json([roleDto({ status: { id: 2, name: 'Bloqueado' } })]);
+      }),
+    );
+    const { client } = createUsersClient();
+
+    const roles = await listRoles(client, { statusId: 2 });
+
+    expect(statusId).toBe('2');
+    expect(roles[0]?.status).toEqual({ id: 2, name: 'Bloqueado' });
   });
 
   it('passes a 403 on as an ApiError', async () => {
@@ -139,5 +170,43 @@ describe('deleteRole', () => {
 
     await expect(deleteRole(client, 6)).resolves.toBeUndefined();
     expect(method).toBe('DELETE');
+  });
+});
+
+describe.each([
+  ['blockRole', blockRole, 'block', { id: 2, name: 'Bloqueado' }, 'role_already_blocked'],
+  ['unblockRole', unblockRole, 'unblock', { id: 1, name: 'Activo' }, 'role_already_active'],
+] as const)('%s (feature 025)', (_name, operation, path, status, alreadyCode) => {
+  it(`sends POST …/${path} without a body and gives the role with its new status`, async () => {
+    let method = '';
+    let body = 'unset';
+    server.use(
+      http.post(`${ROLES_URL}/6/${path}`, async ({ request }) => {
+        method = request.method;
+        body = await request.text();
+        return HttpResponse.json(roleDto({ status }));
+      }),
+    );
+    const { client } = createUsersClient();
+
+    const role = await operation(client, 6);
+
+    expect(method).toBe('POST');
+    expect(body).toBe('');
+    expect(role).toMatchObject({ id: 6, status });
+  });
+
+  it('passes a 409 on as an ApiError with its code', async () => {
+    server.use(
+      http.post(`${ROLES_URL}/6/${path}`, () =>
+        HttpResponse.json(errorBody(alreadyCode), { status: 409 }),
+      ),
+    );
+    const { client } = createUsersClient();
+
+    const failure: unknown = await operation(client, 6).catch((error: unknown) => error);
+
+    expect(failure).toBeInstanceOf(ApiError);
+    expect(failure).toMatchObject({ code: alreadyCode, status: 409 });
   });
 });

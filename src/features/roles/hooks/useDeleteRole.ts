@@ -18,10 +18,7 @@ export function useDeleteRole(): UseMutationResult<void, Error, number> {
   return useMutation({
     mutationFn: (roleId: number) => deleteRole(users, roleId),
     onSettled: () => {
-      return atMost(
-        REFRESH_WAIT_MS,
-        queryClient.invalidateQueries({ queryKey: roleKeys.lists(), exact: true }),
-      );
+      return atMost(REFRESH_WAIT_MS, queryClient.invalidateQueries({ queryKey: roleKeys.lists() }));
     },
   });
 }

@@ -92,4 +92,28 @@ describe('RoleDetailActions', () => {
 
     expect(screen.getByRole('button', { name: text.save })).toBeDisabled();
   });
+
+  it('places extra actions (children) before "Eliminar role" (feature 025)', () => {
+    render(
+      <RoleDetailActions
+        capabilities={FULL_CAPABILITIES}
+        isDirty={false}
+        savePending={false}
+        duplicatePending={false}
+        onDiscard={vi.fn()}
+        onDuplicate={vi.fn()}
+        onDelete={vi.fn()}
+      >
+        <button type="button">{messages.roles.status.block}</button>
+      </RoleDetailActions>,
+    );
+
+    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual([
+      text.save,
+      text.discard,
+      text.duplicate,
+      messages.roles.status.block,
+      messages.roles.delete.action,
+    ]);
+  });
 });

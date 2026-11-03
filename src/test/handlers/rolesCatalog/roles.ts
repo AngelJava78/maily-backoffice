@@ -106,7 +106,10 @@ function readRoleChanges(body: unknown): { name?: string; description?: string |
   return changes;
 }
 
-/** `POST/PATCH/DELETE /api/v1/roles` (feature 014; contracts/roles-service.md). */
+/**
+ * `POST/PATCH/DELETE /api/v1/roles` (feature 014; contracts/roles-service.md), and
+ * `POST /api/v1/roles/{id}/block|unblock` (feature 025; contracts/roles-status-service.md).
+ */
 export function roleHandlers(model: DirectoryModel, handle: Handle): HttpHandler[] {
   const roles = `${USERS_API_BASE_URL}/api/v1/roles`;
 
@@ -134,6 +137,18 @@ export function roleHandlers(model: DirectoryModel, handle: Handle): HttpHandler
         model.deleteRole(readRoleId(params));
         return new HttpResponse(null, { status: 204 });
       }),
+    ),
+    http.post(
+      `${roles}/:roleId/block`,
+      handle('roles:update', ({ params }) =>
+        HttpResponse.json(toRoleRecordDto(model.blockRole(readRoleId(params)))),
+      ),
+    ),
+    http.post(
+      `${roles}/:roleId/unblock`,
+      handle('roles:update', ({ params }) =>
+        HttpResponse.json(toRoleRecordDto(model.unblockRole(readRoleId(params)))),
+      ),
     ),
   ];
 }

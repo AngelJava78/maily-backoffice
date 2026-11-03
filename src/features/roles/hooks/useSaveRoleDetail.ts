@@ -77,7 +77,7 @@ export function useSaveRoleDetail(): UseMutationResult<
             queryKey: roleKeys.permissions(variables.roleId),
             exact: true,
           }),
-          queryClient.invalidateQueries({ queryKey: roleKeys.lists(), exact: true }),
+          queryClient.invalidateQueries({ queryKey: roleKeys.lists() }),
         ]),
       );
     },

@@ -13,8 +13,11 @@ import { Icon } from '@/shared/ui/Icon';
 
 import { useRolePermissionCounts } from '../hooks/useRolePermissionCounts';
 import { useRolePermissionsLocation } from '../hooks/useRolePermissionsLocation';
-import { useRolesCatalog } from '../hooks/useRolesCatalog';
-import { ROLE_TYPE_ID_OF_TAB } from '../schemas/rolePermissionsLocation';
+import { useVisibleRoles } from '../hooks/useVisibleRoles';
+import {
+  typeFilterOfRoleTypeId,
+  type RolePermissionsLocation,
+} from '../schemas/rolePermissionsLocation';
 
 const text = messages.roles;
 
@@ -23,13 +26,27 @@ interface RolesListProps {
   readonly onNewRole: () => void;
 }
 
-/** The roles of the active tab (FR-003, FR-004): name, description and permission count. */
+/** The empty message of each combination of filters (FR-018, contracts/roles-list-ui.md §3). */
+function emptyMessage({ type, status }: RolePermissionsLocation): string {
+  if (status === 'blocked') {
+    return text.list.emptyBlocked;
+  }
+  if (type === 'system') {
+    return text.list.emptySistema;
+  }
+  return type === 'clinic' ? text.list.emptyClinica : text.list.emptyAll;
+}
+
+/**
+ * The roles both filters show (FR-005, FR-006): name, and type, description and — only for active
+ * roles, whose permissions the service does give — the permission count. A blocked role's
+ * permissions are never asked for (FR-012).
+ */
 export function RolesList({ canCreate, onNewRole }: RolesListProps) {
   const { location, setRoleId } = useRolePermissionsLocation();
-  const typeId = ROLE_TYPE_ID_OF_TAB[location.type];
-  const query = useRolesCatalog();
-  const roles = (query.data ?? []).filter((role) => role.type.id === typeId);
-  const counts = useRolePermissionCounts(roles.map((role) => role.id));
+  const { query, roles } = useVisibleRoles();
+  const active = location.status === 'active';
+  const counts = useRolePermissionCounts(active ? roles.map((role) => role.id) : []);
 
   function body() {
     if (query.isLoading) {
@@ -47,16 +64,12 @@ export function RolesList({ canCreate, onNewRole }: RolesListProps) {
       );
     }
     if (roles.length === 0) {
-      return (
-        <EmptyState
-          message={location.type === 'clinica' ? text.list.emptyClinica : text.list.emptySistema}
-        />
-      );
+      return <EmptyState message={emptyMessage(location)} />;
     }
     return (
-      <List aria-label={text.tabs[location.type]}>
+      <List aria-label={text.list.label}>
         {roles.map((role) => {
-          const count = counts.get(role.id);
+          const count = active ? counts.get(role.id) : undefined;
           return (
             <ListItem key={role.id} disablePadding>
               <ListItemButton
@@ -68,6 +81,7 @@ export function RolesList({ canCreate, onNewRole }: RolesListProps) {
                 <ListItemText
                   primary={role.name}
                   secondary={[
+                    text.filters.type[typeFilterOfRoleTypeId(role.type.id)],
                     role.description,
                     count === undefined ? null : text.list.permissionsCount(count),
                   ]

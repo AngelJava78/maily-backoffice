@@ -36,6 +36,16 @@ describe('describeRoleError', () => {
     expect(describeRoleError(httpError(404, 'role_not_found')).kind).toBe('notFound');
   });
 
+  it.each(['role_already_blocked', 'role_already_active'])(
+    'maps %s to alreadyInStatus, not to a failure (feature 025)',
+    (code) => {
+      expect(describeRoleError(httpError(409, code))).toEqual({
+        kind: 'alreadyInStatus',
+        message: messages.roles.errors.alreadyInStatus,
+      });
+    },
+  );
+
   it('maps permission_denied to forbidden', () => {
     expect(describeRoleError(httpError(403, 'permission_denied')).kind).toBe('forbidden');
   });

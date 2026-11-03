@@ -21,6 +21,11 @@ async function openRoles(page: Page): Promise<void> {
 }
 
 const nameField = (page: Page) => page.getByLabel(text.detail.fields.name);
+/** A button of the Tipo filter (feature 025), which replaced the Clínica/Sistema tabs. */
+const typeFilter = (page: Page, name: string) =>
+  page
+    .getByRole('group', { name: text.filters.typeLabel })
+    .getByRole('button', { name, exact: true });
 const confirm = async (page: Page, title: string, button: string) => {
   const dialog = page.getByRole('dialog', { name: title });
   await expect(dialog).toBeVisible();
@@ -37,7 +42,7 @@ test.describe('the roles section: Sistema roles, end to end (A1)', () => {
     page,
   }) => {
     await openRoles(page);
-    await page.getByRole('tab', { name: text.tabs.sistema }).click();
+    await typeFilter(page, text.filters.type.system).click();
     await page.getByText('Developer', { exact: true }).click();
     await expect(nameField(page)).toHaveValue('Developer');
 
@@ -59,8 +64,9 @@ test.describe('the roles section: Sistema roles, end to end (A1)', () => {
 
     await page.getByRole('button', { name: text.newRole }).click();
     await page.getByLabel(text.detail.fields.name).fill(roleName);
-    await page.getByLabel(text.detail.fields.type).click();
-    await page.getByRole('option', { name: text.tabs.sistema }).click();
+    // Within the dialog: the Tipo filter of the page (feature 025) has the same accessible name.
+    await page.getByRole('dialog').getByLabel(text.detail.fields.type).click();
+    await page.getByRole('option', { name: text.filters.type.system }).click();
     await page.getByLabel(text.form.copyFrom).click();
     await page.getByRole('option', { name: 'Administrator' }).click();
     await page.getByRole('button', { name: text.form.create }).click();
@@ -69,11 +75,35 @@ test.describe('the roles section: Sistema roles, end to end (A1)', () => {
     await expect(page.getByText(/16 de 16 permisos/)).toBeVisible();
   });
 
+  test('025: blocks the role just created, finds it in Bloqueados and unblocks it', async ({
+    page,
+  }) => {
+    await openRoles(page);
+    await typeFilter(page, text.filters.type.system).click();
+    await page.getByText(roleName, { exact: true }).click();
+    await expect(nameField(page)).toHaveValue(roleName);
+
+    await page.getByRole('button', { name: text.status.block, exact: true }).click();
+    await confirm(page, text.status.confirmTitle(roleName), text.status.confirm);
+    await expect(page.getByText(text.status.blocked(roleName))).toBeVisible();
+    await expect(page.getByText(roleName, { exact: true })).toBeHidden();
+
+    await page
+      .getByRole('group', { name: text.filters.statusLabel })
+      .getByRole('button', { name: text.filters.status.blocked, exact: true })
+      .click();
+    await page.getByText(roleName, { exact: true }).click();
+    await expect(page.getByText(text.blocked.explanation)).toBeVisible();
+    await page.getByRole('button', { name: text.status.unblock, exact: true }).click();
+    await expect(page.getByText(text.status.unblocked(roleName))).toBeVisible();
+    await expect(page.getByText(roleName, { exact: true })).toBeHidden();
+  });
+
   test('W12, W13: duplicates the role just created, then deletes the duplicate', async ({
     page,
   }) => {
     await openRoles(page);
-    await page.getByRole('tab', { name: text.tabs.sistema }).click();
+    await typeFilter(page, text.filters.type.system).click();
     await page.getByText(roleName, { exact: true }).click();
     await expect(nameField(page)).toHaveValue(roleName);
 

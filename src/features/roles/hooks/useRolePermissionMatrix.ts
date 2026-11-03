@@ -13,7 +13,7 @@ export interface UseRolePermissionMatrixResult {
 
 /**
  * The permission matrix of `typeId`, with `grantedPermissionIds` marked (research D3). Starts
- * loading the modules/permissions catalogs as soon as `typeId` (the active tab) is known, without
+ * loading the modules/permissions catalogs as soon as `typeId` (the role's type) is known, without
  * waiting for a specific role to be selected; `grantedPermissionIds` being `undefined` (no role
  * selected yet, or its own detail still loading) simply gives no matrix yet, not an error.
  *

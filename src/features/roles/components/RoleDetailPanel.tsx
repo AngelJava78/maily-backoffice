@@ -22,19 +22,22 @@ import { useSaveRoleDetail } from '../hooks/useSaveRoleDetail';
 import type { RoleCapabilities } from '../policy/roleCapabilities';
 import { countGranted, countTotal } from '../schemas/permissionMatrix';
 import { nameChangesOf, roleEditInputSchema, type Role, type RoleEditInput } from '../schemas/role';
+import { BlockRoleAction } from './BlockRoleAction';
 import { DeleteRoleDialog } from './DeleteRoleDialog';
-import { PermissionsList } from './PermissionsList';
 import { RoleDetailActions } from './RoleDetailActions';
+import { RolePermissionsSection } from './RolePermissionsSection';
 
 const text = messages.roles.detail;
 
 interface RoleDetailPanelProps {
   readonly roleId: number;
   readonly capabilities: RoleCapabilities;
-  /** T068: lets the screen warn before an action (change tab/role, leave `/roles`) would discard these. */
+  /** T068: lets the screen warn before an action (change filter/role, leave `/roles`) would discard these. */
   readonly onDirtyChange?: (dirty: boolean) => void;
-  /** T087: "Duplicar" selects the new role; the parent decides what that means for the URL/tab. */
+  /** T087: "Duplicar" selects the new role; the parent decides what that means for the URL/filters. */
   readonly onDuplicated?: (role: Role) => void;
+  /** Feature 025: the role was blocked; the parent closes this detail and moves the focus. */
+  readonly onBlocked?: () => void;
 }
 
 /**
@@ -50,6 +53,7 @@ export function RoleDetailPanel({
   capabilities,
   onDirtyChange,
   onDuplicated,
+  onBlocked,
 }: RoleDetailPanelProps) {
   const detail = useRoleDetail(roleId);
   const role = detail.data?.role;
@@ -208,31 +212,28 @@ export function RoleDetailPanel({
             onDiscard={onDiscard}
             onDuplicate={duplicateAction.duplicate}
             onDelete={deleteAction.start}
-          />
+          >
+            {capabilities.canEdit && (
+              <BlockRoleAction
+                role={role}
+                disabled={isDirty || save.isPending}
+                onBlocked={() => {
+                  onBlocked?.();
+                }}
+              />
+            )}
+          </RoleDetailActions>
         </Stack>
       </Paper>
-      <div>
-        <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
-          {text.matrixTitle(role.name)}
-        </Typography>
-        {matrixQuery.isError ? (
-          <ErrorState
-            title={messages.errors.routeTitle}
-            message={text.matrixError}
-            onRetry={matrixQuery.refetch}
-          />
-        ) : matrixEditor.matrix === undefined ? (
-          <CircularProgress aria-label={messages.common.loading} />
-        ) : (
-          <PermissionsList
-            label={text.matrixTitle(role.name)}
-            matrix={matrixEditor.matrix}
-            pending={fieldsDisabled}
-            onToggle={matrixEditor.toggle}
-            onToggleAll={matrixEditor.toggleAll}
-          />
-        )}
-      </div>
+      <RolePermissionsSection
+        roleName={role.name}
+        isError={matrixQuery.isError}
+        onRetry={matrixQuery.refetch}
+        matrix={matrixEditor.matrix}
+        pending={fieldsDisabled}
+        onToggle={matrixEditor.toggle}
+        onToggleAll={matrixEditor.toggleAll}
+      />
       <DeleteRoleDialog
         open={deleteAction.open}
         roleName={role.name}

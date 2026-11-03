@@ -18,7 +18,7 @@ const text = messages.roles;
 
 /** The rich scenario (research D8): Sistema stays exactly as the real environment seeds it
  * (Administrator with its 16 permissions, Developer with none); Clínica additionally gets three
- * unevenly-featured modules (mockup, páginas 15-18), so both tabs have real rows to exercise. */
+ * unevenly-featured modules (mockup, páginas 15-18), so both types have real rows to exercise. */
 function start() {
   const scenario = richClinicModulesScenario();
   const users = createUsersDirectoryMock(scenario.directory);
@@ -31,6 +31,11 @@ function open(url = '/roles') {
 }
 
 const navigation = () => screen.getByRole('navigation', { name: messages.nav.label });
+/** A button of the Tipo filter (feature 025), which replaced the Clínica/Sistema tabs. */
+const typeFilter = async (name: string) =>
+  within(await screen.findByRole('group', { name: text.filters.typeLabel })).getByRole('button', {
+    name,
+  });
 const rolesLink = () =>
   within(navigation()).queryByRole('link', { name: messages.nav.sections.roles });
 
@@ -38,20 +43,20 @@ describe(
   'Roles y permisos: view and edit an existing role (feature 014, user story 1)',
   { timeout: 30_000 },
   () => {
-    it("US1-1: Clínica is selected by default, and switching tabs shows each one's own roles", async () => {
+    it('US1-1: Todos is selected by default, and the Tipo filter shows each type on its own (025)', async () => {
       start();
       const { user } = open();
 
       await screen.findByText('Owner');
-      expect(
-        screen.getByRole('tab', { name: text.tabs.clinica, selected: true }),
-      ).toBeInTheDocument();
-      expect(screen.queryByText('Administrator')).not.toBeInTheDocument();
+      expect(screen.getByText('Administrator')).toBeInTheDocument();
+      expect(await typeFilter(text.filters.type.all)).toHaveAttribute('aria-pressed', 'true');
 
-      await user.click(screen.getByRole('tab', { name: text.tabs.sistema }));
+      await user.click(await typeFilter(text.filters.type.system));
 
-      await screen.findByText('Administrator');
-      expect(screen.queryByText('Owner')).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.queryByText('Owner')).not.toBeInTheDocument();
+      });
+      expect(screen.getByText('Administrator')).toBeInTheDocument();
     });
 
     it('US1-2: shows the full detail of a role, only with the actions each module actually has', async () => {
@@ -157,7 +162,7 @@ describe(
     it('US1-7: Descartar cambios reverts the table and the name/description to the last saved state', async () => {
       start();
       const { user } = open();
-      await user.click(await screen.findByRole('tab', { name: text.tabs.sistema }));
+      await user.click(await typeFilter(text.filters.type.system));
       await user.click(await screen.findByText('Developer'));
       const nameField = await screen.findByLabelText(text.detail.fields.name);
 
@@ -176,7 +181,7 @@ describe(
     it('US1-8: saves the name together with the permissions, and rejects an empty or taken name first', async () => {
       const { roles } = start();
       const { user } = open();
-      await user.click(await screen.findByRole('tab', { name: text.tabs.sistema }));
+      await user.click(await typeFilter(text.filters.type.system));
       await user.click(await screen.findByText('Developer'));
       const nameField = await screen.findByLabelText(text.detail.fields.name);
 
