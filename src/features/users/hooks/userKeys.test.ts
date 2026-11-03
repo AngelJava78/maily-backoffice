@@ -4,13 +4,30 @@ import { describe, expect, it } from 'vitest';
 import { roleKeys, userKeys } from './userKeys';
 import { uuidOf } from '@/test/ids';
 
+/** The list that `/users` opens: first page of 10, Todos and Activos. */
+const FIRST_PAGE = { page: 1, pageSize: 10, type: 'all', status: 'active' } as const;
+
 describe('userKeys', () => {
-  it('keys a list by its page and its size', () => {
-    expect(userKeys.list({ page: 2, pageSize: 25 })).toEqual([
+  it('keys a list by its page, its size and both filters', () => {
+    expect(userKeys.list({ ...FIRST_PAGE, page: 2, pageSize: 25 })).toEqual([
       'users',
       'list',
-      { page: 2, pageSize: 25 },
+      { page: 2, pageSize: 25, type: 'all', status: 'active' },
     ]);
+  });
+
+  it('keys each combination of filters apart, since the service answers each one differently', () => {
+    const keys = [
+      userKeys.list(FIRST_PAGE),
+      userKeys.list({ ...FIRST_PAGE, type: 'system' }),
+      userKeys.list({ ...FIRST_PAGE, status: 'blocked' }),
+      userKeys.list({ ...FIRST_PAGE, type: 'clinic', status: 'blocked' }),
+    ];
+
+    expect(new Set(keys.map((key) => JSON.stringify(key))).size).toBe(4);
+    for (const key of keys) {
+      expect(partialMatchKey(key, userKeys.lists())).toBe(true);
+    }
   });
 
   it('keys a search by the email, trimmed and in lower case, so spelling variants share it', () => {
@@ -29,7 +46,7 @@ describe('userKeys', () => {
 
   describe('as prefixes, which is how a mutation invalidates (constitution III)', () => {
     it('lets every list be reached through `lists`, and nothing else', () => {
-      expect(partialMatchKey(userKeys.list({ page: 3, pageSize: 10 }), userKeys.lists())).toBe(
+      expect(partialMatchKey(userKeys.list({ ...FIRST_PAGE, page: 3 }), userKeys.lists())).toBe(
         true,
       );
       expect(partialMatchKey(userKeys.search('ana@clinica.com'), userKeys.lists())).toBe(false);
@@ -38,9 +55,7 @@ describe('userKeys', () => {
 
     it('lets every search be reached through `searches`', () => {
       expect(partialMatchKey(userKeys.search('ana@clinica.com'), userKeys.searches())).toBe(true);
-      expect(partialMatchKey(userKeys.list({ page: 1, pageSize: 10 }), userKeys.searches())).toBe(
-        false,
-      );
+      expect(partialMatchKey(userKeys.list(FIRST_PAGE), userKeys.searches())).toBe(false);
     });
 
     it('hangs the roles of a user from its detail, but not the ones of another user', () => {

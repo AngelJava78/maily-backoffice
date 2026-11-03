@@ -132,6 +132,7 @@ src/
 │       ├── UsersFilters.tsx              # NUEVO: Tipo y Estatus (D9)
 │       └── UsersGrid.tsx                 # UserListItem; columna Tipo; chip de estatus; vacío por props (D8)
 ├── shared/messages/es.ts                 # users: + filters, list.columns.type, noType, typeJoin, vacíos
+├── shared/ui/dataGridAugmentation.d.ts   # NoRowsOverlayPropsOverrides + message (al implementar)
 └── test/
     ├── factories.ts                      # userListItemDto(); userPageDto y userPageDtoOf con role_types
     └── handlers/usersDirectory/
@@ -142,8 +143,9 @@ e2e/users.spec.ts                         # filtrar por tipo y estatus, combinar
 ```
 
 **Structure Decision**: se mantiene la estructura por features (`app → features → shared`). Todo lo
-nuevo vive en `features/users`; `app` (ruta, capacidades) no cambia; en `shared` solo cambian los
-textos. **Archivos compartidos con otras features en curso** (posible conflicto al integrar):
+nuevo vive en `features/users`; `app` (ruta, capacidades) no cambia; en `shared` cambian los
+textos y, al implementar, `shared/ui/dataGridAugmentation.d.ts` (el overlay vacío del Data Grid
+recibe también su texto, `message`). **Archivos compartidos con otras features en curso** (posible conflicto al integrar):
 `src/shared/messages/es.ts` (bloque `users` aquí; `modules` en la 024) y `src/test/factories.ts`.
 Ningún archivo de `features/modules`, `features/roles` ni `test/handlers/modulesCatalog`.
 

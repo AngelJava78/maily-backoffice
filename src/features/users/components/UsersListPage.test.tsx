@@ -49,6 +49,15 @@ function renderList(route = '/users', userCapabilities = ALL_CAPABILITIES) {
 const grid = () => screen.getByRole('grid', { name: messages.users.list.gridLabel });
 const searchField = () => screen.getByLabelText(messages.users.search.label);
 
+/** The closest element around `element` that matches `selector`; the test fails if there is none. */
+function around(element: HTMLElement, selector: string): HTMLElement {
+  const found = element.closest<HTMLElement>(selector);
+  if (found === null) {
+    throw new Error(`No ${selector} around the element`);
+  }
+  return found;
+}
+
 describe('UsersListPage: the list', () => {
   it('shows the title, the search and the first 10 active users with their total (US1-1)', async () => {
     start();
@@ -294,5 +303,217 @@ describe('UsersListPage: the search by email', () => {
     await screen.findByText(messages.users.status.blocked);
 
     expect(await axe(container)).toHaveNoViolations();
+  });
+});
+
+describe('UsersListPage: the Tipo and Estatus filters (feature 026)', () => {
+  const typeGroup = () => screen.getByRole('group', { name: messages.users.filters.typeLabel });
+  const statusGroup = () => screen.getByRole('group', { name: messages.users.filters.statusLabel });
+
+  it('shows both groups with Todos and Activos pressed when the address says nothing (FR-004, US1-1)', async () => {
+    start();
+    renderList();
+    await screen.findByRole('link', { name: 'Admin Sistema' });
+
+    expect(within(typeGroup()).getByRole('button', { name: 'Todos', pressed: true })).toBeVisible();
+    expect(
+      within(statusGroup()).getByRole('button', { name: 'Activos', pressed: true }),
+    ).toBeVisible();
+    expect(screen.getByText('1–10 de 26')).toBeInTheDocument();
+  });
+
+  it('shows the type of each user in its own column (FR-006)', async () => {
+    start();
+    renderList();
+    const admin = await screen.findByRole('link', { name: 'Admin Sistema' });
+
+    expect(within(around(admin, '[role="row"]')).getByText('Sistema')).toBeInTheDocument();
+    expect(
+      within(
+        around(screen.getByRole('link', { name: 'Usuario Prueba 01' }), '[role="row"]'),
+      ).getByText(messages.users.list.noType),
+    ).toBeInTheDocument();
+  });
+
+  it('filters by Sistema at once, writing it in the address and asking the service for it (US1-2)', async () => {
+    const mock = start();
+    const { user, router } = renderList();
+    await screen.findByRole('link', { name: 'Admin Sistema' });
+
+    await user.click(within(typeGroup()).getByRole('button', { name: 'Sistema' }));
+
+    expect(await screen.findByText('1–1 de 1')).toBeInTheDocument();
+    expect(router.state.location.search).toBe('?type_id=1');
+    expect(
+      within(grid())
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual(['Admin Sistema']);
+    expect(
+      within(typeGroup()).getByRole('button', { name: 'Sistema', pressed: true }),
+    ).toBeVisible();
+    expect(mock.requestsTo('GET', '/api/v1/users').at(-1)?.search).toBe(
+      '?page=1&page_size=10&status_id=1&role_type_id=1',
+    );
+  });
+
+  it('shows both types again with Todos (US1-3)', async () => {
+    start();
+    const { user, router } = renderList('/users?type_id=1');
+    await screen.findByText('1–1 de 1');
+
+    await user.click(within(typeGroup()).getByRole('button', { name: 'Todos' }));
+
+    expect(await screen.findByText('1–10 de 26')).toBeInTheDocument();
+    expect(router.state.location.search).toBe('');
+  });
+
+  it('says that there are no users of a type, offering to create one, and keeps the filters (US1-6)', async () => {
+    start();
+    renderList('/users?type_id=2');
+
+    expect(
+      await screen.findByText(messages.users.list.emptyActiveOfType('Clínica')),
+    ).toBeInTheDocument();
+    // The one of the header and the one of the empty state.
+    expect(screen.getAllByRole('link', { name: messages.users.list.createAction })).toHaveLength(2);
+    expect(typeGroup()).toBeVisible();
+    expect(screen.getByRole('search')).toBeInTheDocument();
+  });
+
+  it('keeps the filters, the search and the title when the list cannot be loaded (FR-013)', async () => {
+    const mock = start();
+    mock.failNext({ method: 'GET', path: '/api/v1/users', status: 500, code: 'internal_error' });
+    renderList('/users?type_id=1');
+
+    expect(await screen.findByText(messages.users.list.loadError.title)).toBeInTheDocument();
+    expect(
+      within(typeGroup()).getByRole('button', { name: 'Sistema', pressed: true }),
+    ).toBeVisible();
+    expect(statusGroup()).toBeVisible();
+    expect(screen.getByRole('search')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: messages.users.title })).toBeVisible();
+  });
+
+  it('lists the blocked users with Bloqueados, writing it in the address (US2-1)', async () => {
+    const mock = start();
+    const { user, router } = renderList();
+    await screen.findByRole('link', { name: 'Admin Sistema' });
+
+    await user.click(within(statusGroup()).getByRole('button', { name: 'Bloqueados' }));
+
+    expect(await screen.findByText('1–1 de 1')).toBeInTheDocument();
+    expect(
+      within(grid())
+        .getAllByRole('link')
+        .map((link) => link.textContent),
+    ).toEqual(['Beto Prueba 200']);
+    expect(within(grid()).getByText(messages.users.status.blocked)).toBeVisible();
+    expect(router.state.location.search).toBe('?status_id=2');
+    expect(mock.requestsTo('GET', '/api/v1/users').at(-1)?.search).toBe(
+      '?page=1&page_size=10&status_id=2',
+    );
+  });
+
+  it.each([
+    ['/users?status_id=2&type_id=1', messages.users.list.emptyBlockedOfType('Sistema')],
+    ['/users?status_id=2&type_id=2', messages.users.list.emptyBlockedOfType('Clínica')],
+  ])(
+    'opening %s says «%s», without offering to create a user there (US2-5)',
+    async (route, message) => {
+      start();
+      renderList(route);
+
+      expect(await screen.findByText(message)).toBeInTheDocument();
+      // Only the one of the header (US3-8).
+      expect(screen.getAllByRole('link', { name: messages.users.list.createAction })).toHaveLength(
+        1,
+      );
+    },
+  );
+
+  it('says that there are no blocked users when there are none', async () => {
+    const base = defaultDirectory();
+    createUsersDirectoryMock({ ...base, users: [...base.users, ...makeUsers(3)] });
+    renderList('/users?status_id=2');
+
+    expect(await screen.findByText(messages.users.list.emptyBlocked)).toBeInTheDocument();
+  });
+
+  it('shows the error with a retry for the blocked ones too, keeping filters and search (US2-6)', async () => {
+    const mock = start();
+    mock.failNext({ method: 'GET', path: '/api/v1/users', status: 500, code: 'internal_error' });
+    const { user } = renderList('/users?status_id=2');
+
+    expect(await screen.findByText(messages.users.list.loadError.title)).toBeInTheDocument();
+    expect(
+      within(statusGroup()).getByRole('button', { name: 'Bloqueados', pressed: true }),
+    ).toBeVisible();
+    expect(screen.getByRole('search')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: messages.common.retry }));
+
+    expect(await screen.findByRole('link', { name: 'Beto Prueba 200' })).toBeInTheDocument();
+  });
+
+  it('can be used with the keyboard alone: Tab into the group, arrows, Space (FR-016, US4-1)', async () => {
+    start();
+    const { user, router } = renderList();
+    await screen.findByRole('link', { name: 'Admin Sistema' });
+    within(typeGroup()).getByRole('button', { name: 'Todos' }).focus();
+
+    await user.keyboard('{ArrowRight}');
+    expect(within(typeGroup()).getByRole('button', { name: 'Sistema' })).toHaveFocus();
+    await user.keyboard(' ');
+
+    expect(await screen.findByText('1–1 de 1')).toBeInTheDocument();
+    expect(router.state.location.search).toBe('?type_id=1');
+    // The focus stays on the button that was pressed (US4-3).
+    expect(within(typeGroup()).getByRole('button', { name: 'Sistema' })).toHaveFocus();
+  });
+
+  it('tells which users are shown after a filter changes, without moving the focus (FR-014, US4-3)', async () => {
+    start();
+    const { user } = renderList();
+    await screen.findByRole('link', { name: 'Admin Sistema' });
+    const region = screen.getByRole('status');
+
+    await user.click(within(typeGroup()).getByRole('button', { name: 'Sistema' }));
+
+    await waitFor(() => {
+      expect(region).toHaveTextContent(messages.users.list.pageStatus(1, 1, 1));
+    });
+    expect(within(typeGroup()).getByRole('button', { name: 'Sistema' })).toHaveFocus();
+  });
+
+  it('tells that the list is empty when no user answers the filters (FR-014)', async () => {
+    start();
+    const { user } = renderList();
+    await screen.findByRole('link', { name: 'Admin Sistema' });
+    const region = screen.getByRole('status');
+
+    await user.click(within(typeGroup()).getByRole('button', { name: 'Clínica' }));
+
+    await waitFor(() => {
+      expect(region).toHaveTextContent(messages.users.list.emptyActiveOfType('Clínica'));
+    });
+    expect(screen.getByRole('status')).toBe(region);
+  });
+
+  it('has no accessibility violations with the filters, the type and a blocked user (SC-008)', async () => {
+    start();
+    const { container } = renderList('/users?status_id=2');
+    await screen.findByRole('link', { name: 'Beto Prueba 200' });
+
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it('shows the filters during a search too, with their values', async () => {
+    start();
+    renderList('/users?email=beto%40clinica.com&status_id=2');
+    await screen.findByText(messages.users.status.blocked);
+
+    expect(
+      within(statusGroup()).getByRole('button', { name: 'Bloqueados', pressed: true }),
+    ).toBeVisible();
   });
 });

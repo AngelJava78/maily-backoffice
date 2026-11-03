@@ -53,7 +53,7 @@ describe('useCreateUser', () => {
 
   it('keeps the user and the roles in the cache and marks the lists and searches as stale', async () => {
     const { queryClient, result } = setup();
-    const list = userKeys.list({ page: 1, pageSize: 10 });
+    const list = userKeys.list({ page: 1, pageSize: 10, type: 'all', status: 'active' });
     const search = userKeys.search('nora@clinica.com');
     queryClient.setQueryData(list, 'a page');
     queryClient.setQueryData(search, null);

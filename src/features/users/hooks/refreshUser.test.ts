@@ -47,7 +47,7 @@ describe('refreshAfterRoleChange', () => {
       detail: userKeys.detail(uuidOf(7)),
       roles: userKeys.roles(uuidOf(7)),
       otherDetail: userKeys.detail(uuidOf(8)),
-      list: userKeys.list({ page: 1, pageSize: 10 }),
+      list: userKeys.list({ page: 1, pageSize: 10, type: 'all', status: 'active' }),
       search: userKeys.search('a@b.co'),
       catalog: roleKeys.catalog(),
     };
@@ -58,14 +58,16 @@ describe('refreshAfterRoleChange', () => {
     return { queryClient, stale };
   }
 
-  it('only marks the roles of the user as stale when the change worked', async () => {
+  // The list shows the type of each user, which comes from its roles (feature 026, research D5).
+  it('marks the roles of the user and the lists as stale when the change worked', async () => {
     const { queryClient, stale } = cached();
 
     await refreshAfterRoleChange(queryClient, uuidOf(7), null, 'assignRole');
 
     expect(stale('roles')).toBe(true);
+    expect(stale('list')).toBe(true);
     expect(stale('detail')).toBe(false);
-    expect(stale('list')).toBe(false);
+    expect(stale('search')).toBe(false);
     expect(stale('catalog')).toBe(false);
   });
 
@@ -82,10 +84,11 @@ describe('refreshAfterRoleChange', () => {
     expect(stale('catalog')).toBe(true);
     // The roles of the user may have lost that role too.
     expect(stale('roles')).toBe(true);
+    expect(stale('list')).toBe(true);
     expect(stale('detail')).toBe(false);
   });
 
-  it('only marks the roles as stale when the change was already done', async () => {
+  it('marks the roles and the lists as stale when the change was already done', async () => {
     const { queryClient, stale } = cached();
 
     await refreshAfterRoleChange(
@@ -96,6 +99,7 @@ describe('refreshAfterRoleChange', () => {
     );
 
     expect(stale('roles')).toBe(true);
+    expect(stale('list')).toBe(true);
     expect(stale('detail')).toBe(false);
     expect(stale('catalog')).toBe(false);
   });

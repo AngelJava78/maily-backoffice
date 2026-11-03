@@ -33,7 +33,7 @@ function setup(statusId = ACTIVE) {
 
 /** What the screens have cached about the user before the change. */
 function seed(queryClient: ReturnType<typeof setup>['queryClient']) {
-  const list = userKeys.list({ page: 1, pageSize: 10 });
+  const list = userKeys.list({ page: 1, pageSize: 10, type: 'all', status: 'active' });
   const search = userKeys.search('user121@ejemplo.com');
   queryClient.setQueryData(userKeys.detail(uuidOf(121)), 'the user as it was');
   queryClient.setQueryData(userKeys.roles(uuidOf(121)), ['Marketing']);

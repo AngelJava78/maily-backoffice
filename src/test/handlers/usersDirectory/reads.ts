@@ -13,8 +13,9 @@ import {
 } from './validation';
 
 /**
- * The reads of the users service (U1 to U3 and U10): the list of the active users, the search by
- * email, one user and the roles of a user. All of them ask for `users:read`.
+ * The reads of the users service (U1 to U3 and U10): the list of the users of one status and type
+ * (API 5.5.0), the search by email, one user and the roles of a user. All of them ask for
+ * `users:read`.
  */
 export function readHandlers(model: DirectoryModel, handle: Handle): HttpHandler[] {
   const users = `${USERS_API_BASE_URL}/api/v1/users`;
@@ -31,10 +32,22 @@ export function readHandlers(model: DirectoryModel, handle: Handle): HttpHandler
           { field: 'page_size', fallback: 50, min: 1, max: 100 },
           issues,
         );
+        // API 5.5.0 (feature 026): 1 active by default or 2 blocked; deleted users are never listed.
+        const statusId = readInteger(
+          query.get('status_id'),
+          { field: 'status_id', fallback: 1, min: 1, max: 2 },
+          issues,
+        );
+        // Without it, users of every type, also those without active roles.
+        const typeText = query.get('role_type_id');
+        const roleTypeId =
+          typeText === null
+            ? undefined
+            : readInteger(typeText, { field: 'role_type_id', fallback: 1, min: 1, max: 2 }, issues);
         if (issues.length > 0) {
           throw validationError(issues);
         }
-        return HttpResponse.json(model.listActiveUsers(page, pageSize));
+        return HttpResponse.json(model.listUsers(page, pageSize, { statusId, roleTypeId }));
       }),
     ),
 

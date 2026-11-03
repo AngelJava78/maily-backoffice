@@ -1,7 +1,11 @@
-/** The page asked for in the list. */
+import type { UsersStatusFilter, UsersTypeFilter } from '../schemas/usersLocation';
+
+/** The page asked for in the list, with both filters (feature 026): each one is its own answer. */
 export interface UserListParams {
   readonly page: number;
   readonly pageSize: number;
+  readonly type: UsersTypeFilter;
+  readonly status: UsersStatusFilter;
 }
 
 /**

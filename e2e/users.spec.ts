@@ -70,6 +70,56 @@ test.describe('the users section: readings (A1)', () => {
     await expect(page).toHaveURL(/page=3/);
   });
 
+  test('feature 026: filters by Tipo and Estatus, combines them and comes back from a detail with the same filters', async ({
+    page,
+  }) => {
+    await openAs(page, '/users');
+    const typeGroup = page.getByRole('group', { name: text.filters.typeLabel });
+    const statusGroup = page.getByRole('group', { name: text.filters.statusLabel });
+    await expect(typeGroup.getByRole('button', { name: 'Todos', pressed: true })).toBeVisible();
+    await expect(statusGroup.getByRole('button', { name: 'Activos', pressed: true })).toBeVisible();
+
+    // Each filter shows only its users, or says that there are none (the data of the environment
+    // decide which).
+    const typeCells = usersGrid(page).locator('[data-field="type"][role="gridcell"]');
+    for (const [button, typeId, pattern] of [
+      ['Sistema', '1', /Sistema/],
+      ['Clínica', '2', /Clínica/],
+    ] as const) {
+      await typeGroup.getByRole('button', { name: button }).click();
+      await expect(page).toHaveURL(new RegExp(`type_id=${typeId}`));
+      await expect(typeGroup.getByRole('button', { name: button, pressed: true })).toBeVisible();
+      // While the new page loads the previous one stays on screen, with the loading indicator.
+      await expect(usersGrid(page).getByRole('progressbar')).toHaveCount(0);
+      for (const cell of await typeCells.all()) {
+        await expect(cell).toHaveText(pattern);
+      }
+    }
+
+    await typeGroup.getByRole('button', { name: 'Todos' }).click();
+    await statusGroup.getByRole('button', { name: 'Bloqueados' }).click();
+    await expect(page).toHaveURL(/status_id=2/);
+    await expect(page).not.toHaveURL(/type_id=/);
+    await expect(usersGrid(page).getByRole('progressbar')).toHaveCount(0);
+    const links = usersGrid(page).getByRole('link');
+    const empty = page.getByText(text.list.emptyBlocked, { exact: true });
+    await expect(links.first().or(empty)).toBeVisible();
+    // Every blocked user is marked as such next to its name.
+    await expect(usersGrid(page).getByText(text.status.blocked, { exact: true })).toHaveCount(
+      await links.count(),
+    );
+
+    if ((await links.count()) > 0) {
+      await links.first().click();
+      await expect(heading(page, text.detail.title)).toBeVisible();
+      await page.getByRole('link', { name: text.detail.backToList }).click();
+      await expect(page).toHaveURL(/\/users\?status_id=2$/);
+      await expect(
+        statusGroup.getByRole('button', { name: 'Bloqueados', pressed: true }),
+      ).toBeVisible();
+    }
+  });
+
   test('V5: says that a user does not exist, and that an address which is not a UUID is not a page', async ({
     page,
   }) => {

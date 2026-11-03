@@ -12,6 +12,15 @@ describe('parseUserDetailState', () => {
     });
   });
 
+  it('keeps the filters of the list, to come back to them (FR-012 of feature 026)', () => {
+    expect(parseUserDetailState({ listSearch: '?type_id=2&status_id=2&page=3' })).toEqual({
+      listSearch: '?type_id=2&status_id=2&page=3',
+    });
+    expect(
+      parseUserDetailState({ listSearch: '?email=ana%40clinica.com&type_id=1&status_id=2' }),
+    ).toEqual({ listSearch: '?email=ana%40clinica.com&type_id=1&status_id=2' });
+  });
+
   it.each([
     ['without the question mark', 'page=3'],
     ['with a parameter that is not of the list', '?page=3&x=1'],

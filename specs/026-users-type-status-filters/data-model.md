@@ -29,7 +29,7 @@ entera se rechaza y la tabla muestra el error con reintento.
 | `[1]` | «Sistema» |
 | `[2]` | «Clínica» |
 | `[1, 2]` | «Sistema y Clínica» |
-| con un id desconocido | los textos conocidos y el `name` de la API para el resto, unidos con « y » |
+| con un id desconocido | los textos conocidos y el `name` de la API para el resto: «A y B», o «A, B y C» con tres o más |
 
 ## 2. `UserPage` (cambia, `schemas/userPage.ts`)
 

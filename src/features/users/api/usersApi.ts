@@ -17,14 +17,30 @@ interface Cancellable {
   readonly signal?: AbortSignal;
 }
 
-/** U1: a page of the active users, in the fixed order of the service. */
+/**
+ * U1 (API 5.5.0, feature 026): a page of the users of one status (1 active, 2 blocked) and, with
+ * `roleTypeId`, of one type (1 Sistema, 2 Clínica), in the fixed order of the service. The status
+ * is always sent, so that every request says what it asks for (research D1).
+ */
 export function listUsers(
   client: HttpClient,
-  { page, pageSize, signal }: Cancellable & { readonly page: number; readonly pageSize: number },
+  {
+    page,
+    pageSize,
+    statusId,
+    roleTypeId,
+    signal,
+  }: Cancellable & {
+    readonly page: number;
+    readonly pageSize: number;
+    readonly statusId: 1 | 2;
+    readonly roleTypeId?: 1 | 2;
+  },
 ): Promise<UserPage> {
   return client.get(USERS_PATH, {
     schema: userPageSchema,
-    query: { page, page_size: pageSize },
+    // The client leaves out a parameter without value: no `role_type_id` with Todos.
+    query: { page, page_size: pageSize, status_id: statusId, role_type_id: roleTypeId },
     signal,
   });
 }

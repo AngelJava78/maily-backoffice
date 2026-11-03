@@ -189,3 +189,130 @@ describe('the users section: consulting (feature 002, user story 1)', { timeout:
     expect(await screen.findByText('1–10 de 31')).toBeInTheDocument();
   });
 });
+
+describe(
+  'the users section: filters, address and search together (feature 026, user story 3)',
+  { timeout: 30_000 },
+  () => {
+    const typeGroup = () => screen.getByRole('group', { name: messages.users.filters.typeLabel });
+    const statusGroup = () =>
+      screen.getByRole('group', { name: messages.users.filters.statusLabel });
+
+    it('keeps the filters, the page and the page size after seeing a detail and after reloading (US3-1)', async () => {
+      start();
+      const first = open('/users?status_id=1&page=2&page_size=25');
+      // The default status is not written: the address is normalized.
+      await waitFor(() => {
+        expect(first.router.state.location.search).toBe('?page=2&page_size=25');
+      });
+      await screen.findByText('26–31 de 31');
+
+      await first.user.click(within(grid()).getAllByRole('link')[0] ?? grid());
+      await first.user.click(
+        await screen.findByRole('link', { name: messages.users.detail.backToList }),
+      );
+      expect(await screen.findByText('26–31 de 31')).toBeInTheDocument();
+      expect(first.router.state.location.search).toBe('?page=2&page_size=25');
+      first.unmount();
+
+      // Reloading the same address.
+      const again = open('/users?page=2&page_size=25');
+      expect(await screen.findByText('26–31 de 31')).toBeInTheDocument();
+      expect(again.router.state.location.search).toBe('?page=2&page_size=25');
+    });
+
+    it('goes back to the first page, with the same page size, when a filter changes (US3-2, FR-008)', async () => {
+      start();
+      const { user, router } = open('/users?page=3');
+      await screen.findByText('21–30 de 31');
+
+      await user.click(within(statusGroup()).getByRole('button', { name: 'Bloqueados' }));
+
+      expect(await screen.findByText('1–1 de 1')).toBeInTheDocument();
+      expect(router.state.location.search).toBe('?status_id=2');
+    });
+
+    it('opens a link saved before the filters on the same page of the active users of both types (US3-3)', async () => {
+      start();
+      const { router } = open('/users?page=2&page_size=25');
+
+      expect(await screen.findByText('26–31 de 31')).toBeInTheDocument();
+      expect(router.state.location.search).toBe('?page=2&page_size=25');
+      expect(
+        within(typeGroup()).getByRole('button', { name: 'Todos', pressed: true }),
+      ).toBeVisible();
+      expect(
+        within(statusGroup()).getByRole('button', { name: 'Activos', pressed: true }),
+      ).toBeVisible();
+    });
+
+    it('opens an address with filters that are not valid with the defaults, without an error (US3-4)', async () => {
+      start();
+      const { router } = open('/users?type_id=9&status_id=3&page=abc');
+
+      expect(await screen.findByText('1–10 de 31')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(router.state.location.search).toBe('');
+      });
+      expect(screen.queryByText(messages.users.list.loadError.title)).not.toBeInTheDocument();
+    });
+
+    it('finds a blocked user by email with Activos pressed, and clearing goes back to the same filters (US3-5, US3-6)', async () => {
+      start();
+      const { user, router } = open('/users?type_id=1');
+      await screen.findByText('1–1 de 1');
+
+      await user.type(screen.getByLabelText(messages.users.search.label), 'beto@clinica.com');
+      await user.click(screen.getByRole('button', { name: messages.users.search.submit }));
+
+      expect(await screen.findByText(messages.users.status.blocked)).toBeInTheDocument();
+      expect(router.state.location.search).toBe('?email=beto%40clinica.com&type_id=1');
+      expect(
+        within(typeGroup()).getByRole('button', { name: 'Sistema', pressed: true }),
+      ).toBeVisible();
+
+      await user.click(screen.getByRole('button', { name: messages.users.search.clear }));
+      expect(await screen.findByText('1–1 de 1')).toBeInTheDocument();
+      expect(router.state.location.search).toBe('?type_id=1');
+    });
+
+    it('ends a search when a filter is pressed, and shows the filtered list (research D4)', async () => {
+      start();
+      const { user, router } = open('/users?email=beto%40clinica.com');
+      await screen.findByText(messages.users.status.blocked);
+
+      await user.click(within(statusGroup()).getByRole('button', { name: 'Bloqueados' }));
+
+      expect(await screen.findByText('1–1 de 1')).toBeInTheDocument();
+      expect(router.state.location.search).toBe('?status_id=2');
+      expect(screen.getByLabelText(messages.users.search.label)).toHaveValue('');
+    });
+
+    it('replaces a page that no longer exists with the filters by the last one (US3-7)', async () => {
+      start();
+      const { router } = open('/users?status_id=2&page=4');
+
+      await waitFor(() => {
+        expect(router.state.location.search).toBe('?status_id=2');
+      });
+      expect(await screen.findByText('1–1 de 1')).toBeInTheDocument();
+    });
+
+    it('keeps «Crear usuario» with any combination of filters (US3-8)', async () => {
+      start();
+      const { user } = open('/users');
+      await screen.findByText('1–10 de 31');
+
+      for (const [group, button] of [
+        [statusGroup, 'Bloqueados'],
+        [typeGroup, 'Clínica'],
+        [statusGroup, 'Activos'],
+      ] as const) {
+        await user.click(within(group()).getByRole('button', { name: button }));
+        expect(
+          screen.getAllByRole('link', { name: messages.users.list.createAction }).length,
+        ).toBeGreaterThan(0);
+      }
+    });
+  },
+);

@@ -1,10 +1,17 @@
 import { z } from 'zod';
 
-/** The only parameters the list writes in its address (see `usersLocation`). */
-const LIST_PARAMETERS: ReadonlySet<string> = new Set(['page', 'page_size', 'email']);
+/** The only parameters the list writes in its address (see `usersLocation`), filters included. */
+const LIST_PARAMETERS: ReadonlySet<string> = new Set([
+  'type_id',
+  'status_id',
+  'page',
+  'page_size',
+  'email',
+]);
 
 /**
- * The search of the list that the person comes from, to go back to the same page. It is rebuilt
+ * The search of the list that the person comes from, to go back to the same page and filters
+ * (FR-012 of feature 026). It is rebuilt
  * into an address, so only what the list itself writes is accepted: a question mark and the
  * parameters of the list, nothing that could send the person somewhere else.
  */

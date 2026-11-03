@@ -106,6 +106,13 @@ for (const size of SIZES) {
       // The table scrolls inside its own box: the page itself does not.
       const heading = (name: string) => page.getByRole('heading', { level: 1, name });
       await expect(heading(messages.users.title)).toBeVisible();
+      // Feature 026: the Tipo and Estatus groups reflow over several lines (FR-017, US4-4).
+      await expect(
+        page.getByRole('group', { name: messages.users.filters.typeLabel }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole('group', { name: messages.users.filters.statusLabel }),
+      ).toBeVisible();
       await expectNoHorizontalScroll(page);
       await expectHeaderShortcuts(page);
 

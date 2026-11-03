@@ -332,10 +332,29 @@ export const messages = {
   users: {
     title: 'Usuarios',
     status: { active: 'Activo', blocked: 'Bloqueado', deleted: 'Eliminado' },
+    // Feature 026: the same labels as `modules.filters` and `roles.filters` (FR-015).
+    filters: {
+      typeLabel: 'Tipo',
+      type: { all: 'Todos', system: 'Sistema', clinic: 'Clínica' },
+      statusLabel: 'Estatus',
+      status: { active: 'Activos', blocked: 'Bloqueados' },
+    },
     list: {
       gridLabel: 'Usuarios',
-      columns: { name: 'Nombre', email: 'Correo electrónico', createdAt: 'Fecha de alta' },
+      columns: {
+        name: 'Nombre',
+        email: 'Correo electrónico',
+        type: 'Tipo',
+        createdAt: 'Fecha de alta',
+      },
+      /** The type of a user without active roles. */
+      noType: '—',
+      /** A user with active roles of two types: «Sistema y Clínica». */
+      typeJoin: (first: string, second: string) => `${first} y ${second}`,
       empty: 'No hay usuarios activos',
+      emptyActiveOfType: (type: string) => `No hay usuarios activos de ${type}`,
+      emptyBlocked: 'No hay usuarios bloqueados',
+      emptyBlockedOfType: (type: string) => `No hay usuarios bloqueados de ${type}`,
       createAction: 'Crear usuario',
       pageStatus: (from: number, to: number, total: number) =>
         `Mostrando ${from} a ${to} de ${total} usuarios.`,

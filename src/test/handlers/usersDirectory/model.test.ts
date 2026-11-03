@@ -138,7 +138,9 @@ describe('accessOf (the answer of `me`)', () => {
   });
 });
 
-describe('listActiveUsers', () => {
+describe('listUsers', () => {
+  const ACTIVE_ONLY = { statusId: ACTIVE };
+
   it('lists only the active users, by name, paternal and maternal last name, then by id', () => {
     const model = build({
       users: [
@@ -177,7 +179,7 @@ describe('listActiveUsers', () => {
       ],
     });
 
-    const page = model.listActiveUsers(1, 50);
+    const page = model.listUsers(1, 50, ACTIVE_ONLY);
 
     expect(page.items.map((user) => user.id)).toEqual([4, 5, 3, 2, 1].map(uuidOf));
     expect(page).toMatchObject({ total: 5, page: 1, page_size: 50, pages: 1 });
@@ -189,14 +191,14 @@ describe('listActiveUsers', () => {
       users: [...users, directoryUser({ id: uuidOf(99), statusId: BLOCKED })],
     });
 
-    expect(model.listActiveUsers(1, 10)).toMatchObject({ total: 25, pages: 3 });
-    expect(model.listActiveUsers(3, 10).items).toHaveLength(5);
+    expect(model.listUsers(1, 10, ACTIVE_ONLY)).toMatchObject({ total: 25, pages: 3 });
+    expect(model.listUsers(3, 10, ACTIVE_ONLY).items).toHaveLength(5);
   });
 
   it('answers a page past the last one with no items, not with an error', () => {
     const model = build({ users: [directoryUser({ id: uuidOf(1) })] });
 
-    expect(model.listActiveUsers(9, 10)).toMatchObject({
+    expect(model.listUsers(9, 10, ACTIVE_ONLY)).toMatchObject({
       items: [],
       total: 1,
       page: 9,
@@ -205,7 +207,113 @@ describe('listActiveUsers', () => {
   });
 
   it('has no pages when there are no active users', () => {
-    expect(build().listActiveUsers(1, 50)).toMatchObject({ items: [], total: 0, pages: 0 });
+    expect(build().listUsers(1, 50, ACTIVE_ONLY)).toMatchObject({ items: [], total: 0, pages: 0 });
+  });
+  describe('with the filters of the API 5.5.0 (feature 026), on the sample data of its spec 018', () => {
+    // Roles: Admin (Sistema), Doctor and Caja (Clínica), Enfermería (Clínica, blocked) and
+    // Recepción (Clínica, deleted).
+    const roles = [
+      directoryRole({ id: 1, name: 'Admin', typeId: SYSTEM_TYPE }),
+      directoryRole({ id: 2, name: 'Doctor', typeId: CLINIC_TYPE }),
+      directoryRole({ id: 3, name: 'Caja', typeId: CLINIC_TYPE }),
+      directoryRole({ id: 4, name: 'Enfermería', typeId: CLINIC_TYPE, statusId: BLOCKED }),
+      directoryRole({ id: 5, name: 'Recepción', typeId: CLINIC_TYPE, statusId: DELETED }),
+    ];
+    const people: [number, string, number, number[]][] = [
+      [1, 'Ana', ACTIVE, [1]],
+      [2, 'Beto', ACTIVE, [2]],
+      [3, 'Carla', ACTIVE, [1, 2]],
+      [4, 'Diego', ACTIVE, []],
+      [5, 'Elena', ACTIVE, [4, 5]],
+      [6, 'Fabián', ACTIVE, [2, 3]],
+      [7, 'Gabi', BLOCKED, [2]],
+      [8, 'Hugo', BLOCKED, [1]],
+      [9, 'Irene', DELETED, [1]],
+      [10, 'Jorge', BLOCKED, []],
+    ];
+    const model = build({
+      users: people.map(([id, firstName, statusId]) =>
+        directoryUser({ id: uuidOf(id), firstName, paternalLastName: 'López', statusId }),
+      ),
+      roles,
+      associations: people.flatMap(([id, , , roleIds]) =>
+        roleIds.map((roleId) => ({ userId: uuidOf(id), roleId })),
+      ),
+    });
+
+    function namesOf(filters: { statusId: number; roleTypeId?: number }): string[] {
+      return model.listUsers(1, 50, filters).items.map((user) => user.first_name);
+    }
+
+    it.each([
+      [{ statusId: ACTIVE }, ['Ana', 'Beto', 'Carla', 'Diego', 'Elena', 'Fabián']],
+      [{ statusId: ACTIVE, roleTypeId: SYSTEM_TYPE }, ['Ana', 'Carla']],
+      [{ statusId: ACTIVE, roleTypeId: CLINIC_TYPE }, ['Beto', 'Carla', 'Fabián']],
+      [{ statusId: BLOCKED }, ['Gabi', 'Hugo', 'Jorge']],
+      [{ statusId: BLOCKED, roleTypeId: SYSTEM_TYPE }, ['Hugo']],
+      [{ statusId: BLOCKED, roleTypeId: CLINIC_TYPE }, ['Gabi']],
+    ])('lists, for %j, exactly %j', (filters, names) => {
+      expect(namesOf(filters)).toEqual(names);
+      expect(model.listUsers(1, 50, filters).total).toBe(names.length);
+    });
+
+    it('gives each user the distinct types of its active roles, sorted by id', () => {
+      const types = Object.fromEntries(
+        model
+          .listUsers(1, 50, { statusId: ACTIVE })
+          .items.map((user) => [user.first_name, user.role_types.map((type) => type.name)]),
+      );
+
+      expect(types).toEqual({
+        Ana: ['Sistema'],
+        Beto: ['Clínica'],
+        Carla: ['Sistema', 'Clínica'],
+        Diego: [],
+        // Her roles are blocked and deleted: they do not count.
+        Elena: [],
+        // Two roles of the same type give it once.
+        Fabián: ['Clínica'],
+      });
+    });
+
+    it('reports every type of a user also when filtering by one', () => {
+      const carla = model
+        .listUsers(1, 50, { statusId: ACTIVE, roleTypeId: SYSTEM_TYPE })
+        .items.find((user) => user.first_name === 'Carla');
+
+      expect(carla?.role_types).toEqual([
+        { id: SYSTEM_TYPE, name: 'Sistema' },
+        { id: CLINIC_TYPE, name: 'Clínica' },
+      ]);
+    });
+
+    it('works out the type of a blocked user the same way', () => {
+      expect(
+        model.listUsers(1, 50, { statusId: BLOCKED }).items.map((user) => user.role_types),
+      ).toEqual([
+        [{ id: CLINIC_TYPE, name: 'Clínica' }],
+        [{ id: SYSTEM_TYPE, name: 'Sistema' }],
+        [],
+      ]);
+    });
+
+    it('never lists a deleted user', () => {
+      expect(namesOf({ statusId: DELETED })).toEqual([]);
+    });
+
+    it('pages the filtered users and counts only them', () => {
+      expect(model.listUsers(2, 2, { statusId: ACTIVE, roleTypeId: CLINIC_TYPE })).toMatchObject({
+        total: 3,
+        page: 2,
+        page_size: 2,
+        pages: 2,
+      });
+      expect(
+        model
+          .listUsers(2, 2, { statusId: ACTIVE, roleTypeId: CLINIC_TYPE })
+          .items.map((user) => user.first_name),
+      ).toEqual(['Fabián']);
+    });
   });
 });
 

@@ -4,23 +4,31 @@ import { axe } from 'vitest-axe';
 
 import { formatDateTime } from '@/shared/lib/formatDateTime';
 import { messages } from '@/shared/messages/es';
-import { userDto } from '@/test/factories';
+import { userListItemDto } from '@/test/factories';
 import { renderWithProviders } from '@/test/renderWithProviders';
 
-import { platformUserSchema, type PlatformUser } from '../schemas/user';
+import { userListItemSchema, type UserListItem } from '../schemas/userListItem';
 import { UsersGrid } from './UsersGrid';
 import { uuidOf } from '@/test/ids';
 
-function tenUsers(): PlatformUser[] {
+const SYSTEM = { id: 1, name: 'Sistema' };
+const CLINIC = { id: 2, name: 'Clínica' };
+
+/** Ten active users: the first of Sistema, the second of Clínica, the third of both, the rest of none. */
+function tenUsers(): UserListItem[] {
+  const types = [[SYSTEM], [CLINIC], [SYSTEM, CLINIC]];
   return Array.from({ length: 10 }, (_, index) =>
-    platformUserSchema.parse(
-      userDto({
-        id: uuidOf(121 + index),
-        email: `usuario${index}@clinica.com`,
-        first_name: `Usuario${index}`,
-        paternal_last_name: 'Pérez',
-        maternal_last_name: index === 1 ? null : 'Gómez',
-      }),
+    userListItemSchema.parse(
+      userListItemDto(
+        {
+          id: uuidOf(121 + index),
+          email: `usuario${index}@clinica.com`,
+          first_name: `Usuario${index}`,
+          paternal_last_name: 'Pérez',
+          maternal_last_name: index === 1 ? null : 'Gómez',
+        },
+        types[index] ?? [],
+      ),
     ),
   );
 }
@@ -35,6 +43,7 @@ function renderGrid(props: Partial<Parameters<typeof UsersGrid>[0]> = {}) {
       pageSize={10}
       loading={false}
       listSearch="?page=3&page_size=25"
+      emptyMessage={messages.users.list.empty}
       onPaginationChange={onPaginationChange}
       {...props}
     />,
@@ -42,8 +51,17 @@ function renderGrid(props: Partial<Parameters<typeof UsersGrid>[0]> = {}) {
   return { ...view, onPaginationChange };
 }
 
+/** The closest element around `element` that matches `selector`; the test fails if there is none. */
+function around(element: HTMLElement, selector: string): HTMLElement {
+  const found = element.closest<HTMLElement>(selector);
+  if (found === null) {
+    throw new Error(`No ${selector} around the element`);
+  }
+  return found;
+}
+
 describe('UsersGrid', () => {
-  it('shows the name, the email and the date of creation of each user (FR-002)', () => {
+  it('shows the name, the email, the type and the date of creation of each user (FR-006)', () => {
     renderGrid();
 
     const grid = screen.getByRole('grid', { name: messages.users.list.gridLabel });
@@ -54,6 +72,7 @@ describe('UsersGrid', () => {
     ).toEqual([
       messages.users.list.columns.name,
       messages.users.list.columns.email,
+      messages.users.list.columns.type,
       messages.users.list.columns.createdAt,
     ]);
     expect(within(grid).getByText('usuario0@clinica.com')).toBeInTheDocument();
@@ -65,6 +84,46 @@ describe('UsersGrid', () => {
 
     expect(screen.getByRole('link', { name: 'Usuario0 Pérez Gómez' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Usuario1 Pérez' })).toBeInTheDocument();
+  });
+
+  it('shows the type of each user with the words of the buttons, and «—» without active roles (FR-006)', () => {
+    renderGrid();
+
+    const rowOf = (name: string) => around(screen.getByRole('link', { name }), '[role="row"]');
+    expect(within(rowOf('Usuario0 Pérez Gómez')).getByText('Sistema')).toBeInTheDocument();
+    expect(within(rowOf('Usuario1 Pérez')).getByText('Clínica')).toBeInTheDocument();
+    expect(
+      within(rowOf('Usuario2 Pérez Gómez')).getByText('Sistema y Clínica'),
+    ).toBeInTheDocument();
+    expect(within(rowOf('Usuario3 Pérez Gómez')).getByText('—')).toBeInTheDocument();
+  });
+
+  it('marks a blocked user next to its name, and an active one not (FR-006, US2-3)', () => {
+    const blocked = userListItemSchema.parse(
+      userListItemDto(
+        {
+          id: uuidOf(300),
+          first_name: 'Gabi',
+          paternal_last_name: 'López',
+          maternal_last_name: null,
+          status: { id: 2, name: 'Bloqueado' },
+        },
+        [CLINIC],
+      ),
+    );
+    renderGrid({ users: [blocked, ...tenUsers().slice(0, 1)], total: 2 });
+
+    const nameCell = (name: string) =>
+      around(screen.getByRole('link', { name }), '[role="gridcell"]');
+    expect(within(nameCell('Gabi López')).getByText(messages.users.status.blocked)).toBeVisible();
+    expect(
+      within(nameCell('Usuario0 Pérez Gómez')).queryByText(messages.users.status.active),
+    ).toBeNull();
+    // The name is still the link to the detail.
+    expect(screen.getByRole('link', { name: 'Gabi López' })).toHaveAttribute(
+      'href',
+      '/users/' + uuidOf(300),
+    );
   });
 
   it('does not show the roles of the users', () => {
@@ -116,10 +175,15 @@ describe('UsersGrid', () => {
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
 
-  it('shows the empty state with the action it is given when there are no users', () => {
-    renderGrid({ users: [], total: 0, emptyAction: <button type="button">Crear usuario</button> });
+  it('shows the empty state with the message and the action it is given when there are no users', () => {
+    renderGrid({
+      users: [],
+      total: 0,
+      emptyMessage: 'No hay usuarios activos de Sistema',
+      emptyAction: <button type="button">Crear usuario</button>,
+    });
 
-    expect(screen.getByText(messages.users.list.empty)).toBeInTheDocument();
+    expect(screen.getByText('No hay usuarios activos de Sistema')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Crear usuario' })).toBeInTheDocument();
   });
 

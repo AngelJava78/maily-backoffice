@@ -1,4 +1,5 @@
 import Link from '@mui/material/Link';
+import Stack from '@mui/material/Stack';
 import { DataGrid, GridOverlay, type GridColDef } from '@mui/x-data-grid';
 import type { ReactNode } from 'react';
 import { Link as RouterLink } from 'react-router';
@@ -8,12 +9,15 @@ import { messages } from '@/shared/messages/es';
 import { GRID_APPEARANCE_STYLES, GRID_PAGINATION_STYLES } from '@/shared/ui/dataGridStyles';
 import { EmptyState } from '@/shared/ui/EmptyState';
 
-import { getFullName, type PlatformUser } from '../schemas/user';
+import { getFullName } from '../schemas/user';
+import { describeUserType, type UserListItem } from '../schemas/userListItem';
 import { PAGE_SIZE_OPTIONS } from '../schemas/usersLocation';
+import { isActiveStatus } from '../schemas/userStatus';
+import { StatusChip } from './StatusChip';
 
 interface UsersGridProps {
-  readonly users: readonly PlatformUser[];
-  /** Active users in total, which the server counts: the grid only shows one page of them. */
+  readonly users: readonly UserListItem[];
+  /** Users that answer the filters, which the server counts: the grid only shows one page of them. */
   readonly total: number;
   /** The page counted from 1, as the address writes it; the grid counts from 0. */
   readonly page: number;
@@ -21,15 +25,23 @@ interface UsersGridProps {
   readonly loading: boolean;
   /** The search of the list (`?page=3`), carried to the detail to come back to the same page. */
   readonly listSearch: string;
+  /** What the grid says when no user answers the filters (FR-013). */
+  readonly emptyMessage: string;
   /** What the grid offers when there are no users, such as creating one. */
   readonly emptyAction?: ReactNode;
   readonly onPaginationChange: (page: number, pageSize: number) => void;
 }
 
-function NoRowsOverlay({ action }: { readonly action?: ReactNode }) {
+function NoRowsOverlay({
+  message = messages.users.list.empty,
+  action,
+}: {
+  readonly message?: string;
+  readonly action?: ReactNode;
+}) {
   return (
     <GridOverlay>
-      <EmptyState message={messages.users.list.empty} action={action} />
+      <EmptyState message={message} action={action} />
     </GridOverlay>
   );
 }
@@ -46,20 +58,26 @@ export function UsersGrid({
   pageSize,
   loading,
   listSearch,
+  emptyMessage,
   emptyAction,
   onPaginationChange,
 }: UsersGridProps) {
-  const columns: GridColDef<PlatformUser>[] = [
+  const columns: GridColDef<UserListItem>[] = [
     {
       field: 'name',
       headerName: messages.users.list.columns.name,
       flex: 1,
       minWidth: 200,
       valueGetter: (_value, user) => getFullName(user),
+      // A user that is not active (the blocked ones, with Bloqueados) says so next to its name, as
+      // the result of the search does (FR-006, research D8).
       renderCell: ({ row }) => (
-        <Link component={RouterLink} to={`/users/${row.id}`} state={{ listSearch }}>
-          {getFullName(row)}
-        </Link>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minWidth: 0 }}>
+          <Link component={RouterLink} to={`/users/${row.id}`} state={{ listSearch }}>
+            {getFullName(row)}
+          </Link>
+          {!isActiveStatus(row.status.id) && <StatusChip status={row.status} />}
+        </Stack>
       ),
     },
     {
@@ -67,6 +85,12 @@ export function UsersGrid({
       headerName: messages.users.list.columns.email,
       flex: 1,
       minWidth: 220,
+    },
+    {
+      field: 'type',
+      headerName: messages.users.list.columns.type,
+      minWidth: 160,
+      valueGetter: (_value, user) => describeUserType(user.roleTypes),
     },
     {
       field: 'createdAt',
@@ -97,7 +121,7 @@ export function UsersGrid({
       sx={GRID_APPEARANCE_STYLES}
       slots={{ noRowsOverlay: NoRowsOverlay }}
       slotProps={{
-        noRowsOverlay: { action: emptyAction },
+        noRowsOverlay: { message: emptyMessage, action: emptyAction },
         // 'Filas por página' stays on a phone (FR-001, US1-2): see GRID_PAGINATION_STYLES.
         basePagination: { material: { sx: GRID_PAGINATION_STYLES } },
       }}

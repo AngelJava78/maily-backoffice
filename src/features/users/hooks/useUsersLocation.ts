@@ -6,22 +6,31 @@ import {
   parseUsersSearchParams,
   toUsersSearchParams,
   type UsersLocation,
+  type UsersStatusFilter,
+  type UsersTypeFilter,
 } from '../schemas/usersLocation';
 
 export interface UsersLocationApi {
   /** What the address asks for: a page of the list or a search by email. */
   readonly location: UsersLocation;
   /**
-   * The search of the address as the list writes it (`?page=3&page_size=25`, or an empty text), to
-   * hand it to the detail so that it can come back to the same page (US1-4).
+   * The search of the address as the list writes it (`?type_id=2&page=3`, or an empty text), to
+   * hand it to the detail so that it can come back to the same page and filters (US1-4, FR-012).
    */
   readonly search: string;
   /** Goes to a page of the list, keeping the page size. `replace` does not add a history entry. */
   readonly setPage: (page: number, options?: { readonly replace?: boolean }) => void;
   /** Changes the page size, which takes the list back to the first page (US1-2). */
   readonly setPageSize: (pageSize: number) => void;
+  /**
+   * Changes a filter (feature 026): the list goes back to the first page with the same page size
+   * (FR-008). During a search it ends the search and shows the filtered list (research D4).
+   */
+  readonly setType: (type: UsersTypeFilter) => void;
+  readonly setStatus: (status: UsersStatusFilter) => void;
+  /** Searches by email; the filters stay in the address (FR-011). */
   readonly searchEmail: (email: string) => void;
-  /** Leaves the search and goes back to the list. */
+  /** Leaves the search and goes back to the list, with the filters it had (FR-011). */
   readonly clearSearch: () => void;
 }
 
@@ -44,12 +53,13 @@ export function useUsersLocation(): UsersLocationApi {
   }, [current, canonical, setSearchParams]);
 
   const pageSize = location.mode === 'list' ? location.pageSize : DEFAULT_PAGE_SIZE;
+  const filters = { type: location.type, status: location.status };
 
   return {
     location,
     search: canonical === '' ? '' : `?${canonical}`,
     setPage: (page, options) => {
-      setSearchParams(toUsersSearchParams({ mode: 'list', page, pageSize }), {
+      setSearchParams(toUsersSearchParams({ mode: 'list', page, pageSize, ...filters }), {
         replace: options?.replace === true,
       });
     },
@@ -59,14 +69,22 @@ export function useUsersLocation(): UsersLocationApi {
         new URLSearchParams({ page_size: String(nextPageSize) }),
       );
       if (accepted.mode === 'list') {
-        setSearchParams(toUsersSearchParams({ ...accepted, page: 1 }));
+        setSearchParams(toUsersSearchParams({ ...accepted, page: 1, ...filters }));
       }
     },
+    setType: (type) => {
+      setSearchParams(toUsersSearchParams({ mode: 'list', page: 1, pageSize, ...filters, type }));
+    },
+    setStatus: (status) => {
+      setSearchParams(toUsersSearchParams({ mode: 'list', page: 1, pageSize, ...filters, status }));
+    },
     searchEmail: (email) => {
-      setSearchParams(toUsersSearchParams({ mode: 'search', email: email.trim() }));
+      setSearchParams(toUsersSearchParams({ mode: 'search', email: email.trim(), ...filters }));
     },
     clearSearch: () => {
-      setSearchParams(toUsersSearchParams({ mode: 'list', page: 1, pageSize: DEFAULT_PAGE_SIZE }));
+      setSearchParams(
+        toUsersSearchParams({ mode: 'list', page: 1, pageSize: DEFAULT_PAGE_SIZE, ...filters }),
+      );
     },
   };
 }

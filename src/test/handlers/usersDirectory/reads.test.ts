@@ -109,6 +109,82 @@ describe('GET /api/v1/users', () => {
     expect((await callService('/api/v1/users?page_size=1')).status).toBe(200);
     expect((await callService('/api/v1/users?page_size=100')).status).toBe(200);
   });
+
+  describe('with the filters of the API 5.5.0 (feature 026)', () => {
+    /** The default platform plus a blocked user of Clínica and an active one without roles. */
+    function startWithFilters() {
+      const base = defaultDirectory();
+      return createUsersDirectoryMock({
+        users: [
+          ...base.users,
+          directoryUser({ id: uuidOf(2), firstName: 'Gabi', statusId: BLOCKED }),
+          directoryUser({ id: uuidOf(3), firstName: 'Diego' }),
+          directoryUser({ id: uuidOf(4), firstName: 'Irene', statusId: DELETED }),
+        ],
+        roles: base.roles,
+        // Role 6 is Doctor, of type Clínica; role 1, Administrator, of type Sistema.
+        associations: [
+          ...base.associations,
+          { userId: uuidOf(2), roleId: 6 },
+          { userId: uuidOf(4), roleId: 1 },
+        ],
+      });
+    }
+
+    it('gives every user the types of its active roles', async () => {
+      startWithFilters();
+
+      const answer = await callService('/api/v1/users');
+
+      expect(answer.body).toMatchObject({
+        items: [
+          { first_name: 'Admin', role_types: [{ id: 1, name: 'Sistema' }] },
+          { first_name: 'Diego', role_types: [] },
+        ],
+        total: 2,
+      });
+    });
+
+    it('lists the blocked users with status_id=2, and never the deleted ones', async () => {
+      startWithFilters();
+
+      const answer = await callService('/api/v1/users?status_id=2');
+
+      expect(idsOf(answer.body)).toEqual([uuidOf(2)]);
+      expect(answer.body).toMatchObject({
+        items: [{ status: { id: 2 }, role_types: [{ id: 2, name: 'Clínica' }] }],
+        total: 1,
+      });
+    });
+
+    it.each([
+      ['role_type_id=1', [uuidOf(1)]],
+      ['role_type_id=2', []],
+      ['status_id=2&role_type_id=2', [uuidOf(2)]],
+      ['status_id=1&role_type_id=1', [uuidOf(1)]],
+    ])('combines the filters: %s lists %j', async (query, ids) => {
+      startWithFilters();
+
+      expect(idsOf((await callService(`/api/v1/users?${query}`)).body)).toEqual(ids);
+    });
+
+    it.each([
+      ['status_id=3', 'status_id'],
+      ['status_id=0', 'status_id'],
+      ['status_id=abc', 'status_id'],
+      ['role_type_id=0', 'role_type_id'],
+      ['role_type_id=3', 'role_type_id'],
+      ['role_type_id=abc', 'role_type_id'],
+      ['role_type_id=', 'role_type_id'],
+    ])('rejects %s with a 422 that names the field %s', async (query, field) => {
+      startWithFilters();
+
+      const answer = await callService(`/api/v1/users?${query}`);
+
+      expect(answer.status).toBe(422);
+      expect(answer.body).toMatchObject({ code: 'validation_error', errors: [{ field }] });
+    });
+  });
 });
 
 describe('GET /api/v1/users/by-email', () => {

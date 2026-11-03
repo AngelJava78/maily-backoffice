@@ -12,6 +12,7 @@ import type { systemModuleSchema } from '@/features/modules/schemas/systemModule
 import type { subscriptionSchema } from '@/features/subscriptions/schemas/subscription';
 import { platformUserSchema } from '@/features/users';
 import type { roleSchema } from '@/features/users/schemas/role';
+import type { userListItemSchema } from '@/features/users/schemas/userListItem';
 import type { userPageSchema } from '@/features/users/schemas/userPage';
 
 import { uuidOf } from './ids';
@@ -22,6 +23,8 @@ export type RoleDto = z.input<typeof accessRoleSchema>;
 export type MyAccessDto = z.input<typeof myAccessSchema>;
 export type RoleRecordDto = z.input<typeof roleSchema>;
 export type UserPageDto = z.input<typeof userPageSchema>;
+/** A user of the list (users API 5.5.0): `UserRead` plus the types of its active roles. */
+export type UserListItemDto = z.input<typeof userListItemSchema>;
 /** The subscriptions API speaks snake_case too; this is the type of a subscription in its answers. */
 export type SubscriptionDto = z.input<typeof subscriptionSchema>;
 /** The same API answers the summary of the Panel (feature 007); this is one of its recent clinics. */
@@ -97,18 +100,31 @@ export function roleRecordDto(overrides: Partial<RoleRecordDto> = {}): RoleRecor
   };
 }
 
-/** A page of the list of users with one user, as the service sends it. */
-export function userPageDto(overrides: Partial<UserPageDto> = {}): UserPageDto {
-  return { items: [userDto()], total: 1, page: 1, page_size: 10, pages: 1, ...overrides };
+/** A user of the list as the service sends it: `userDto()` without active roles by default. */
+export function userListItemDto(
+  overrides: Partial<UserDto> = {},
+  roleTypes: UserListItemDto['role_types'] = [],
+): UserListItemDto {
+  return { ...userDto(overrides), role_types: roleTypes };
 }
 
-/** The page asked for out of all the active users: it works out the total and the number of pages. */
+/** A page of the list of users with one user, as the service sends it. */
+export function userPageDto(overrides: Partial<UserPageDto> = {}): UserPageDto {
+  return { items: [userListItemDto()], total: 1, page: 1, page_size: 10, pages: 1, ...overrides };
+}
+
+/**
+ * The page asked for out of all the users given: it works out the total and the number of pages.
+ * A user given without `role_types` is sent without active roles.
+ */
 export function userPageDtoOf(
-  users: readonly UserDto[],
+  users: readonly (UserDto | UserListItemDto)[],
   { page = 1, pageSize = 10 }: { readonly page?: number; readonly pageSize?: number } = {},
 ): UserPageDto {
   return {
-    items: users.slice((page - 1) * pageSize, page * pageSize),
+    items: users
+      .slice((page - 1) * pageSize, page * pageSize)
+      .map((user) => ({ role_types: [], ...user })),
     total: users.length,
     page,
     page_size: pageSize,

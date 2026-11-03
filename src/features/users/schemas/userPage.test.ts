@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { userDto } from '@/test/factories';
+import { userDto, userListItemDto as itemDto } from '@/test/factories';
 
 import { userPageSchema } from './userPage';
 import { uuidOf } from '@/test/ids';
 
 function pageDto(overrides: Record<string, unknown> = {}) {
-  return { items: [userDto()], total: 1, page: 1, page_size: 10, pages: 1, ...overrides };
+  return { items: [itemDto()], total: 1, page: 1, page_size: 10, pages: 1, ...overrides };
 }
 
 describe('userPageSchema', () => {
@@ -14,8 +14,10 @@ describe('userPageSchema', () => {
     const page = userPageSchema.parse(
       pageDto({
         items: [
-          userDto(),
-          userDto({ id: uuidOf(122), email: 'beto@clinica.com', first_name: 'Beto' }),
+          itemDto(),
+          itemDto({ id: uuidOf(122), email: 'beto@clinica.com', first_name: 'Beto' }, [
+            { id: 2, name: 'Clínica' },
+          ]),
         ],
         total: 34,
         page: 3,
@@ -26,11 +28,12 @@ describe('userPageSchema', () => {
 
     expect(page.items.map((user) => user.firstName)).toEqual(['Ana', 'Beto']);
     expect(page.items[0]?.paternalLastName).toBe('Pérez');
+    expect(page.items.map((user) => user.roleTypes)).toEqual([[], [{ id: 2, name: 'Clínica' }]]);
     expect(page).toMatchObject({ total: 34, page: 3, pageSize: 25, pages: 2 });
     expect(page).not.toHaveProperty('page_size');
   });
 
-  it('accepts the page of a platform without active users', () => {
+  it('accepts a page to which no user answers the filters', () => {
     const page = userPageSchema.parse(
       pageDto({ items: [], total: 0, page: 1, page_size: 50, pages: 0 }),
     );
@@ -58,7 +61,9 @@ describe('userPageSchema', () => {
     ['a page size above 100', { page_size: 101 }],
     ['a negative number of pages', { pages: -1 }],
     ['items that are not a list', { items: 'ana' }],
-    ['a user without an email', { items: [userDto({ email: '' })] }],
+    ['a user without an email', { items: [itemDto({ email: '' })] }],
+    // An API older than 5.5.0 would ignore the filters: its answer must not pass (research D2).
+    ['a user without role_types', { items: [userDto()] }],
   ])('rejects %s', (_label, overrides) => {
     expect(userPageSchema.safeParse(pageDto(overrides)).success).toBe(false);
   });

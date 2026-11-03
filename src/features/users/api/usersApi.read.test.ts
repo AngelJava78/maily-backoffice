@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
 
 import { ApiError } from '@/shared/api/ApiError';
-import { userDto, userPageDto } from '@/test/factories';
+import { userDto, userListItemDto, userPageDto } from '@/test/factories';
 import { server } from '@/test/server';
 import { createUsersClient, errorBody, usersUrl } from '@/test/usersClient';
 
@@ -34,30 +34,65 @@ function serve(url: string, respond: () => Response) {
 }
 
 describe('listUsers', () => {
-  it('asks for the page and the page size and gives the page in camelCase', async () => {
+  it('asks for the page, the page size and the status and gives the page in camelCase', async () => {
     const seen = serve(USERS_URL, () =>
       HttpResponse.json(
-        userPageDto({ items: [userDto()], total: 34, page: 3, page_size: 25, pages: 2 }),
+        userPageDto({
+          items: [userListItemDto({}, [{ id: 2, name: 'Clínica' }])],
+          total: 34,
+          page: 3,
+          page_size: 25,
+          pages: 2,
+        }),
       ),
     );
     const { client, authorization } = createUsersClient();
 
-    const page = await listUsers(client, { page: 3, pageSize: 25 });
+    const page = await listUsers(client, { page: 3, pageSize: 25, statusId: 1 });
 
-    expect(seen).toEqual([{ method: 'GET', search: '?page=3&page_size=25', authorization }]);
+    // Without a type, `role_type_id` is not sent: the service answers users of every type.
+    expect(seen).toEqual([
+      { method: 'GET', search: '?page=3&page_size=25&status_id=1', authorization },
+    ]);
     expect(page).toMatchObject({ total: 34, page: 3, pageSize: 25, pages: 2 });
     expect(page.items[0]).toMatchObject({
       id: uuidOf(121),
       firstName: 'Ana',
       paternalLastName: 'Pérez',
+      roleTypes: [{ id: 2, name: 'Clínica' }],
     });
+  });
+
+  it.each([
+    [{ statusId: 2 } as const, '?page=1&page_size=10&status_id=2'],
+    [{ statusId: 1, roleTypeId: 1 } as const, '?page=1&page_size=10&status_id=1&role_type_id=1'],
+    [{ statusId: 2, roleTypeId: 2 } as const, '?page=1&page_size=10&status_id=2&role_type_id=2'],
+  ])('sends the filters %j as %s (feature 026)', async (filters, search) => {
+    const seen = serve(USERS_URL, () => HttpResponse.json(userPageDto()));
+    const { client } = createUsersClient();
+
+    await listUsers(client, { page: 1, pageSize: 10, ...filters });
+
+    expect(seen.map((request) => request.search)).toEqual([search]);
+  });
+
+  // An API older than 5.5.0 ignores the filters and has no `role_types` (research D2).
+  it('reports a page whose users have no role_types as a contract failure', async () => {
+    serve(USERS_URL, () => HttpResponse.json({ ...userPageDto(), items: [userDto()] }));
+    const { client } = createUsersClient();
+
+    const failure: unknown = await listUsers(client, { page: 1, pageSize: 10, statusId: 2 }).catch(
+      (error: unknown) => error,
+    );
+
+    expect(failure).toMatchObject({ kind: 'contract', isRetryable: false });
   });
 
   it('reports an answer that does not match the contract as a contract failure', async () => {
     serve(USERS_URL, () => HttpResponse.json({ items: [], total: 0 }));
     const { client } = createUsersClient();
 
-    const failure: unknown = await listUsers(client, { page: 1, pageSize: 10 }).catch(
+    const failure: unknown = await listUsers(client, { page: 1, pageSize: 10, statusId: 1 }).catch(
       (error: unknown) => error,
     );
 
@@ -73,7 +108,7 @@ describe('listUsers', () => {
     );
     const { client } = createUsersClient();
 
-    const failure: unknown = await listUsers(client, { page: 0, pageSize: 10 }).catch(
+    const failure: unknown = await listUsers(client, { page: 0, pageSize: 10, statusId: 1 }).catch(
       (error: unknown) => error,
     );
 
@@ -163,7 +198,7 @@ describe('cancelling', () => {
       'listUsers',
       usersUrl('/api/v1/users'),
       (c: ReturnType<typeof createUsersClient>['client'], signal: AbortSignal) =>
-        listUsers(c, { page: 1, pageSize: 10, signal }),
+        listUsers(c, { page: 1, pageSize: 10, statusId: 1, signal }),
     ],
     [
       'getUserByEmail',

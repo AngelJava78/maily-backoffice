@@ -151,8 +151,10 @@ desaparecen); un texto en la celda del tipo (mezcla dos datos); descartados.
 **Decision**: componente nuevo `features/users/components/UsersFilters.tsx` con las mismas props,
 grupos, tamaño (`size="small"`), etiquetas y manejo del `null` que `RolesFilters` y `ModulesFilters`
 (FR-003, FR-015, FR-016). Textos en `messages.users.filters`, con los mismos valores que
-`roles.filters`. En `UsersListPage`, los filtros y `UserSearchForm` comparten una fila con
-`flexWrap` y `alignItems: 'flex-end'`, que en pantallas angostas se reparte en varias líneas (FR-017).
+`roles.filters`. En `UsersListPage`, los filtros van en su propia fila, justo encima de
+`UserSearchForm`: el texto de ayuda bajo el campo de correo impide alinear ambos en una sola fila
+(cambio hecho al implementar; se había previsto una fila compartida). Los dos grupos se reparten en
+varias líneas en pantallas angostas (FR-017).
 
 **Rationale**: el principio I prohíbe importar internos de otra feature, y la spec no obliga a
 compartir componentes (Assumptions). Con esta son tres copias idénticas: el sitio natural sería

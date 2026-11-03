@@ -20,8 +20,11 @@ valores no válidos se corrigen con `replace` (detalle en [data-model.md §3](..
 
 ```text
 Usuarios                                                [Crear usuario]
-Tipo                          Estatus                  Buscar por correo electrónico
-[Todos|Sistema|Clínica]       [Activos|Bloqueados]     [______________] [Buscar] [Limpiar]
+Tipo                          Estatus
+[Todos|Sistema|Clínica]       [Activos|Bloqueados]
+Buscar por correo electrónico
+[______________________] [Buscar] [Limpiar]
+Escribe el correo completo; también encuentra usuarios bloqueados o eliminados.
 ┌──────────────────────────────────────────────────────────────────────┐
 │ Nombre                │ Correo electrónico │ Tipo    │ Fecha de alta  │
 │ Gabi López [Bloqueado]│ gabi@clinica.mx    │ Clínica │ 3 oct 2026 …   │
@@ -29,8 +32,10 @@ Tipo                          Estatus                  Buscar por correo electr�
                                        Filas por página: 10 ▾   1–1 de 1
 ```
 
-- Filtros y buscador en una fila con `flexWrap` (`alignItems: flex-end`); a 320 px se reparten en
-  varias líneas sin desplazamiento horizontal (FR-017).
+- Los filtros van en su propia fila, justo encima del buscador: el texto de ayuda bajo el campo de
+  correo impide alinear ambos en una sola fila (decisión de la implementación). Los dos grupos están
+  en una fila con `flexWrap`; a 320 px se reparten en varias líneas sin desplazamiento horizontal
+  (FR-017).
 - «Crear usuario» sigue en la cabecera con cualquier combinación, si hay permiso (US3-8).
 
 ## `UsersFilters`

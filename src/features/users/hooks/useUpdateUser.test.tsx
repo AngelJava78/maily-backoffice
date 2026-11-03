@@ -58,7 +58,7 @@ describe('useUpdateUser', () => {
 
   it('keeps the user it gets in the cache and marks the lists and the searches as stale', async () => {
     const { queryClient, result } = setup();
-    const list = userKeys.list({ page: 1, pageSize: 10 });
+    const list = userKeys.list({ page: 1, pageSize: 10, type: 'all', status: 'active' });
     const search = userKeys.search('user121@ejemplo.com');
     queryClient.setQueryData(list, 'a page');
     queryClient.setQueryData(search, null);

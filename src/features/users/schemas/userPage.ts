@@ -1,15 +1,16 @@
 import { z } from 'zod';
 
-import { platformUserSchema } from './user';
+import { userListItemSchema } from './userListItem';
 
 /**
- * A page of the list of users (operation U1 of the users service). The service lists only the
- * active users, so `total` and `pages` leave out the blocked and the deleted ones. The DTO
- * (snake_case) becomes the domain model here, so components never see it (constitution II).
+ * A page of the list of users (operation U1 of the users service, API 5.5.0). The service lists
+ * the users of one status, active or blocked, of every type or of one, so `total` and `pages` count
+ * only the users that answer the filters (feature 026). The DTO (snake_case) becomes the domain
+ * model here, so components never see it (constitution II).
  */
 export const userPageSchema = z
   .object({
-    items: z.array(platformUserSchema),
+    items: z.array(userListItemSchema),
     total: z.number().int().min(0),
     page: z.number().int().min(1),
     page_size: z.number().int().min(1).max(100),

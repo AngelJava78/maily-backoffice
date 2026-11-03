@@ -35,7 +35,8 @@ export async function refreshUser(queryClient: QueryClient, userId: string): Pro
 
 /**
  * What is left stale once a role was given or taken away, whatever the result (a role that was
- * already given or taken is told by the service, and the screen still has to show the real roles).
+ * already given or taken is told by the service, and the screen still has to show the real roles):
+ * the roles of the user and the lists, which show its type.
  * If the refusal says the user changed, it is the user that is refreshed instead. Returned by the
  * mutation, the dialog that asked for the change closes when the roles on screen are the real ones.
  */
@@ -57,6 +58,9 @@ export async function refreshAfterRoleChange(
         ? queryClient.invalidateQueries({ queryKey: roleKeys.catalog() })
         : undefined,
       queryClient.invalidateQueries({ queryKey: userKeys.roles(userId) }),
+      // The list shows the type of each user, which comes from its active roles (feature 026,
+      // research D5). It is not on screen while the detail is, so this does not make the wait longer.
+      queryClient.invalidateQueries({ queryKey: userKeys.lists() }),
     ]),
   );
 }

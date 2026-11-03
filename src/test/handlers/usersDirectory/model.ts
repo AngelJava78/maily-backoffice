@@ -386,15 +386,32 @@ export function createDirectoryModel(initial: DirectoryInitial) {
       return { user: toUserDto(user), roles: accessRoles };
     },
 
-    /** A page of the active users; past the last page there are no items, which is not an error. */
-    listActiveUsers(page: number, pageSize: number): UserPageDto {
-      const active = users.filter((user) => user.statusId === ACTIVE).sort(byName);
+    /**
+     * U1 of the users API 5.5.0 (feature 026): a page of the users of one status (1 or 2; the
+     * deleted ones never) and, with `roleTypeId`, only those with at least one active role of that
+     * type. Each user carries `role_types`, the distinct types of its active roles sorted by id.
+     * Past the last page there are no items, which is not an error.
+     */
+    listUsers(
+      page: number,
+      pageSize: number,
+      { statusId, roleTypeId }: { readonly statusId: number; readonly roleTypeId?: number },
+    ): UserPageDto {
+      const typesOf = (userId: string): number[] =>
+        [...new Set(activeRolesOf(userId).map((role) => role.typeId))].sort((a, b) => a - b);
+      const listed = users
+        .filter((user) => user.statusId === statusId && user.statusId !== DELETED)
+        .filter((user) => roleTypeId === undefined || typesOf(user.id).includes(roleTypeId))
+        .sort(byName);
       return {
-        items: active.slice((page - 1) * pageSize, page * pageSize).map(toUserDto),
-        total: active.length,
+        items: listed.slice((page - 1) * pageSize, page * pageSize).map((user) => ({
+          ...toUserDto(user),
+          role_types: typesOf(user.id).map(typeOf),
+        })),
+        total: listed.length,
         page,
         page_size: pageSize,
-        pages: Math.ceil(active.length / pageSize),
+        pages: Math.ceil(listed.length / pageSize),
       };
     },
 

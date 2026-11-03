@@ -151,3 +151,49 @@ describe('the users section: roles (feature 002, user story 3)', { timeout: 30_0
     expect(screen.queryByRole('link', { name: text.actions.edit })).not.toBeInTheDocument();
   });
 });
+
+describe(
+  'the users section: the type in the list follows the roles (feature 026)',
+  { timeout: 30_000 },
+  () => {
+    it('shows «—» and leaves the type filter once the only role is taken away in the detail (research D5)', async () => {
+      start();
+      const { user } = open('/users?type_id=1');
+      // Ana has Marketing, of type Sistema.
+      const grid = await screen.findByRole('grid', { name: text.list.gridLabel });
+      await user.click(await within(grid).findByRole('link', { name: 'Ana Pérez Gómez' }));
+
+      const section = await rolesSection();
+      await user.click(
+        await within(section).findByRole('button', { name: text.roles.remove('Marketing') }),
+      );
+      await confirmInDialog(user, text.removeRole.title, text.removeRole.confirm);
+      expect(await screen.findByText(text.removeRole.removed)).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      });
+      await user.click(await screen.findByRole('link', { name: text.detail.backToList }));
+
+      // Back with Sistema pressed, only the operator is left.
+      const list = await screen.findByRole('grid', { name: text.list.gridLabel });
+      await waitFor(() => {
+        expect(
+          within(list).queryByRole('link', { name: 'Ana Pérez Gómez' }),
+        ).not.toBeInTheDocument();
+      });
+      expect(within(list).getByRole('link', { name: 'Admin Sistema' })).toBeInTheDocument();
+
+      await user.click(
+        within(screen.getByRole('group', { name: text.filters.typeLabel })).getByRole('button', {
+          name: 'Todos',
+        }),
+      );
+      const ana = await within(
+        await screen.findByRole('grid', { name: text.list.gridLabel }),
+      ).findByRole('link', { name: 'Ana Pérez Gómez' });
+      expect(ana.closest('[role="row"]')?.querySelector('[data-field="type"]')).toHaveTextContent(
+        text.list.noType,
+      );
+    });
+  },
+);
