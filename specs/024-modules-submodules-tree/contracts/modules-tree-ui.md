@@ -24,8 +24,8 @@ Las filas de contexto no se cuentan.
 
 | Clase de fila | Celda «Módulo» | Resto de celdas |
 |---|---|---|
-| **Módulo** de primer nivel | `[control o hueco]` nombre · marca «Base» · clave | Orden, Tipo, Permisos y «Editar» como hoy |
-| **Submódulo** | sangría de un nivel · `[control o hueco]` · texto para lector de pantalla «Submódulo de {Padre}» · nombre · clave | Igual que cualquier módulo: su propio orden, tipo, permisos y «Editar» |
+| **Módulo** de primer nivel | nombre · marca «Base» · clave · `[control]` (en su propia línea, bajo la clave, solo si tiene submódulos) | Orden, Tipo, Permisos y «Editar» como hoy |
+| **Submódulo** | sangría de un nivel · nombre, que empieza (solo para lector de pantalla) con «Submódulo de {Padre}» · clave · `[control]` si tiene submódulos | Igual que cualquier módulo: su propio orden, tipo, permisos y «Editar» |
 | **Contexto** | texto atenuado: nombre y clave del padre, y debajo un aviso (abajo) | Vacías: sin orden, permisos ni acción |
 
 Avisos de la fila de contexto:
@@ -45,14 +45,14 @@ texto «{n} submódulos» sin botón).
 
 | Propiedad | Valor |
 |---|---|
-| Elemento | `<button>` nativo (`IconButton`, tamaño pequeño) |
+| Elemento | `<button>` nativo (`Button` de MUI, tamaño pequeño, con icono) |
 | Contenido | icono `arrow-drop-down` (giro de −90° si está contraído) + texto visible «{n} submódulo(s)» |
 | Nombre accesible | «{n} submódulo(s) de {Módulo}» (contiene el texto visible) |
 | Estado | `aria-expanded` verdadero/falso |
 | Teclado | Tab llega; Enter y Espacio alternan; el foco no se mueve al alternar |
 | Estado inicial | expandido (todos), en cada carga de la pantalla |
 
-Una fila sin submódulos reserva un hueco del mismo ancho para alinear los nombres.
+El control va en su propia línea, bajo la clave: así los nombres quedan alineados sin reservar ningún hueco (comprobado en Chromium, tarea T056).
 
 ## 4. Sangría y ancho
 

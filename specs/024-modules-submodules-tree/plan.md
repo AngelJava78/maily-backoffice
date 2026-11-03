@@ -51,7 +51,7 @@ El resto del spec se cumple tal como está escrito.
 
 **Language/Version**: TypeScript 6.0.3 (`strict`, `noUncheckedIndexedAccess`), React 19.3.1 y Node.js ≥ 24.15.0 (`engines`), sin cambios.
 
-**Primary Dependencies**: las mismas ya en uso, sin dependencias nuevas ni cambios de versión. MUI 9.5.0 (`Table`, `TextField select`, `IconButton`, `Typography`; sin `@mui/x-tree-view` ni datos en árbol del Data Grid, que son de pago, research D5), TanStack Query 5.104.4, React Hook Form 7.90.0 con `@hookform/resolvers` 5.9.2 y Zod 4.6.7. El icono de expandir sale del registro único (`arrow-drop-down`, ya existe).
+**Primary Dependencies**: las mismas ya en uso, sin dependencias nuevas ni cambios de versión. MUI 9.5.0 (`Table`, `TextField select`, `Button`, `Typography`; sin `@mui/x-tree-view` ni datos en árbol del Data Grid, que son de pago, research D5), TanStack Query 5.104.4, React Hook Form 7.90.0 con `@hookform/resolvers` 5.9.2 y Zod 4.6.7. El icono de expandir sale del registro único (`arrow-drop-down`, ya existe).
 
 **Storage**: N/A. Ningún estado de servidor ni de navegador nuevo: los ids contraídos son un `useState` de la pantalla y no se guardan (FR-004).
 
@@ -89,7 +89,7 @@ estado al iniciar la investigación y «Después», tras el diseño.
 | IV. Listados con paginación de servidor | **Desvío heredado de la 013**: `GET /modules` no pagina por contrato (catálogo acotado; ahora ≈ 200 entradas). No hay forma de pedir una página que la API no ofrece (Complexity Tracking) | ⚠️ (heredado) | ⚠️ (heredado) |
 | IV. Un cliente HTTP, sin hosts ni puertos fijos, mutaciones sin reintento y sin doble envío | Sin cambios: se usa el cliente `users`; las mutaciones siguen sin reintento y con el botón en `loading` | ✅ | ✅ |
 | V. Autorización por el módulo de políticas | `ModuleCapabilities` no cambia; el campo del padre y las acciones siguen gobernados por `canCreate`/`canEdit`/`canBlock`/`canDelete`; ningún componente compara nombres de role | ✅ | ✅ |
-| VI. UI con MUI y theme centralizado; sin CSS global | `Table`, `TextField`, `IconButton` y el sistema de estilos `sx`; el color atenuado sale del tema | ✅ | ✅ |
+| VI. UI con MUI y theme centralizado; sin CSS global | `Table`, `TextField`, `Button` y el sistema de estilos `sx`; el color atenuado sale del tema | ✅ | ✅ |
 | VI. Estados cargando, vacío, error y éxito | Se conservan los de la pantalla y se añaden los de las opciones del padre (cargando y error, contrato de UI §5); éxito con las notificaciones existentes | ✅ | ✅ |
 | VI. Acciones de alto impacto con confirmación | Eliminar sigue confirmando; la zona de eliminación se restringe con submódulos; bloquear sigue sin confirmación por decisión vigente de la 013 (reversible) y gana un aviso del efecto | ✅ | ✅ |
 | VI. Textos en español, centralizados | Bloque nuevo `modules.tree`, campo del padre, avisos y errores en `es.ts`; sin literales en JSX | ✅ | ✅ |
@@ -199,10 +199,18 @@ e2e/modules.spec.ts                          # + escenario: crear un submódulo 
 ```
 
 No se tocan: `features/roles` y `features/subscriptions` (sus esquemas descartan el campo nuevo, research
-hallazgo 6), `ModuleFormFields.tsx`, `useModulesLocation.ts` y `modulesLocation.ts`, `useModulesCatalog.ts`
-y `moduleKeys.ts`, `ModulesFilters.tsx`, `ModuleFormDialog.tsx`, `modulesApi.ts` (las rutas y
+hallazgo 6), `useModulesLocation.ts` y `modulesLocation.ts`, `moduleKeys.ts`, `ModulesFilters.tsx`, `ModuleFormDialog.tsx`, `modulesApi.ts` (las rutas y
 los esquemas de respuesta son los mismos; solo cambia el esquema que validan), la semilla del simulador
 (`seed.ts`), las rutas, los permisos (`features/auth`), el tema y `.env.example`.
+
+**Diferencias entre este plan y lo implementado** (2026-11-03; el porqué está en research D5, D7 y D10):
+`ModuleFormFields.tsx` ganó la ranura opcional `afterOrder`; `useModulesCatalog.ts` acepta un
+`staleTime` opcional; hay un componente más, `ModuleParentFieldWithOptions.tsx`; el control de
+contraer es un `Button` y va bajo la clave; y las pruebas nuevas de los paneles y del simulador están
+en archivos propios para no inflar los existentes: `ModuleEditPanel.parent.test.tsx`,
+`ModuleCreatePanel.parent.test.tsx`, `ModuleDangerZone.test.tsx`, `ModulesPage.a11y.test.tsx`,
+`moduleForm.parent.test.ts`, `moduleErrors.parent.test.ts`, `model.hierarchy.test.ts` y, de
+integración, `submodulesTree`, `submodulesParent` y `submodulesDanger`.
 
 **Structure Decision**: se mantiene la estructura por features vigente (`app → features → shared`).
 Todo lo nuevo vive en `features/modules` (`policy`, `hooks`, `components`); los textos, en

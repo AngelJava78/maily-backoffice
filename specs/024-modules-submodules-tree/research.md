@@ -114,9 +114,10 @@ arreglarlo; mostrar solo el total de entradas — no distinguiría módulos de s
 ## D5. El árbol se dibuja en la `Table` de MUI con un botón de contraer, no como `treegrid`
 
 **Decisión**: se mantiene `Table` (5 columnas, mismo encabezado). La celda «Módulo» lleva, de
-izquierda a derecha, la sangría (un nivel por profundidad), el control de contraer/expandir si el
-módulo tiene submódulos (o un hueco del mismo ancho si no, para alinear los nombres), el nombre con
-la marca «Base» y la clave. El control es un `IconButton` nativo con:
+izquierda a derecha, la sangría (un nivel por profundidad), el nombre con la marca «Base», la clave
+y, si el módulo tiene submódulos, el control de contraer/expandir en su propia línea bajo la clave
+(sin hueco que reservar para alinear los nombres; ajuste de la implementación, 2026-11-03). El
+control es un `Button` nativo de MUI, pequeño y con icono, con:
 
 - nombre accesible `«{n} submódulos de {Módulo}»` (contiene el texto visible «{n} submódulos», que
   acompaña al icono: WCAG 2.5.3) y `aria-expanded`;
@@ -159,7 +160,13 @@ mismo `helperText` y manejo de errores). Su primera opción es «Ninguno (módul
 (valor vacío). Las opciones salen de **la consulta de módulos Activos** (`useModulesCatalog(ACTIVE)`,
 la misma que ya usa la pantalla) con la función pura `eligibleParents(modules, { typeId,
 excludeModuleId })`: primer nivel, activos, del mismo tipo, no protegidos y distintos del propio
-módulo (FR-010). Un hook `useParentModuleOptions` solo une ambas cosas.
+módulo (FR-010). Un hook `useParentModuleOptions` solo une ambas cosas, y el componente
+`ModuleParentFieldWithOptions` las conecta con el campo.
+
+**Ajuste de la implementación (2026-11-03)**: una consulta que ya está cargada se vuelve a pedir al
+montar otro observador suyo si está vencida, y eso habría hecho que abrir un panel lanzara dos
+peticiones (la 013, D10, pide ninguna). `useModulesCatalog` acepta por eso un `staleTime` opcional y
+las opciones del padre usan 30 s: dentro de ese plazo abrir el formulario no pide nada.
 
 **Razón**: un `select` nativo de MUI se opera con teclado y lector de pantalla sin trabajo extra, y las
 opciones son pocas (los módulos de primer nivel de un tipo). Reutilizar la consulta de Activos no añade
@@ -212,9 +219,12 @@ módulo base como submódulo ni con submódulos como submódulo.
   `ModuleNameCell` (sangría, control y nombre), cada una por debajo de ~120 líneas.
 - `ModulesPage.tsx` (172) solo suma el armado del árbol y el hook de contraer.
 
-**Razón**: constitución I (≤ 250 líneas, responsabilidades únicas). `ModuleFormFields` no se toca: su
-contrato (nombre, descripción, orden y acciones) es el de siempre y el padre no es un campo de texto
-más.
+**Razón**: constitución I (≤ 250 líneas, responsabilidades únicas). El padre no es un campo de texto
+más: vive en su propio componente. `ModuleFormFields` solo ganó una ranura opcional, `afterOrder`, para
+colocarlo entre «Orden» y las acciones, como pide el contrato de interfaz (§5); su contrato
+(nombre, descripción, orden y acciones) es el de siempre. Además, para que `ModuleEditPanel` quedara
+por debajo de las 250 líneas, `PendingUncheck` pasó a ser un simple estado y el campo se montó con
+`ModuleParentFieldWithOptions` (que también calcula por qué puede estar bloqueado).
 
 ## D11. Errores del servicio con un mensaje en el campo del padre
 
