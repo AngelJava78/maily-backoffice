@@ -12,7 +12,8 @@ export function useDeleteModule(): UseMutationResult<void, Error, number> {
 
   return useMutation({
     mutationFn: (moduleId: number) => deleteModule(users, moduleId),
-    onSuccess: () => {
+    // Also after a refusal: it can mean that someone gave the module a submodule meanwhile.
+    onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: moduleKeys.all });
     },
   });

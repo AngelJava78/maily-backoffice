@@ -424,6 +424,13 @@ export function createModulesCatalogModel(initial: CatalogInitial = {}) {
     if (PROTECTED_MODULE_KEYS.includes(current.key)) {
       throw protectedError(current.key, 'eliminar');
     }
+    // Active and Blocked submodules count; deleted ones do not (spec 024, contract 5.4.0).
+    if (hasSubmodules(id)) {
+      throw hierarchyError(
+        'module_has_submodules',
+        `El módulo «${current.key}» tiene submódulos y no se puede eliminar: primero hay que eliminarlos o cambiarlos de padre.`,
+      );
+    }
     modules.set(id, { ...current, statusId: DELETED });
     for (const permission of permissions.values()) {
       if (permission.moduleId === id && permission.statusId !== DELETED) {

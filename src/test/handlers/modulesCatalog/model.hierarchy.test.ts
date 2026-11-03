@@ -235,3 +235,45 @@ describe('the body of the simulator, parent_module_id (spec 024)', () => {
     );
   });
 });
+
+describe('deleteModule with submodules (spec 024, contract 5.4.0)', () => {
+  const child = catalogModule({ id: 7, key: 'sub', name: 'Sub', parentModuleId: 6 });
+
+  it('refuses a module that has an Active submodule', () => {
+    const model = createModulesCatalogModel({ modules: [patients, child] });
+
+    expect(() => {
+      model.deleteModule(6);
+    }).toThrow(expect.objectContaining({ code: 'module_has_submodules', status: 409 }));
+    expect(model.findModule(6)?.statusId).toBe(1);
+  });
+
+  it('refuses a module that has a Blocked submodule', () => {
+    const model = createModulesCatalogModel({
+      modules: [patients, { ...child, statusId: 2 }],
+    });
+
+    expect(() => {
+      model.deleteModule(6);
+    }).toThrow(expect.objectContaining({ code: 'module_has_submodules' }));
+  });
+
+  it('deletes it once its submodules are deleted, or moved to another parent', () => {
+    const other = catalogModule({ id: 3, key: 'agenda', name: 'Agenda' });
+    const model = createModulesCatalogModel({ modules: [patients, child, other] });
+
+    model.updateModule(7, { parent_module_id: 3 });
+    model.deleteModule(6);
+
+    expect(model.findModule(6)?.statusId).toBe(3);
+  });
+
+  it('deletes a submodule as any other module, and its parent stays', () => {
+    const model = createModulesCatalogModel({ modules: [patients, child] });
+
+    model.deleteModule(7);
+
+    expect(model.findModule(7)?.statusId).toBe(3);
+    expect(model.findModule(6)?.statusId).toBe(1);
+  });
+});

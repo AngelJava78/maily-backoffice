@@ -269,6 +269,14 @@ export const messages = {
       deleted: 'Módulo eliminado.',
       protectedNotice:
         'Los módulos base de administración (Usuarios, Roles, Permisos y Módulos) no se pueden bloquear ni eliminar.',
+      /** What blocking a parent does to its Active submodules (spec 024, FR-015). */
+      submodulesNotice: (count: number) =>
+        count === 1
+          ? 'Si lo bloqueas, 1 submódulo dejará de estar disponible hasta que lo desbloquees; conserva su propio estatus.'
+          : `Si lo bloqueas, ${count} submódulos dejarán de estar disponibles hasta que lo desbloquees; conservan su propio estatus.`,
+      /** Said instead of the "Eliminar módulo" button while the module has submodules (FR-016). */
+      deleteBlockedBySubmodules:
+        'Este módulo tiene submódulos. Para eliminarlo, primero elimina sus submódulos o cámbialos de padre.',
     },
     validation: {
       keyRequired: 'Escribe la clave del módulo.',
@@ -298,6 +306,8 @@ export const messages = {
       protected:
         'Este módulo es uno de los módulos base de administración y no se puede bloquear ni eliminar.',
       statusUnchanged: 'El estatus de este módulo ya cambió; vuelve a intentarlo.',
+      hasSubmodules:
+        'Este módulo tiene submódulos y no se puede eliminar: primero elimínalos o cámbialos de padre.',
       parentNotFound: 'El módulo padre ya no existe o fue eliminado. Elige otro.',
       parentIsSubmodule:
         'Ese módulo ya es un submódulo y no puede ser padre: la jerarquía tiene un solo nivel. Elige otro.',

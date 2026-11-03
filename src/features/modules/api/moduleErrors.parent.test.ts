@@ -97,3 +97,21 @@ describe('describeModuleError, the parent module (spec 024)', () => {
     }
   });
 });
+
+describe('describeModuleError, a module with submodules cannot be deleted (spec 024)', () => {
+  it('maps module_has_submodules, when deleting, to a general conflict message', () => {
+    expect(describeModuleError(httpError('module_has_submodules'), 'delete')).toEqual({
+      kind: 'conflict',
+      message: text.hasSubmodules,
+    });
+  });
+
+  it.each(['block', 'unblock'] as const)(
+    'does not apply module_has_submodules to %s',
+    (operation) => {
+      expect(describeModuleError(httpError('module_has_submodules'), operation).kind).toBe(
+        'unexpected',
+      );
+    },
+  );
+});

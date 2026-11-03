@@ -46,15 +46,10 @@ interface ModuleEditPanelProps {
   readonly onParentAssigned?: (parentModuleId: number) => void;
 }
 
-/** An uncheck waiting for its confirmation (research D9); `null` while none is pending. */
-interface PendingUncheck {
-  readonly action: ModuleActionKey;
-}
-
 /**
  * The edición panel of Módulos (US3): Clave and Tipo as fixed information, the fields `alta` and
- * `edición` share, and a confirmation before any action the module already had is taken away.
- * Bloquear/Desbloquear/Eliminar (US4, US5) live in `ModuleDangerZone`, which this panel only hosts.
+ * `edición` share, and a confirmation before any action is taken away. Bloquear, Desbloquear and
+ * Eliminar (US4, US5) live in `ModuleDangerZone`, which this panel only hosts.
  */
 export function ModuleEditPanel({
   module,
@@ -68,7 +63,7 @@ export function ModuleEditPanel({
   const update = useUpdateModule();
   const errorRef = useRef<HTMLDivElement>(null);
   const [generalError, setGeneralError] = useState<string>();
-  const [pendingUncheck, setPendingUncheck] = useState<PendingUncheck | null>(null);
+  const [pendingUncheck, setPendingUncheck] = useState<ModuleActionKey | null>(null); // an uncheck waiting for its confirmation (research D9);
   const initialValues = toFormValues(module);
   const {
     register,
@@ -113,7 +108,7 @@ export function ModuleEditPanel({
 
   function handleActionToggle(action: ModuleActionKey, checked: boolean): void {
     if (!checked && module.actions.has(action)) {
-      setPendingUncheck({ action });
+      setPendingUncheck(action);
       return;
     }
     applyToggle(action, checked);
@@ -198,7 +193,12 @@ export function ModuleEditPanel({
           />
         </Stack>
 
-        <ModuleDangerZone module={module} capabilities={capabilities} onDeleted={onDeleted} />
+        <ModuleDangerZone
+          module={module}
+          capabilities={capabilities}
+          onDeleted={onDeleted}
+          submoduleCount={submoduleCount}
+        />
       </DialogContent>
 
       <DialogActions>
@@ -227,13 +227,13 @@ export function ModuleEditPanel({
         message={
           pendingUncheck === null
             ? ''
-            : text.form.uncheckActionConfirm(text.actions[pendingUncheck.action], module.name)
+            : text.form.uncheckActionConfirm(text.actions[pendingUncheck], module.name)
         }
         confirmLabel={text.form.uncheckActionRemove}
         tone="danger"
         onConfirm={() => {
           if (pendingUncheck !== null) {
-            applyToggle(pendingUncheck.action, false);
+            applyToggle(pendingUncheck, false);
           }
           setPendingUncheck(null);
         }}

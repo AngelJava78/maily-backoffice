@@ -24,6 +24,7 @@ export type ModuleErrorOutcome =
         | 'notFound'
         | 'protected'
         | 'statusUnchanged'
+        | 'conflict'
         | 'retryable'
         | 'forbidden'
         | 'unexpected';
@@ -97,9 +98,13 @@ export function describeModuleError(
     case 'module_parent_self_reference':
       return parentField(text.parentSelfReference);
     case 'module_has_submodules':
-      // Only a modification can turn a module with submodules into a submodule.
-      return operation === 'update'
-        ? parentField(text.hasSubmodulesAsChild)
+      // A modification cannot make a module with submodules a submodule, and a deletion cannot
+      // remove it while it has them (spec 024, FR-016).
+      if (operation === 'update') {
+        return parentField(text.hasSubmodulesAsChild);
+      }
+      return operation === 'delete'
+        ? { kind: 'conflict', message: text.hasSubmodules }
         : { kind: 'unexpected', message: messages.errors.unexpected };
     case 'module_already_blocked':
     case 'module_already_active':
