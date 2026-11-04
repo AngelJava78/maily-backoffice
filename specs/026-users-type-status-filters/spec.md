@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-02
 
-**Status**: Draft (la API de usuarios 5.5.0, spec 018 de mailySoft-usuarios, ya está implementada desde el 2026-11-03)
+**Status**: Implementada (2026-11-03; requiere la API de usuarios 5.5.0, spec 018 de mailySoft-usuarios)
 
 **Input**: User description: "Agrega la spec 026 para los usuarios. Con botones «Toggle Button» como los de la pantalla de Módulos. Tipo: Todos | Sistema | Clínica. Estatus: Activos | Bloqueados." Con el catálogo de estatus de usuarios: 1 Activo, 2 Bloqueado, 3 Eliminado.
 
