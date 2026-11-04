@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { ApiError, SessionExpiredError } from '@/shared/api/ApiError';
 import { createHttpClient } from '@/shared/api/httpClient';
 import { roleRecordDto } from '@/test/factories';
+import { untilAborted } from '@/test/handlers/shared/untilAborted';
 import { USERS_API_BASE_URL } from '@/test/handlers/usersService';
 import { server } from '@/test/server';
 import { createUsersClient, errorBody, usersUrl } from '@/test/usersClient';
@@ -124,7 +125,9 @@ describe('assignRoles', () => {
   });
 
   it('stops when the service does not answer in time', async () => {
-    server.use(http.post(ROLES_URL, () => new Promise<Response>(() => undefined)));
+    // It ends when the client gives up: one that never ends could leave the next test's request
+    // past MSW, which is how «counts a role that the user already has» failed in CI.
+    server.use(http.post(ROLES_URL, ({ request }) => untilAborted(request)));
     const client = createHttpClient({
       baseUrl: USERS_API_BASE_URL,
       getAccessToken: () => Promise.resolve('test-token:auth0|admin'),
