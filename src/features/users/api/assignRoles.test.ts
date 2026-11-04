@@ -4,8 +4,6 @@ import { describe, expect, it } from 'vitest';
 import { ApiError, SessionExpiredError } from '@/shared/api/ApiError';
 import { createHttpClient } from '@/shared/api/httpClient';
 import { roleRecordDto } from '@/test/factories';
-import { untilAborted } from '@/test/handlers/shared/untilAborted';
-import { USERS_API_BASE_URL } from '@/test/handlers/usersService';
 import { server } from '@/test/server';
 import { createUsersClient, errorBody, usersUrl } from '@/test/usersClient';
 
@@ -13,7 +11,19 @@ import { roleSchema } from '../schemas/role';
 import { assignRoles } from './assignRoles';
 import { uuidOf } from '@/test/ids';
 
-const ROLES_URL = usersUrl(`/api/v1/users/${uuidOf(121)}/roles`);
+const ROLES_PATH = `/api/v1/users/${uuidOf(121)}/roles`;
+const ROLES_URL = usersUrl(ROLES_PATH);
+
+/**
+ * Where the request that is never answered goes: an origin no other test uses. The client aborts it
+ * in flight, and Undici tears that connection down only after the test is over. A request to the
+ * same origin sent meanwhile can leave from that teardown, outside the `fetch` that MSW expects,
+ * and go past MSW to the real network. In CI on Linux the next test failed now and then (at
+ * least five times up to 2026-11-04); reproduced in a Linux container, that request ended in
+ * `connect ECONNREFUSED 127.0.0.1:5173`. Ending the handler when the client aborts (cf539ed) did
+ * not prevent it: what lingers is the connection, not the handler.
+ */
+const UNANSWERED_BASE_URL = 'http://unanswered.test/proxy/users';
 
 const role = (id: number, name: string) => roleSchema.parse(roleRecordDto({ id, name }));
 const MARKETING = role(4, 'Marketing');
@@ -125,11 +135,14 @@ describe('assignRoles', () => {
   });
 
   it('stops when the service does not answer in time', async () => {
-    // It ends when the client gives up: one that never ends could leave the next test's request
-    // past MSW, which is how «counts a role that the user already has» failed in CI.
-    server.use(http.post(ROLES_URL, ({ request }) => untilAborted(request)));
+    server.use(
+      http.post(
+        `${UNANSWERED_BASE_URL}${ROLES_PATH}`,
+        () => new Promise<Response>(() => undefined),
+      ),
+    );
     const client = createHttpClient({
-      baseUrl: USERS_API_BASE_URL,
+      baseUrl: UNANSWERED_BASE_URL,
       getAccessToken: () => Promise.resolve('test-token:auth0|admin'),
       onSessionExpired: () => undefined,
       timeoutMs: 40,

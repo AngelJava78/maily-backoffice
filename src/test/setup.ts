@@ -50,7 +50,8 @@ afterEach(async () => {
   // A request that was aborted (a timeout, a query left behind by an unmounted screen) finishes
   // being cleaned up in the next turn of the event loop. If the handlers are reset before that, the
   // second request of the next test can go past MSW to the real network and fail (MSW 3 with Node
-  // 24): one turn is enough for it to settle.
+  // 24): one turn is usually enough for it to settle. Not always on a busy CI runner after an abort
+  // in flight, so such a test sends its request to an origin of its own (see assignRoles.test.ts).
   await new Promise<void>((resolve) => {
     setTimeout(resolve, 0);
   });
