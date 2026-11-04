@@ -20,7 +20,11 @@ export function matchMediaAtWidth(width: number): (query: string) => MediaQueryL
       addEventListener: () => undefined,
       removeEventListener: () => undefined,
       dispatchEvent: () => true,
-      addListener: () => undefined, // deprecated MediaQueryList API
+      // `MediaQueryList` still declares the deprecated pair, so the stub needs it to be one. MUI
+      // subscribes with `addEventListener`; nothing calls these two.
+      // eslint-disable-next-line @typescript-eslint/no-deprecated -- required by the type
+      addListener: () => undefined,
+      // eslint-disable-next-line @typescript-eslint/no-deprecated -- required by the type
       removeListener: () => undefined,
     };
   };
