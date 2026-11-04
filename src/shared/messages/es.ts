@@ -122,6 +122,9 @@ export const messages = {
   nav: {
     label: 'Navegación principal',
     mobileLabel: 'Navegación móvil',
+    // The last slot of the bottom bar when its entries do not fit a narrow window: it opens a menu
+    // with the rest of them.
+    more: 'Más',
     skipLink: 'Saltar al contenido',
     home: 'Panel',
     appLabel: 'Backoffice',

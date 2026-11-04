@@ -11,7 +11,10 @@ Ver `../research.md` §9 y el edge case de 320 px del spec. Este contrato es el 
   etiqueta «Backoffice» (estilo píldora, clarify) → navegación (icono + etiqueta, desde
   `getVisibleSections`, sin cambios de lógica) → `HeaderUserMenu`.
 - `BottomNav.tsx`: visible <768 px. Mismos items de navegación que `Topbar`, formato de barra
-  inferior.
+  inferior. Por debajo de 600 px (`sm` de MUI) y con más de 5 entradas, deja las 4 primeras en la
+  barra y la quinta casilla es «Más», que abre un menú con las demás y queda marcado cuando la
+  pantalla abierta es una de ellas (corrección del 2026-11-03: con 7 entradas la barra medía unos
+  460 px y desbordaba la página 140 px a 320 px).
 - `HeaderUserMenu.tsx`: nombre de la persona, link "Perfil", botón "Cerrar sesión" (contenido
   exacto que ya existe hoy), más un contenedor vacío a la derecha reservado para:
   - el icono de perfil (Spec 5);

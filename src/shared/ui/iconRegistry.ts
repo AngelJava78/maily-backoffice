@@ -12,6 +12,7 @@ import {
   CircleX,
   Clock,
   CreditCard,
+  Ellipsis,
   Eye,
   EyeOff,
   KeyRound,
@@ -60,6 +61,8 @@ export const iconRegistry = {
   'theme-light': Sun,
   'theme-dark': Moon,
   'change-photo': Camera,
+  // The «Más» slot of the bottom bar, which holds the entries that do not fit a narrow window.
+  more: Ellipsis,
   // «Salud de servicios» (feature 016, research D12): every status has an icon of its own, so a
   // status is never told by its color alone.
   health: Activity,
