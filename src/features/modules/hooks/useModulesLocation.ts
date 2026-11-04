@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 
 import {
@@ -31,31 +31,51 @@ export function useModulesLocation(): ModulesLocationApi {
   const current = searchParams.toString();
   const canonical = toModulesSearchParams(location).toString();
 
+  // What the last action asked for, until the address shows it. The router only gives the new
+  // address on the next render, so without it a second action right after the first (a filter and
+  // then the other) would start from the old address and undo the first one.
+  const requested = useRef<ModulesLocation | null>(null);
+
   useEffect(() => {
     if (current !== canonical) {
       setSearchParams(new URLSearchParams(canonical), { replace: true });
     }
   }, [current, canonical, setSearchParams]);
 
+  // Once the address changes (by an action, Back or a link), it is the one to start from.
+  useEffect(() => {
+    requested.current = null;
+  }, [current]);
+
+  /** Where the next action starts from: what was last asked for, or else the address. */
+  function latest(): ModulesLocation {
+    return requested.current ?? location;
+  }
+
+  function go(next: ModulesLocation): void {
+    requested.current = next;
+    setSearchParams(toModulesSearchParams(next));
+  }
+
   return {
     location,
     setType: (type) => {
-      setSearchParams(toModulesSearchParams({ ...location, type }));
+      go({ ...latest(), type });
     },
     setStatus: (status) => {
-      setSearchParams(toModulesSearchParams({ ...location, status }));
+      go({ ...latest(), status });
     },
     setSearch: (search) => {
-      setSearchParams(toModulesSearchParams({ ...location, search }));
+      go({ ...latest(), search });
     },
     openEdit: (moduleId) => {
-      setSearchParams(toModulesSearchParams({ ...location, panel: { kind: 'edit', moduleId } }));
+      go({ ...latest(), panel: { kind: 'edit', moduleId } });
     },
     openCreate: () => {
-      setSearchParams(toModulesSearchParams({ ...location, panel: { kind: 'create' } }));
+      go({ ...latest(), panel: { kind: 'create' } });
     },
     closePanel: () => {
-      setSearchParams(toModulesSearchParams({ ...location, panel: { kind: 'none' } }));
+      go({ ...latest(), panel: { kind: 'none' } });
     },
   };
 }

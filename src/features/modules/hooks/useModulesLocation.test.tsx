@@ -62,6 +62,34 @@ describe('useModulesLocation', () => {
     expect(result.current.location.type).toBe('system');
   });
 
+  // The e2e of the users list (026) found it there: pressing Todos and then Bloqueados at once
+  // lost Todos, because the second action still saw the address of the last render.
+  it('builds each action on the previous one, even before the address is rendered again', () => {
+    const { result } = renderAt('/modules?type_id=2&q=agenda');
+
+    act(() => {
+      result.current.setType('all');
+      result.current.setStatus('blocked');
+    });
+    expect(result.current.location).toEqual({
+      type: 'all',
+      status: 'blocked',
+      search: 'agenda',
+      panel: { kind: 'none' },
+    });
+
+    act(() => {
+      result.current.setSearch('consulta');
+      result.current.openEdit(42);
+    });
+    expect(result.current.location).toEqual({
+      type: 'all',
+      status: 'blocked',
+      search: 'consulta',
+      panel: { kind: 'edit', moduleId: 42 },
+    });
+  });
+
   it('openEdit opens the edit panel and closes "new"', () => {
     const { result } = renderAt('/modules?new=1');
 

@@ -90,6 +90,24 @@ describe('useRolePermissionsLocation', () => {
       expect(router.state.location.search).toBe('?page_size=25');
     });
 
+    // The e2e of the users list (026) found it there: pressing Todos and then Bloqueados at once
+    // lost Todos, because the second action still saw the address of the last render.
+    it('builds each action on the previous one, even before the address is rendered again', () => {
+      const { result, router } = setup('/roles?type=sistema&page=3&page_size=25');
+
+      act(() => {
+        result.current.setType('all');
+        result.current.setStatus('blocked');
+      });
+      expect(router.state.location.search).toBe('?status=bloqueados&page_size=25');
+
+      act(() => {
+        result.current.setPageSize(50);
+        result.current.setPage(2);
+      });
+      expect(router.state.location.search).toBe('?status=bloqueados&page=2&page_size=50');
+    });
+
     it('goes to another page keeping the filters and the page size, adding an entry to the history', () => {
       const { result, router } = setup('/roles?type=clinica&page_size=25');
 

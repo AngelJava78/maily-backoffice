@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 
 import {
@@ -41,32 +41,50 @@ export function useRolePermissionsLocation(): RolePermissionsLocationApi {
   const current = searchParams.toString();
   const canonical = toRolePermissionsSearchParams(location).toString();
 
+  // What the last action asked for, until the address shows it. The router only gives the new
+  // address on the next render, so without it a second action right after the first (a filter and
+  // then the other) would start from the old address and undo the first one.
+  const requested = useRef<RolePermissionsLocation | null>(null);
+
   useEffect(() => {
     if (current !== canonical) {
       setSearchParams(new URLSearchParams(canonical), { replace: true });
     }
   }, [current, canonical, setSearchParams]);
 
+  // Once the address changes (by an action, Back or a link), it is the one to start from.
+  useEffect(() => {
+    requested.current = null;
+  }, [current]);
+
+  /** Where the next action starts from: what was last asked for, or else the address. */
+  function latest(): RolePermissionsLocation {
+    return requested.current ?? location;
+  }
+
+  function go(next: RolePermissionsLocation, options?: { readonly replace?: boolean }): void {
+    requested.current = next;
+    setSearchParams(toRolePermissionsSearchParams(next), { replace: options?.replace === true });
+  }
+
   return {
     location,
     search: locationSearch(location),
     setType: (type) => {
-      setSearchParams(toRolePermissionsSearchParams({ ...location, type, page: 1 }));
+      go({ ...latest(), type, page: 1 });
     },
     setStatus: (status) => {
-      setSearchParams(toRolePermissionsSearchParams({ ...location, status, page: 1 }));
+      go({ ...latest(), status, page: 1 });
     },
     setPage: (page, options) => {
-      setSearchParams(toRolePermissionsSearchParams({ ...location, page }), {
-        replace: options?.replace === true,
-      });
+      go({ ...latest(), page }, options);
     },
     setPageSize: (nextPageSize) => {
       // The sizes the table offers are the only ones accepted: anything else becomes the default.
       const { pageSize } = parseRolePermissionsSearchParams(
         new URLSearchParams({ page_size: String(nextPageSize) }),
       );
-      setSearchParams(toRolePermissionsSearchParams({ ...location, pageSize, page: 1 }));
+      go({ ...latest(), pageSize, page: 1 });
     },
   };
 }
