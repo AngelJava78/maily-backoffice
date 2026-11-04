@@ -107,6 +107,27 @@ describe('useSubscriptionsLocation', () => {
       });
     });
 
+    // The e2e of the users list (026) found it there: pressing Todos and then Bloqueados at once
+    // lost Todos, because the second action still saw the address of the last render.
+    it('builds each action on the previous one, even before the address is rendered again', () => {
+      const { result, router } = setup('/subscriptions?page=3');
+
+      act(() => {
+        result.current.setPageSize(25);
+        result.current.setPage(2);
+      });
+      expect(router.state.location.search).toBe('?page=2&page_size=25');
+
+      act(() => {
+        result.current.setSort({ field: 'name', direction: 'desc' });
+        result.current.setTab('comparison');
+        result.current.setComparisonType(SUBSCRIPTION_TYPE.ENTERPRISE);
+      });
+      expect(router.state.location.search).toBe(
+        '?page_size=25&tab=comparison&sort=-name&type_id=2',
+      );
+    });
+
     it('takes a page size that the list does not offer as the default one', () => {
       const { result, router } = setup('/subscriptions?page=2&page_size=25');
 
