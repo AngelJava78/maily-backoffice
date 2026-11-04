@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router';
 
 import {
@@ -45,6 +45,10 @@ export function useUsersLocation(): UsersLocationApi {
   const location = parseUsersSearchParams(searchParams);
   const current = searchParams.toString();
   const canonical = toUsersSearchParams(location).toString();
+  // What the last action asked for, until the address shows it. The router only gives the new
+  // address on the next render, so without it a second action right after the first (a filter and
+  // then the other) would start from the old address and undo the first one.
+  const requested = useRef<UsersLocation | null>(null);
 
   useEffect(() => {
     if (current !== canonical) {
@@ -52,16 +56,41 @@ export function useUsersLocation(): UsersLocationApi {
     }
   }, [current, canonical, setSearchParams]);
 
-  const pageSize = location.mode === 'list' ? location.pageSize : DEFAULT_PAGE_SIZE;
-  const filters = { type: location.type, status: location.status };
+  // Once the address changes (by an action, Back or a link), it is the one to start from.
+  useEffect(() => {
+    requested.current = null;
+  }, [current]);
+
+  /** Where the next action starts from: what was last asked for, or else the address. */
+  function latest(): UsersLocation {
+    return requested.current ?? location;
+  }
+
+  function go(next: UsersLocation, options?: { readonly replace?: boolean }): void {
+    requested.current = next;
+    setSearchParams(toUsersSearchParams(next), { replace: options?.replace === true });
+  }
+
+  /** The list with the page size and the filters of `from`, and the changes given. */
+  function list(
+    from: UsersLocation,
+    changes: Partial<Extract<UsersLocation, { mode: 'list' }>>,
+  ): UsersLocation {
+    return {
+      mode: 'list',
+      page: 1,
+      pageSize: from.mode === 'list' ? from.pageSize : DEFAULT_PAGE_SIZE,
+      type: from.type,
+      status: from.status,
+      ...changes,
+    };
+  }
 
   return {
     location,
     search: canonical === '' ? '' : `?${canonical}`,
     setPage: (page, options) => {
-      setSearchParams(toUsersSearchParams({ mode: 'list', page, pageSize, ...filters }), {
-        replace: options?.replace === true,
-      });
+      go(list(latest(), { page }), options);
     },
     setPageSize: (nextPageSize) => {
       // The sizes the list offers are the only ones accepted: anything else becomes the default.
@@ -69,22 +98,22 @@ export function useUsersLocation(): UsersLocationApi {
         new URLSearchParams({ page_size: String(nextPageSize) }),
       );
       if (accepted.mode === 'list') {
-        setSearchParams(toUsersSearchParams({ ...accepted, page: 1, ...filters }));
+        go(list(latest(), { pageSize: accepted.pageSize }));
       }
     },
     setType: (type) => {
-      setSearchParams(toUsersSearchParams({ mode: 'list', page: 1, pageSize, ...filters, type }));
+      go(list(latest(), { type }));
     },
     setStatus: (status) => {
-      setSearchParams(toUsersSearchParams({ mode: 'list', page: 1, pageSize, ...filters, status }));
+      go(list(latest(), { status }));
     },
     searchEmail: (email) => {
-      setSearchParams(toUsersSearchParams({ mode: 'search', email: email.trim(), ...filters }));
+      const { type, status } = latest();
+      go({ mode: 'search', email: email.trim(), type, status });
     },
     clearSearch: () => {
-      setSearchParams(
-        toUsersSearchParams({ mode: 'list', page: 1, pageSize: DEFAULT_PAGE_SIZE, ...filters }),
-      );
+      const { type, status } = latest();
+      go({ mode: 'list', page: 1, pageSize: DEFAULT_PAGE_SIZE, type, status });
     },
   };
 }

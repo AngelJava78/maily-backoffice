@@ -145,6 +145,26 @@ describe('useUsersLocation', () => {
       expect(router.state.location.search).toBe('?page_size=25');
     });
 
+    // Found by the e2e against the real API: pressing Todos and then Bloqueados at once lost
+    // Todos, because the second action still saw the address of the last render.
+    it('builds each action on the previous one, even before the address is rendered again', () => {
+      const { result, router } = setup('/users?type_id=2&page=3');
+
+      act(() => {
+        result.current.setType('all');
+        result.current.setStatus('blocked');
+      });
+      expect(router.state.location.search).toBe('?status_id=2');
+
+      act(() => {
+        result.current.setPageSize(25);
+        result.current.setPage(2);
+        result.current.searchEmail('ana@clinica.com');
+        result.current.clearSearch();
+      });
+      expect(router.state.location.search).toBe('?status_id=2');
+    });
+
     it('ends a search when a filter is pressed, and shows the filtered list (research D4)', () => {
       const { result, router } = setup('/users?email=ana@clinica.com&type_id=2');
 
