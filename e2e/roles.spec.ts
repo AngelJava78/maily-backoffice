@@ -49,6 +49,9 @@ async function openSistemaRole(page: Page, name: string): Promise<void> {
 
 test.describe('the roles section: Sistema roles, end to end (A1)', () => {
   test.skip(!hasAccounts('A1'), 'Needs E2E_AUTH0_USER_A1 and E2E_AUTH0_PASSWORD_A1');
+  // The tests share the role the second one creates: they run one after the other in one worker (with
+  // `fullyParallel` each would get its own `roleName` and none would find the role of another).
+  test.describe.configure({ mode: 'serial' });
 
   const roleName = `QA role 014 ${Date.now()}`;
 
@@ -92,7 +95,9 @@ test.describe('the roles section: Sistema roles, end to end (A1)', () => {
 
     await expect(page).toHaveURL(/\/roles\/\d+$/);
     await expect(nameField(page)).toHaveValue(roleName);
-    await expect(page.getByText(/16 de 16 permisos/)).toBeVisible();
+    // Every permission of Administrator, whatever the catalog has today (16 when this was written, 30
+    // since the modules and submodules of feature 024): «N de N permisos».
+    await expect(page.getByText(/^(\d+) de \1 permisos$/)).toBeVisible();
 
     // The table that «Volver al listado» goes back to shows the new role (FR-017).
     await page.getByRole('link', { name: text.detail.backToList }).click();
