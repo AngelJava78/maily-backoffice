@@ -1,4 +1,5 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
+import { delay, http } from 'msw';
 import { useParams } from 'react-router';
 import { describe, expect, it } from 'vitest';
 import { axe } from 'vitest-axe';
@@ -7,7 +8,9 @@ import { messages } from '@/shared/messages/es';
 import { auth0User } from '@/test/auth0Double';
 import { createRolesCatalogMock, rolesCatalogScenario } from '@/test/handlers/rolesCatalog';
 import { createUsersDirectoryMock, directoryRole } from '@/test/handlers/usersDirectory';
+import { USERS_API_BASE_URL } from '@/test/handlers/usersService';
 import { renderWithProviders } from '@/test/renderWithProviders';
+import { server } from '@/test/server';
 
 import { roleKeys } from '../hooks/roleKeys';
 import type { RoleCapabilities } from '../policy/roleCapabilities';
@@ -291,6 +294,57 @@ describe('RoleDetailPage', () => {
       expect(router.state.historyAction).toBe('REPLACE');
       expect(users.state.findRole(3)?.statusId).toBe(1);
     });
+
+    // Found by the walkthrough against the real API, whose two lists answer at different speeds: the
+    // screen followed the first list that arrived (the role «ya no existe», or the panel of an
+    // active role) and the person stayed there, with no notice and not in the table.
+    it.each([
+      { speeds: 'the active ones are the slower', active: 250, blocked: 10 },
+      { speeds: 'the blocked ones are the slower', active: 10, blocked: 250 },
+    ])(
+      '«Desbloquear role» goes back to the table with its notice when the lists answer at different speeds: $speeds (US3-6)',
+      async ({ active, blocked }) => {
+        const { users } = start();
+        users.setRoleStatus(3, BLOCKED);
+        const { user, router } = renderDetail(3, { state: { listSearch: '?status=bloqueados' } });
+        const unblock = await screen.findByRole('button', { name: text.status.unblock });
+        let refreshing = false;
+        server.use(
+          http.get(`${USERS_API_BASE_URL}/api/v1/roles`, async ({ request }) => {
+            if (refreshing) {
+              await delay(
+                new URL(request.url).searchParams.get('status_id') === '2' ? blocked : active,
+              );
+            }
+          }),
+        );
+        // While the lists are refreshed the screen must not say that the role no longer exists.
+        let flashed = false;
+        const watcher = new MutationObserver(() => {
+          if (screen.queryByText(text.detail.notFound.title) !== null) {
+            flashed = true;
+          }
+        });
+        watcher.observe(document.body, { childList: true, subtree: true });
+        refreshing = true;
+
+        await user.click(unblock);
+
+        expect(
+          await screen.findByText(text.status.unblocked('Support'), {}, { timeout: 3_000 }),
+        ).toBeVisible();
+        await waitFor(
+          () => {
+            expect(router.state.location.pathname).toBe('/roles');
+          },
+          { timeout: 3_000 },
+        );
+        watcher.disconnect();
+        expect(router.state.location.search).toBe('?status=bloqueados');
+        expect(flashed).toBe(false);
+        expect(users.state.findRole(3)?.statusId).toBe(1);
+      },
+    );
 
     it('«Eliminar role», once confirmed, goes back to the table in place of the entry of the role (US3-7)', async () => {
       const { roles } = start();

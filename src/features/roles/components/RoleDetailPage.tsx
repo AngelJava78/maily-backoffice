@@ -11,6 +11,7 @@ import { ErrorState } from '@/shared/ui/ErrorState';
 import { Icon } from '@/shared/ui/Icon';
 import { useFocusOnMount } from '@/shared/ui/useFocusOnMount';
 
+import { useHeldRoleView } from '../hooks/useHeldRoleView';
 import { useRevealRole } from '../hooks/useRevealRole';
 import { useRoleView } from '../hooks/useRoleView';
 import type { RoleCapabilities } from '../policy/roleCapabilities';
@@ -50,7 +51,12 @@ export function RoleDetailPage({ roleId, capabilities }: RoleDetailPageProps) {
   const reveal = useRevealRole();
   const { listSearch } = parseRoleDetailState(location.state);
   const listAddress = `/roles${listSearch ?? ''}`;
-  const { view, retry } = useRoleView(roleId);
+  const { view: live, retry } = useRoleView(roleId);
+  // While the role is being blocked, unblocked or deleted the screen keeps what it shows: the two
+  // lists that the service refreshes do not arrive together, and following the first one would
+  // unmount the component that is waiting for the action to finish, which then could not tell it
+  // nor leave for the table (found by the walkthrough against the real API).
+  const view = useHeldRoleView(roleId, live);
   const [dirty, setDirty] = useState(false);
   // Raised by the deletion just before it leaves, and read when the navigation happens (never while
   // rendering): the changes of a role that is gone are not worth asking about.
