@@ -190,7 +190,11 @@ describe(
       });
       await user.click(await screen.findByRole('link', { name: text.detail.backToList }));
 
-      expect(await screen.findByText(text.list.emptyBlockedOfType('Clínica'))).toBeInTheDocument();
+      // In the grid: the status region says the same text once the page is loaded (FR-014).
+      const list = await screen.findByRole('grid', { name: text.list.gridLabel });
+      expect(
+        await within(list).findByText(text.list.emptyBlockedOfType('Clínica')),
+      ).toBeInTheDocument();
       expect(router.state.location.search).toBe('?type_id=2&status_id=2');
 
       await user.click(within(statusGroup()).getByRole('button', { name: 'Activos' }));

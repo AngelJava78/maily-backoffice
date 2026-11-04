@@ -102,7 +102,8 @@ test.describe('the users section: readings (A1)', () => {
     await expect(page).not.toHaveURL(/type_id=/);
     await expect(usersGrid(page).getByRole('progressbar')).toHaveCount(0);
     const links = usersGrid(page).getByRole('link');
-    const empty = page.getByText(text.list.emptyBlocked, { exact: true });
+    // In the grid: the status region says the same text when the list is empty.
+    const empty = usersGrid(page).getByText(text.list.emptyBlocked, { exact: true });
     await expect(links.first().or(empty)).toBeVisible();
     // Every blocked user is marked as such next to its name.
     await expect(usersGrid(page).getByText(text.status.blocked, { exact: true })).toHaveCount(

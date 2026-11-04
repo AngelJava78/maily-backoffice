@@ -47,6 +47,7 @@ function renderList(route = '/users', userCapabilities = ALL_CAPABILITIES) {
 }
 
 const grid = () => screen.getByRole('grid', { name: messages.users.list.gridLabel });
+const findGrid = () => screen.findByRole('grid', { name: messages.users.list.gridLabel });
 const searchField = () => screen.getByLabelText(messages.users.search.label);
 
 /** The closest element around `element` that matches `selector`; the test fails if there is none. */
@@ -372,8 +373,9 @@ describe('UsersListPage: the Tipo and Estatus filters (feature 026)', () => {
     start();
     renderList('/users?type_id=2');
 
+    // In the grid: the status region says the same text once the page is loaded (FR-014).
     expect(
-      await screen.findByText(messages.users.list.emptyActiveOfType('Clínica')),
+      await within(await findGrid()).findByText(messages.users.list.emptyActiveOfType('Clínica')),
     ).toBeInTheDocument();
     // The one of the header and the one of the empty state.
     expect(screen.getAllByRole('link', { name: messages.users.list.createAction })).toHaveLength(2);
@@ -424,7 +426,7 @@ describe('UsersListPage: the Tipo and Estatus filters (feature 026)', () => {
       start();
       renderList(route);
 
-      expect(await screen.findByText(message)).toBeInTheDocument();
+      expect(await within(await findGrid()).findByText(message)).toBeInTheDocument();
       // Only the one of the header (US3-8).
       expect(screen.getAllByRole('link', { name: messages.users.list.createAction })).toHaveLength(
         1,
@@ -437,7 +439,9 @@ describe('UsersListPage: the Tipo and Estatus filters (feature 026)', () => {
     createUsersDirectoryMock({ ...base, users: [...base.users, ...makeUsers(3)] });
     renderList('/users?status_id=2');
 
-    expect(await screen.findByText(messages.users.list.emptyBlocked)).toBeInTheDocument();
+    expect(
+      await within(await findGrid()).findByText(messages.users.list.emptyBlocked),
+    ).toBeInTheDocument();
   });
 
   it('shows the error with a retry for the blocked ones too, keeping filters and search (US2-6)', async () => {
