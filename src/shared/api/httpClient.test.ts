@@ -14,7 +14,7 @@ import {
 } from './httpClient';
 import { runWithTimeout } from './timeout';
 
-const BASE_URL = 'http://localhost:5173/proxy/users';
+const BASE_URL = 'http://localhost:8082/proxy/users';
 const THINGS_URL = `${BASE_URL}/api/v1/things`;
 
 const thingSchema = z

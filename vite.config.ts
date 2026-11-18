@@ -41,7 +41,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       // Fixed port: the URLs registered in Auth0 depend on it.
-      port: 5173,
+      port: 8082,
       strictPort: true,
       proxy: {
         // The users service only enables CORS when configured: in development the proxy avoids it.
@@ -68,9 +68,10 @@ export default defineConfig(({ mode }) => {
             }),
       },
     },
+    preview: { port: 8083, strictPort: true },
     test: {
       environment: 'jsdom',
-      environmentOptions: { jsdom: { url: 'http://localhost:5173' } },
+      environmentOptions: { jsdom: { url: 'http://localhost:8082' } },
       setupFiles: ['./src/test/setup.ts'],
       // Dates are shown in the zone of the browser, so the tests pin one: they pass the same on a
       // developer machine and in CI.

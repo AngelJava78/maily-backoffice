@@ -33,7 +33,7 @@ Backoffice de MailySoft: una aplicación de una sola página (React) con la que 
 ```powershell
 npm ci
 Copy-Item .env.example .env.local   # completa el dominio, el client id y el audience de Auth0
-npm run dev                         # http://localhost:5173 (puerto fijo: las URL de Auth0 dependen de él)
+npm run dev                         # http://localhost:8082 (puerto fijo: las URL de Auth0 dependen de él)
 ```
 
 La guía completa para levantar el servicio de usuarios, cargar cuentas de prueba y validar la feature está en [quickstart.md](specs/001-auth-session-profile/quickstart.md); la de la administración de usuarios, en [quickstart.md](specs/002-manage-users/quickstart.md); la de las suscripciones (la API, los permisos, el catálogo de prueba y la simulación de clínicas), en [quickstart.md](specs/003-manage-subscription-types/quickstart.md); la de la herramienta Token, en [quickstart.md](specs/005-postman-token-tool/quickstart.md); la del acceso por tipo de rol y la página «Sin acceso», en [quickstart.md](specs/006-system-role-access/quickstart.md); la de «Salud de servicios» (los servicios, los permisos `health:*`, las variables y la verificación de CORS), en [quickstart.md](specs/016-health-dashboard/quickstart.md).

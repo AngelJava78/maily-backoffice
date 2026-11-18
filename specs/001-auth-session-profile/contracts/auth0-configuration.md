@@ -10,9 +10,9 @@ Lo que debe existir en Auth0 y cómo lo usa la aplicación. La app de referencia
 |---|---|
 | Tipo | Single Page Application |
 | Token Endpoint Authentication Method | None (cliente público, PKCE) |
-| Allowed Callback URLs | `http://localhost:5173/callback` y la URL de cada entorno |
-| Allowed Logout URLs | `http://localhost:5173/access` y `http://localhost:5173/access/idle` (y las de cada entorno) |
-| Allowed Web Origins | `http://localhost:5173` (y los de cada entorno) |
+| Allowed Callback URLs | `http://localhost:8082/callback` y la URL de cada entorno |
+| Allowed Logout URLs | `http://localhost:8082/access` y `http://localhost:8082/access/idle` (y las de cada entorno) |
+| Allowed Web Origins | `http://localhost:8082` (y los de cada entorno) |
 | Refresh Token Rotation | **Activada** (requisito de la constitución) |
 | Vigencias del refresh token | Recomendación: absoluta no mayor que una jornada y de inactividad de 1 a 2 horas |
 

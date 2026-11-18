@@ -43,7 +43,7 @@ VITE_SUBSCRIPTIONS_API_URL=/proxy/subscriptions
 
 ## Servidor de desarrollo
 
-- Puerto fijo `5173` con `strictPort`, para que las URL registradas en Auth0 sigan siendo válidas.
+- Puerto fijo `8082` con `strictPort`, para que las URL registradas en Auth0 sigan siendo válidas.
 - Proxy `/proxy/users` → `USERS_API_PROXY_TARGET`, quitando el prefijo `/proxy/users`. Evita CORS (el servicio de usuarios solo lo habilita si se configura `CORS_ALLOWED_ORIGINS`) y el *preflight* de la cabecera `Authorization`.
 - Proxy `/proxy/subscriptions` → `SUBSCRIPTIONS_API_PROXY_TARGET`, quitando el prefijo, por la misma razón: la API de suscripciones también tiene `CORS_ALLOWED_ORIGINS` vacía por defecto (feature 003).
 

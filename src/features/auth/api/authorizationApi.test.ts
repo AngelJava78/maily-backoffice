@@ -8,7 +8,7 @@ import { server } from '@/test/server';
 import { getMyAccess } from './authorizationApi';
 import { uuidOf } from '@/test/ids';
 
-const BASE_URL = 'http://localhost:5173/proxy/users';
+const BASE_URL = 'http://localhost:8082/proxy/users';
 const ME_URL = `${BASE_URL}/api/v1/authorization/me`;
 
 const userDto = {

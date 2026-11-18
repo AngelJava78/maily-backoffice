@@ -4,7 +4,7 @@ import { userDto, type RoleDto, type UserDto } from '../factories';
 import { server } from '../server';
 
 /** Base URL the tests use for the users service (the relative `/proxy/users` of development). */
-export const USERS_API_BASE_URL = 'http://localhost:5173/proxy/users';
+export const USERS_API_BASE_URL = 'http://localhost:8082/proxy/users';
 
 /** The records the service keeps about a person: the user and the active roles with permissions. */
 export interface MockAccount {

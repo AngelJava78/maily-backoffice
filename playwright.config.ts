@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const BASE_URL = 'http://localhost:5173';
+const BASE_URL = 'http://localhost:8082';
 
 /**
  * End-to-end tests. They sign in at a real Auth0 tenant with real test accounts, so each spec is
